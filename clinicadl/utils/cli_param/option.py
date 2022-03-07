@@ -48,7 +48,7 @@ n_subjects = click.option(
 )
 preprocessing = click.option(
     "--preprocessing",
-    type=click.Choice(["t1-linear", "t1-extensive", "pet-linear"]),
+    type=click.Choice(["t1-linear", "t1-extensive", "pet-linear","flair-linear"]),
     required=True,
     help="Preprocessing used to generate synthetic data.",
 )

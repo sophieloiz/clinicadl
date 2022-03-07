@@ -11,7 +11,6 @@ from .extract_utils import get_parameters_dict
 @click.command(name="image", no_args_is_help=True)
 @cli_param.argument.caps_directory
 @cli_param.argument.modality
-@cli_param.option.n_proc
 @cli_param.option.subjects_sessions_tsv
 @cli_param.option.extract_json
 @cli_param.option.use_uncropped_image
@@ -21,7 +20,6 @@ from .extract_utils import get_parameters_dict
 def image_cli(
     caps_directory: str,
     modality: str,
-    n_proc: int,
     subjects_sessions_tsv: Optional[str] = None,
     extract_json: str = None,
     use_uncropped_image: bool = False,
@@ -48,7 +46,6 @@ def image_cli(
     DeepLearningPrepareData(
         caps_directory=caps_directory,
         tsv_file=subjects_sessions_tsv,
-        n_proc=n_proc,
         parameters=parameters,
     )
 
@@ -56,7 +53,6 @@ def image_cli(
 @click.command(name="patch", no_args_is_help=True)
 @cli_param.argument.caps_directory
 @cli_param.argument.modality
-@cli_param.option.n_proc
 @cli_param.option.save_features
 @cli_param.option.subjects_sessions_tsv
 @cli_param.option.extract_json
@@ -81,7 +77,6 @@ def image_cli(
 def patch_cli(
     caps_directory: str,
     modality: str,
-    n_proc: int,
     save_features: bool = False,
     subjects_sessions_tsv: Optional[str] = None,
     extract_json: str = None,
@@ -114,7 +109,6 @@ def patch_cli(
     DeepLearningPrepareData(
         caps_directory=caps_directory,
         tsv_file=subjects_sessions_tsv,
-        n_proc=n_proc,
         parameters=parameters,
     )
 
@@ -122,7 +116,6 @@ def patch_cli(
 @click.command(name="slice", no_args_is_help=True)
 @cli_param.argument.caps_directory
 @cli_param.argument.modality
-@cli_param.option.n_proc
 @cli_param.option.save_features
 @cli_param.option.subjects_sessions_tsv
 @cli_param.option.extract_json
@@ -162,7 +155,6 @@ def patch_cli(
 def slice_cli(
     caps_directory: str,
     modality: str,
-    n_proc: int,
     save_features: bool = False,
     subjects_sessions_tsv: Optional[str] = None,
     extract_json: str = None,
@@ -197,7 +189,6 @@ def slice_cli(
     DeepLearningPrepareData(
         caps_directory=caps_directory,
         tsv_file=subjects_sessions_tsv,
-        n_proc=n_proc,
         parameters=parameters,
     )
 
@@ -205,7 +196,6 @@ def slice_cli(
 @click.command(name="roi", no_args_is_help=True)
 @cli_param.argument.caps_directory
 @cli_param.argument.modality
-@cli_param.option.n_proc
 @cli_param.option.save_features
 @cli_param.option.subjects_sessions_tsv
 @cli_param.option.extract_json
@@ -248,7 +238,6 @@ def slice_cli(
 def roi_cli(
     caps_directory: str,
     modality: str,
-    n_proc: int,
     save_features: bool = False,
     subjects_sessions_tsv: Optional[str] = None,
     extract_json: str = None,
@@ -285,7 +274,6 @@ def roi_cli(
     DeepLearningPrepareData(
         caps_directory=caps_directory,
         tsv_file=subjects_sessions_tsv,
-        n_proc=n_proc,
         parameters=parameters,
     )
 
