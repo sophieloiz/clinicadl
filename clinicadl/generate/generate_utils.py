@@ -5,7 +5,7 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
-from clinica.utils.input_files import T1W_LINEAR, T1W_LINEAR_CROPPED, pet_linear_nii
+from clinica.utils.input_files import T1W_LINEAR, T1W_LINEAR_CROPPED, pet_linear_nii, FLAIR_T2W_LINEAR, FLAIR_T2W_LINEAR_CROPPED
 from scipy.ndimage import gaussian_filter
 from skimage.draw import ellipse
 
@@ -23,6 +23,11 @@ def find_file_type(
             file_type = T1W_LINEAR
         else:
             file_type = T1W_LINEAR_CROPPED
+    elif preprocessing == "flair-linear":
+        if uncropped_image:
+            file_type = FLAIR_T2W_LINEAR
+        else:
+            file_type = FLAIR_T2W_LINEAR_CROPPED
     elif preprocessing == "pet-linear":
         if acq_label is None or suvr_reference_region is None:
             raise ClinicaDLArgumentError(

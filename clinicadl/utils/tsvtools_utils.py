@@ -60,7 +60,9 @@ def complementary_list(total_list, sub_list):
 def first_session(subject_df):
     session_list = [int(session[5:]) for _, session in subject_df.index.values]
     session_list.sort()
+    
     first_session = session_list[0]
+    #print(subject_df.columns) # .session_id)
     if first_session < 10:
         return "ses-M0" + str(first_session)
     else:
@@ -92,8 +94,11 @@ def extract_baseline(diagnosis_df, set_index=True):
         all_df = deepcopy(diagnosis_df)
 
     result_df = pd.DataFrame()
+    print(all_df.groupby(level=0))
     for subject, subject_df in all_df.groupby(level=0):
-        baseline = first_session(subject_df)
+        print(subject)
+        #print(subject_df.columns)
+        baseline =first_session(subject_df)
         subject_baseline_df = pd.DataFrame(
             data=[[subject, baseline] + subject_df.loc[(subject, baseline)].tolist()],
             columns=["participant_id", "session_id"]
@@ -103,6 +108,7 @@ def extract_baseline(diagnosis_df, set_index=True):
 
     result_df.reset_index(inplace=True, drop=True)
 
+    
     return result_df
 
 
