@@ -70,7 +70,6 @@ class CapsDataset(Dataset):
             raise AttributeError("Child class of CapsDataset must set mode attribute.")
 
         self.df = data_df
-        print(label)
         mandatory_col = {"participant_id", "session_id"}#, "cohort"}
         if self.label_presence and self.label is not None:
             mandatory_col.add(self.label)
@@ -323,7 +322,6 @@ class CapsDatasetImage(CapsDataset):
 
     def __getitem__(self, idx):
         participant, session, cohort, _, label = self._get_meta_data(idx)
-
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
 
@@ -331,7 +329,8 @@ class CapsDatasetImage(CapsDataset):
             image = self.transformations(image)
 
         if self.augmentation_transformations and not self.eval_mode:
-            image = self.augmentation_transformations(image)
+            if not(label):
+                image = self.augmentation_transformations(image)
 
         sample = {
             "image": image,
@@ -908,7 +907,19 @@ class NanRemoval(object):
         else:
             return image
 
-
+class RandomMotion(object):
+    """Applies a Random Motion"""
+    def __init__(self, rotation=(2,4), translation=(2,4), num_transforms=2):
+        self.rotation = rotation
+        self.translation = translation
+        self.num_transforms = num_transforms
+        
+    def __call__(self, image):
+        import torchio as tio
+        motion = tio.RandomMotion(degrees=self.rotation, translation=self.translation, num_transforms=self.num_transforms)
+        mri_motion = motion(image)
+        return mri_motion
+        
 def get_transforms(
     normalize: bool = True, data_augmentation: List[str] = None
 ) -> Tuple[transforms.Compose, transforms.Compose]:
@@ -927,6 +938,7 @@ def get_transforms(
         "Erasing": transforms.RandomErasing(),
         "CropPad": RandomCropPad(10),
         "Smoothing": RandomSmoothing(),
+        "Motion": RandomMotion(),
         "None": None,
     }
     if data_augmentation:
