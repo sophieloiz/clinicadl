@@ -2,11 +2,12 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from clinicadl.utils.network.network_utils import PadMaxPool2d, PadMaxPool3d
- 
+
 
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
+
 
 class ResBlock(nn.Module):
     def __init__(self, block_number, input_size):
@@ -15,16 +16,22 @@ class ResBlock(nn.Module):
         layer_in = input_size if input_size is not None else 2 ** (block_number + 1)
         layer_out = 2 ** (block_number + 2)
 
-        self.conv1 = nn.Conv3d(layer_in, layer_out, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv3d(
+            layer_in, layer_out, kernel_size=3, stride=1, padding=1, bias=False
+        )
         self.bn1 = nn.BatchNorm3d(layer_out)
         self.act1 = nn.ELU()
 
-        self.conv2 = nn.Conv3d(layer_out, layer_out, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv3d(
+            layer_out, layer_out, kernel_size=3, stride=1, padding=1, bias=False
+        )
         self.bn2 = nn.BatchNorm3d(layer_out)
 
         # shortcut
         self.shortcut = nn.Sequential(
-            nn.Conv3d(layer_in, layer_out, kernel_size=1, stride=1, padding=0, bias=False)
+            nn.Conv3d(
+                layer_in, layer_out, kernel_size=1, stride=1, padding=0, bias=False
+            )
         )
 
         self.act2 = nn.ELU()
@@ -42,10 +49,12 @@ class ResBlock(nn.Module):
 
 
 class ResNetDesigner3D(nn.Module):
-    def __init__(self, input_size=[1, 169, 208, 179]):
+    def __init__(self, input_size=[1, 169, 208, 179], dropout=0.5):
         super(ResNetDesigner3D, self).__init__()
-        
-        assert len(input_size) == 4, "input must be in 3d with the corresponding number of channels"
+
+        assert (
+            len(input_size) == 4
+        ), "input must be in 3d with the corresponding number of channels"
 
         self.layer0 = self._make_block(1, input_size[0])
         self.layer1 = self._make_block(2)
@@ -61,13 +70,13 @@ class ResNetDesigner3D(nn.Module):
         out = self.layer4(out)
 
         d, h, w = self._maxpool_output_size(input_size[1::], nb_layers=5)
-        print(d,h,w)
+        print(d, h, w)
         self.fc = nn.Sequential(
             Flatten(),
             nn.Linear(128 * d * h * w, 256),  # t1 image
             nn.ELU(),
-            nn.Dropout(p=0.8),
-            nn.Linear(256, 2)
+            nn.Dropout(p=dropout),
+            nn.Linear(256, 2),
         )
 
         for layer in self.fc:
@@ -75,11 +84,12 @@ class ResNetDesigner3D(nn.Module):
 
     def _make_block(self, block_number, input_size=None):
         return nn.Sequential(
-            ResBlock(block_number, input_size),
-            nn.MaxPool3d(3, stride=2)
+            ResBlock(block_number, input_size), nn.MaxPool3d(3, stride=2)
         )
 
-    def _maxpool_output_size(self, input_size, kernel_size=(3, 3, 3), stride=(2, 2, 2), nb_layers=1):
+    def _maxpool_output_size(
+        self, input_size, kernel_size=(3, 3, 3), stride=(2, 2, 2), nb_layers=1
+    ):
         import math
 
         d = math.floor((input_size[0] - kernel_size[0]) / stride[0] + 1)
@@ -88,4 +98,6 @@ class ResNetDesigner3D(nn.Module):
 
         if nb_layers == 1:
             return d, h, w
-        return self._maxpool_output_size((d, h, w), kernel_size=kernel_size, stride=stride, nb_layers=nb_layers-1)
+        return self._maxpool_output_size(
+            (d, h, w), kernel_size=kernel_size, stride=stride, nb_layers=nb_layers - 1
+        )

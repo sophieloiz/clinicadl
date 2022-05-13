@@ -179,7 +179,7 @@ class ResNet3D(CNN):
     def __init__(
         self, input_size=[1, 169, 208, 179], gpu=True, output_size=2, dropout=0.5
     ):
-        model = ResNetDesigner3D(input_size)
+        model = ResNetDesigner3D(input_size, dropout)
 
         convolutions = nn.Sequential(
             model.layer0, model.layer1, model.layer2, model.layer3, model.layer4
@@ -231,6 +231,38 @@ class AttentionNet(CNN):
         )
 
         fc = model.classifier
+
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+
+class GoogleNet(CNN):
+    def __init__(
+        self, input_size=[1, 169, 208, 179], gpu=True, output_size=2, dropout=0.5
+    ):
+        model = GoogLeNet3D_Designer()
+
+        convolutions = nn.Sequential(
+            model.pre_layers,
+            model.a3,
+            model.b3,
+            model.maxpool,
+            model.a4,  # output for the gradient injection
+            model.b4,
+            model.c4,
+            model.d4,  # output for the gradient injection
+            model.e4,
+            model.maxpool,
+            model.a5,
+            model.b5,
+            model.avgpool,  # Add dropout ?
+        )
+
+        fc = model.linear  # Need resize ?
 
         super().__init__(
             convolutions=convolutions,
