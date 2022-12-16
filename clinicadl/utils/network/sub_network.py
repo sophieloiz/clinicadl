@@ -1,3 +1,4 @@
+import abc
 from collections import OrderedDict
 from logging import getLogger
 
@@ -13,7 +14,7 @@ from clinicadl.utils.network.network_utils import (
     PadMaxPool3d,
 )
 
-logger = getLogger("clinicadl")
+logger = getLogger("clinicadl.networks")
 
 
 class AutoEncoder(Network):

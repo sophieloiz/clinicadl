@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 from clinica.utils.exceptions import ClinicaCAPSError
 from torch.utils.data import Dataset
 
-from clinicadl.extract.extract_utils import (
+from clinicadl.prepare_data.prepare_data_utils import (
     PATTERN_DICT,
     TEMPLATE_DICT,
     compute_discarded_slices,
@@ -31,7 +31,7 @@ from clinicadl.utils.exceptions import (
     ClinicaDLTSVError,
 )
 
-logger = getLogger("clinicadl")
+logger = getLogger("clinicadl.datasets")
 
 
 #################################
@@ -152,11 +152,10 @@ class CapsDataset(Dataset):
         # Try to find .nii.gz file
         try:
             file_type = self.preprocessing_dict["file_type"]
-            results = clinica_file_reader(
+            image_path_list, _ = clinica_file_reader(
                 [participant], [session], self.caps_dict[cohort], file_type
             )
-            filepath = results[0]
-            image_filename = path.basename(filepath[0]).replace(".nii.gz", ".pt")
+            image_filename = path.basename(image_path_list[0]).replace(".nii.gz", ".pt")
             folder, _ = compute_folder_and_file_type(self.preprocessing_dict)
             image_dir = path.join(
                 self.caps_dict[cohort],
@@ -172,11 +171,10 @@ class CapsDataset(Dataset):
         except ClinicaCAPSError:
             file_type = self.preprocessing_dict["file_type"]
             file_type["pattern"] = file_type["pattern"].replace(".nii.gz", ".pt")
-            results = clinica_file_reader(
+            image_path_list, _ = clinica_file_reader(
                 [participant], [session], self.caps_dict[cohort], file_type
             )
-            filepath = results[0]
-            image_path = filepath[0]
+            image_path = image_path_list[0]
 
         return image_path
 
@@ -197,7 +195,6 @@ class CapsDataset(Dataset):
         participant = self.df.loc[image_idx, "participant_id"]
         session = self.df.loc[image_idx, "session_id"]
         cohort = self.df.loc[image_idx, "cohort"]
-
         if self.elem_index is None:
             elem_idx = idx % self.elem_per_image
         else:
@@ -231,10 +228,10 @@ class CapsDataset(Dataset):
             image = torch.load(image_path)
         except IndexError:
             file_type = self.preprocessing_dict["file_type"]
-            results = clinica_file_reader(
+            image_path_list, _ = clinica_file_reader(
                 [participant_id], [session_id], self.caps_dict[cohort], file_type
             )
-            image_nii = nib.load(results[0])
+            image_nii = nib.load(image_path_list[0])
             image_np = image_nii.get_fdata()
             image = ToTensor()(image_np)
 
@@ -487,7 +484,7 @@ class CapsDatasetRoi(CapsDataset):
         self.uncropped_roi = preprocessing_dict["uncropped_roi"]
         self.prepare_dl = preprocessing_dict["prepare_dl"]
         self.mask_paths, self.mask_arrays = self._get_mask_paths_and_tensors(
-            caps_directory, preprocessing_dict
+            caps_directory, multi_cohort, preprocessing_dict
         )
         super().__init__(
             caps_directory,
@@ -553,10 +550,22 @@ class CapsDatasetRoi(CapsDataset):
             return len(self.roi_list)
 
     def _get_mask_paths_and_tensors(
-        self, caps_directory: str, preprocessing_dict: Dict[str, Any]
+        self,
+        caps_directory: str,
+        multi_cohort: bool,
+        preprocessing_dict: Dict[str, Any],
     ) -> Tuple[List[str], List]:
         """Loads the masks necessary to regions extraction"""
         import nibabel as nib
+
+        caps_dict = self.create_caps_dict(caps_directory, multi_cohort)
+
+        if len(caps_dict) > 1:
+            caps_directory = caps_dict[next(iter(caps_dict))]
+            logger.warning(
+                f"The equality of masks is not assessed for multi-cohort training. "
+                f"The masks stored in {caps_directory} will be used."
+            )
 
         # Find template name
         if preprocessing_dict["preprocessing"] == "custom":
@@ -745,7 +754,6 @@ def return_dataset(
         raise NotImplementedError(
             f"Multi-CNN is not implemented for {preprocessing_dict['mode']} mode."
         )
-
     if preprocessing_dict["mode"] == "image":
         return CapsDatasetImage(
             input_dir,

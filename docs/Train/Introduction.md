@@ -53,16 +53,17 @@ Options shared for all values of `NETWORK_TASK` are organized in groups:
 
 !!! warning "Architecture limitations"
     Depending on the task, the output size needed to learn the task may vary:
-
-        - for `classification` the network must output a vector of length equals to the number of classes,
-        - for `regression` the network has only one output node,
-        - for `reconstruction` the network outputs an image of the same size as the input.
+    <ul>
+        <li> for <code>classification</code> the network must output a vector of length equals to the number of classes,</li>
+        <li> for <code>regression</code> the network has only one output node,</li>
+        <li> for <code>reconstruction</code> the network outputs an image of the same size as the input.</li>
+    </ul>
     If you want to use custom architecture, be sure to respect the output size needed for the learnt task.
 
 - **Computational resources**
     - `--gpu/--no-gpu` (bool) Use GPU acceleration. Default behavior is to try to use a GPU and to raise an error if it is not found. Please specify `--no-gpu` to use CPU instead.
     - `--n_proc` (int) is the number of workers used by the DataLoader. Default: `2`.
-    - `--batch_size` (int) is the size of the batch used in the DataLoader. Default: `2`.
+    - `--batch_size` (int) is the size of the batch used in the DataLoader. Default: `8`.
     - `--evaluation_steps` (int) gives the number of iterations to perform an [evaluation internal to an epoch](Details.md#evaluation). 
     Default will only perform an evaluation at the end of each epoch.
 - **Data management**
@@ -123,6 +124,13 @@ A few options depend on the task performed:
     if several images are extracted from the same original 3D image (i.e. `num_networks` > 1). Default: `0`.
     - `--loss` (str) is the name of the loss used to optimize the classification task.
     Must correspond to a Pytorch class. Default: `CrossEntropyLoss`.
+    
+!!! note
+    Users can also set themselves the `label_code` parameter, but only from the configuration file.
+    This parameter allows to choose which name as written in the `label` column is associated with
+    which node value (designated by the corresponding integer). This way several names may be associated
+    with the same node.
+
 
 - **regression**
     The objective of the `regression` is to learn the value of a continuous variable given an image.
@@ -163,25 +171,33 @@ multi_network = false
 # CNN
 dropout = 0.0 # between 0 and 1
 # VAE
-latent_space_dimension = 64
-latent_space_size = 2
+latent_space_size = 128
+feature_size = 1024
+n_conv = 4
+io_layer_channels = 8
+recons_weight = 1
+KL_weight = 1
 
 [Classification]
 selection_metrics = ["loss"]
 label = "diagnosis"
+label_code = {}
 selection_threshold = 0.0 # Will only be used if num_networks != 1
+loss = "CrossEntropyLoss"
 
 [Regression]
 selection_metrics = ["loss"]
 label = "age"
+loss = "MSELoss"
 
 [Reconstruction]
 selection_metrics = ["loss"]
+loss = "MSELoss"
 
 [Computational]
 gpu = true
 n_proc = 2
-batch_size = 2
+batch_size = 8
 evaluation_steps = 0
 
 [Reproducibility]
@@ -192,6 +208,10 @@ compensation = "memory" # Only used if deterministic = true
 [Transfer_learning]
 transfer_path = ""
 transfer_selection_metric = "loss"
+
+[Mode]
+# require to manually generate preprocessing json
+use_extracted_features = false
 
 [Data]
 multi_cohort = false
@@ -206,6 +226,7 @@ n_splits = 0
 split = []
 
 [Optimization]
+optimizer = "Adam"
 epochs = 20
 learning_rate = 1e-4
 weight_decay = 1e-4
@@ -223,4 +244,4 @@ This file is available at `clinicadl/resources/config/train_config.toml` in the 
 
 The `clinicadl train` command outputs a [MAPS structure](../Introduction.md#maps-definition) in which there are only two data groups: `train` and `validation`.
 To limit the size of the MAPS produced, tensor inputs and outputs of each group are only produced thanks to one image of the data set
-(for more information on input and output tensor serialization report to [the dedicated section](../Tensors.md)).
+(for more information on input and output tensor serialization report to [the dedicated section](../Predict.md)).

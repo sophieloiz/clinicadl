@@ -89,25 +89,25 @@ def build_train_dict(config_file: str, task: str) -> Dict[str, Any]:
     return train_dict
 
 
-def get_model_list(architecture=None, input_size=(128, 128)):
+def get_model_list(architecture=None, input_size=None, model_layers=False):
     """
     Print the list of models available in ClinicaDL.
-    If architecture is given, it prints the details of the specified model.
+    If --architecture is given, information about how to use this model will be displayed.
+    If --model_layers flag is added, this pipeline will show the whole model layers.
+    If --input_size is added, it will show the whole model layers with chosen input shape.
     """
     from inspect import getmembers, isclass
-
-    from click import echo, secho
 
     import clinicadl.utils.network as network_package
 
     if not architecture:
-        echo("The list of currently available models is:")
+        print("The list of currently available models is:")
         model_list = getmembers(network_package, isclass)
         for model in model_list:
             if model[0] != "RandomArchitecture":
-                echo(f" - {model[0]}")
-        echo(
-            "To show details of a specific model architecture please use the --architecture option"
+                print(f" - {model[0]}")
+        print(
+            "To show details of a specific model architecture please use the `--architecture` option"
         )
     else:
         model_class = getattr(network_package, architecture)
@@ -116,17 +116,50 @@ def get_model_list(architecture=None, input_size=(128, 128)):
                 : model_class.__init__.__code__.co_argcount
             ]
         )
+        if not input_size:
+            input_size = model_class.get_input_size()
 
-        # parse input_size
-        chanel, shape_list = input_size.split("@")
+        title_str = f"\nInformation about '{architecture}' network:\n"
 
-        args.remove("self")
-        kwargs = dict()
-        kwargs["input_size"] = [int(chanel)] + [int(x) for x in shape_list.split("x")]
-        kwargs["gpu"] = False
+        dimension = model_class.get_dimension()
+        dimension_str = f"\n\tThis model can deal with {dimension} inputs.".expandtabs(
+            4
+        )
 
-        model = model_class(**kwargs)
-        secho(f"Information for {architecture} network", bold=True)
-        echo(f"Input size: {input_size}")
-        echo("Model layers:")
-        echo(model.layers)
+        if dimension == "2D":
+            shape_str = "C@HxW,"
+        elif dimension == "3D":
+            shape_str = "C@DxHxW,"
+        elif dimension == "2D or 3D":
+            shape_str = "C@HxW or C@DxHxW,"
+
+        shape_str = "\n\tThe input must be in the shape ".expandtabs(4) + shape_str
+        input_size_str = f" for example input_size can be {input_size}."
+
+        task_str = f"\n\tThis model can be used for {' or '.join(model_class.get_task())}.\n".expandtabs(
+            4
+        )
+
+        print(
+            title_str
+            + model_class.__doc__
+            + dimension_str
+            + shape_str
+            + input_size_str
+            + task_str
+        )
+
+        if model_layers:
+            chanel, shape_list = input_size.split("@")
+            args.remove("self")
+            kwargs = dict()
+            kwargs["input_size"] = [int(chanel)] + [
+                int(x) for x in shape_list.split("x")
+            ]
+            kwargs["gpu"] = False
+
+            model = model_class(**kwargs)
+
+            print(f"Input size: {input_size}")
+            print("Model layers:")
+            print(model.layers)

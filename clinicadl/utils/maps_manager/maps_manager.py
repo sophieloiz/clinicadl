@@ -25,7 +25,8 @@ from clinicadl.utils.exceptions import (
     ClinicaDLDataLeakageError,
     MAPSError,
 )
-from clinicadl.utils.maps_manager.logwriter import LogWriter, setup_logging
+from clinicadl.utils.logger import setup_logging
+from clinicadl.utils.maps_manager.logwriter import LogWriter
 from clinicadl.utils.maps_manager.maps_manager_utils import (
     add_default_values,
     read_json,
@@ -34,7 +35,7 @@ from clinicadl.utils.metric_module import RetainBest
 from clinicadl.utils.network.network import Network
 from clinicadl.utils.seed import get_seed, pl_worker_init_function, seed_everything
 
-logger = getLogger("clinicadl")
+logger = getLogger("clinicadl.maps_manager")
 
 
 level_list: List[str] = ["warning", "info", "debug"]
@@ -184,6 +185,8 @@ class MapsManager:
         overwrite: bool = False,
         label: str = None,
         label_code: Optional[Dict[str, int]] = "default",
+        save_tensor: bool = False,
+        save_nifti: bool = False,
     ):
         """
         Performs the prediction task on a subset of caps_directory defined in a TSV file.
@@ -225,7 +228,6 @@ class MapsManager:
                 diagnoses if len(diagnoses) != 0 else self.diagnoses,
                 multi_cohort=multi_cohort,
             )
-
         criterion = self.task_manager.get_criterion(self.loss)
         self._check_data_group(
             data_group,
@@ -235,11 +237,9 @@ class MapsManager:
             overwrite,
             label=label,
         )
-
         for split in split_list:
             logger.info(f"Prediction of split {split}")
             group_df, group_parameters = self.get_group_info(data_group, split)
-
             # Find label code if not given
             if label is not None and label != self.label and label_code == "default":
                 self.task_manager.generate_label_code(group_df, label)
@@ -271,7 +271,7 @@ class MapsManager:
                         label_presence=use_labels,
                         label=self.label if label is None else label,
                         label_code=self.label_code
-                        if label_code is "default"
+                        if label_code == "default"
                         else label_code,
                         cnn_index=network,
                     )
@@ -283,7 +283,6 @@ class MapsManager:
                         shuffle=False,
                         num_workers=n_proc if n_proc is not None else self.n_proc,
                     )
-
                     self._test_loader(
                         test_loader,
                         criterion,
@@ -294,6 +293,24 @@ class MapsManager:
                         gpu=gpu,
                         network=network,
                     )
+                    if save_tensor:
+                        self._compute_output_tensors(
+                            data_test,
+                            data_group,
+                            split,
+                            selection_metrics,
+                            gpu=gpu,
+                            network=network,
+                        )
+                    if save_nifti:
+                        self._compute_output_nifti(
+                            data_test,
+                            data_group,
+                            split,
+                            selection_metrics,
+                            gpu=gpu,
+                            network=network,
+                        )
             else:
                 data_test = return_dataset(
                     group_parameters["caps_directory"],
@@ -304,7 +321,7 @@ class MapsManager:
                     label_presence=use_labels,
                     label=self.label if label is None else label,
                     label_code=self.label_code
-                    if label_code is "default"
+                    if label_code == "default"
                     else label_code,
                 )
 
@@ -316,7 +333,6 @@ class MapsManager:
                     shuffle=False,
                     num_workers=n_proc if n_proc is not None else self.n_proc,
                 )
-
                 self._test_loader(
                     test_loader,
                     criterion,
@@ -326,131 +342,29 @@ class MapsManager:
                     use_labels=use_labels,
                     gpu=gpu,
                 )
-            self._ensemble_prediction(data_group, split, selection_metrics, use_labels)
-
-    def save_tensors(
-        self,
-        data_group,
-        caps_directory=None,
-        tsv_path=None,
-        split_list=None,
-        selection_metrics=None,
-        multi_cohort=False,
-        diagnoses=(),
-        nifti=False,
-        gpu=None,
-        overwrite=False,
-    ):
-
-        """
-        Computes and saves the input and output tensors of the set data_group.
-
-        Args:
-            data_group (str): name of the data group on which extraction is performed.
-            caps_directory (str): path to the CAPS folder. For more information please refer to
-                [clinica documentation](https://aramislab.paris.inria.fr/clinica/docs/public/latest/CAPS/Introduction/).
-                Default will load the value of an existing data group.
-            tsv_path (str): path to a TSV file containing the list of participants and sessions to test.
-                Default will load the DataFrame of an existing data group.
-            split_list (list[int]): list of splits to test. Default perform prediction on all splits available.
-            selection_metrics (list[str]): list of selection metrics to test.
-                Default performs the prediction on all selection metrics available.
-            multi_cohort (bool): If True considers that tsv_path is the path to a multi-cohort TSV.
-            diagnoses (list[str]): List of diagnoses to load if tsv_path is a split_directory.
-            gpu (bool): If given, a new value for the device of the model will be computed.
-            overwrite (bool): If True erase the occurrences of data_group.
-        """
-        if split_list is None:
-            split_list = self._find_splits()
-        logger.debug(f"List of splits {split_list}")
-
-        _, all_transforms = get_transforms(
-            normalize=self.normalize,
-            data_augmentation=self.data_augmentation,
-        )
-
-        group_df = None
-        if tsv_path is not None:
-            group_df = load_data_test(
-                tsv_path,
-                diagnoses if len(diagnoses) != 0 else self.diagnoses,
-                multi_cohort=multi_cohort,
-            )
-
-        self._check_data_group(
-            data_group, caps_directory, group_df, multi_cohort, overwrite
-        )
-
-        split_manager = self._init_split_manager(split_list)
-        for split in split_manager.split_iterator():
-            logger.info(f"Saving tensors of split {split}")
-            group_df, group_parameters = self.get_group_info(data_group, split)
-
-            if selection_metrics is None:
-                selection_metrics = self._find_selection_metrics(split)
-
-            if self.multi_network:
-                for network in range(self.num_networks):
-                    dataset = return_dataset(
-                        group_parameters["caps_directory"],
-                        group_df,
-                        self.preprocessing_dict,
-                        all_transformations=all_transforms,
-                        multi_cohort=group_parameters["multi_cohort"],
-                        label=self.label,
-                        label_code=self.label_code,
-                        cnn_index=network,
-                    )
-                    if nifti:
-                        self._compute_output_nifti(
-                            dataset,
-                            data_group,
-                            split,
-                            selection_metrics,
-                            gpu=gpu,
-                            network=network,
-                        )
-                    else:
-                        self._compute_output_tensors(
-                            dataset,
-                            data_group,
-                            split,
-                            selection_metrics,
-                            gpu=gpu,
-                            network=network,
-                        )
-
-            else:
-                dataset = return_dataset(
-                    group_parameters["caps_directory"],
-                    group_df,
-                    self.preprocessing_dict,
-                    all_transformations=all_transforms,
-                    multi_cohort=self.multi_cohort,
-                    label=self.label,
-                    label_code=self.label_code,
-                )
-                if nifti:
-                    self._compute_output_nifti(
-                        dataset,
-                        data_group,
-                        split,
-                        selection_metrics,
-                        gpu=gpu,
-                    )
-                else:
+                if save_tensor:
                     self._compute_output_tensors(
-                        dataset,
+                        data_test,
                         data_group,
                         split,
                         selection_metrics,
                         gpu=gpu,
                     )
+                if save_nifti:
+                    self._compute_output_nifti(
+                        data_test,
+                        data_group,
+                        split,
+                        selection_metrics,
+                        gpu=gpu,
+                    )
+            self._ensemble_prediction(data_group, split, selection_metrics, use_labels)
 
     def interpret(
         self,
         data_group,
         name,
+        method,
         caps_directory=None,
         tsv_path=None,
         split_list=None,
@@ -464,14 +378,15 @@ class MapsManager:
         gpu=None,
         overwrite=False,
         overwrite_name=False,
+        level=None,
     ):
         """
         Performs the interpretation task on a subset of caps_directory defined in a TSV file.
         The mean interpretation is always saved, to save the individual interpretations set save_individual to True.
-
         Args:
             data_group (str): name of the data group interpreted.
             name (str): name of the interpretation procedure.
+            method (str): method used for extraction (ex: gradients, grad-cam...).
             caps_directory (str): path to the CAPS folder. For more information please refer to
                 [clinica documentation](https://aramislab.paris.inria.fr/clinica/docs/public/latest/CAPS/Introduction/).
                 Default will load the value of an existing data group.
@@ -490,11 +405,18 @@ class MapsManager:
             gpu (bool): If given, a new value for the device of the model will be computed.
             overwrite (bool): If True erase the occurrences of data_group.
             overwrite_name (bool): If True erase the occurrences of name.
+            level (int): layer number in the convolutional part after which the feature map is chosen.
         """
 
         from torch.utils.data import DataLoader
 
-        from clinicadl.interpret.gradients import VanillaBackProp
+        from clinicadl.interpret.gradients import method_dict
+
+        if method not in method_dict.keys():
+            raise NotImplementedError(
+                f"Interpretation method {method} is not implemented. "
+                f"Please choose in {method_dict.keys()}"
+            )
 
         if split_list is None:
             split_list = self._find_splits()
@@ -572,23 +494,25 @@ class MapsManager:
                     gpu=gpu,
                 )
 
-                interpreter = VanillaBackProp(model)
+                interpreter = method_dict[method](model)
 
                 cum_maps = [0] * data_test.elem_per_image
                 for data in test_loader:
                     images = data["image"].to(model.device)
 
-                    map_pt = interpreter.generate_gradients(images, target_node)
+                    map_pt = interpreter.generate_gradients(
+                        images, target_node, level=level
+                    )
                     for i in range(len(data["participant_id"])):
                         mode_id = data[f"{self.mode}_id"][i]
                         cum_maps[mode_id] += map_pt[i]
                         if save_individual:
                             single_path = path.join(
                                 results_path,
-                                f"participant-{data['participant_id'][i]}_session-{data['session_id'][i]}_"
+                                f"{data['participant_id'][i]}_{data['session_id'][i]}_"
                                 f"{self.mode}-{data[f'{self.mode}_id'][i]}_map.pt",
                             )
-                            torch.save(map_pt, single_path)
+                            torch.save(map_pt[i], single_path)
                 for i, mode_map in enumerate(cum_maps):
                     mode_map /= len(data_test)
                     torch.save(
@@ -1254,21 +1178,26 @@ class MapsManager:
             self.parameters["architecture"] = self.task_manager.get_default_network()
         if "selection_threshold" not in self.parameters:
             self.parameters["selection_threshold"] = None
-        label_code = self.task_manager.generate_label_code(train_df, self.label)
+        if (
+            "label_code" not in self.parameters
+            or len(self.parameters["label_code"]) == 0
+        ):  # Allows to set custom label code in TOML
+            self.parameters["label_code"] = self.task_manager.generate_label_code(
+                train_df, self.label
+            )
         full_dataset = return_dataset(
             self.caps_directory,
             train_df,
             self.preprocessing_dict,
             multi_cohort=self.multi_cohort,
             label=self.label,
-            label_code=label_code,
+            label_code=self.parameters["label_code"],
             train_transformations=None,
             all_transformations=transformations,
         )
         self.parameters.update(
             {
                 "num_networks": full_dataset.elem_per_image,
-                "label_code": label_code,
                 "output_size": self.task_manager.output_size(
                     full_dataset.size, full_dataset.df, self.label
                 ),
@@ -1551,7 +1480,6 @@ class MapsManager:
                 columns = ["participant_id", "session_id", "cohort"]
                 if self.label is not None:
                     columns.append(self.label)
-
                 df.to_csv(path.join(group_path, "data.tsv"), sep="\t", columns=columns)
                 self.write_parameters(
                     group_path,
@@ -2026,6 +1954,19 @@ class MapsManager:
         return self._init_model(
             self.maps_path, selection_metric, split, network=network
         )[0]
+
+    def get_best_epoch(
+        self, split: int = 0, selection_metric: str = None, network: int = None
+    ) -> int:
+        selection_metric = self._check_selection_metric(split, selection_metric)
+        if self.multi_network:
+            if network is None:
+                raise ClinicaDLArgumentError(
+                    "Please precise the network number that must be loaded."
+                )
+        return self.get_state_dict(split=split, selection_metric=selection_metric)[
+            "epoch"
+        ]
 
     def get_state_dict(
         self, split=0, selection_metric=None, network=None, map_location=None
