@@ -1,4 +1,4 @@
-name: clinicadl_test
+name: clinicadl
 channels:
   - defaults
   - conda-forge
