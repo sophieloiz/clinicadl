@@ -884,6 +884,28 @@ class GaussianSmoothing(object):
         return sample
 
 
+class RandomMotion(object):
+    """Applies a Random Motion"""
+
+    def __init__(self, translation=(2, 9), rotation=(2, 9), num_transforms=4):
+        self.rotation = rotation
+        self.translation = translation
+        self.num_transforms = num_transforms
+
+    def __call__(self, image):
+        import torchio as tio
+
+        motion = tio.RandomMotion(
+            degrees=self.rotation,
+            translation=self.translation,
+            num_transforms=self.num_transforms,
+        )
+
+        image = motion(image)
+
+        return image
+
+
 class ToTensor(object):
     """Convert image type to Tensor and diagnosis to diagnosis code"""
 
@@ -933,6 +955,7 @@ def get_transforms(
     augmentation_dict = {
         "Noise": RandomNoising(sigma=0.1),
         "Erasing": transforms.RandomErasing(),
+        "Motion": RandomMotion(),
         "CropPad": RandomCropPad(10),
         "Smoothing": RandomSmoothing(),
         "None": None,
