@@ -900,7 +900,7 @@ class RandomMotion(object):
             translation=self.translation,
             num_transforms=self.num_transforms,
         )
-
+        print("Motion Generated")
         image = motion(image)
 
         return image
