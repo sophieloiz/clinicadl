@@ -1890,6 +1890,26 @@ class MapsManager:
             logger.debug(f"Transfer from {transfer_class}")
             model.transfer_weights(transfer_state["model"], transfer_class)
 
+            list_name = []
+            list_param = []
+            for name, param in model.named_parameters():
+                list_name.append(name)
+                list_param.append(param)
+            for i in range(len(list_name)):
+                param = list_param[i]
+                name = list_name[i]
+                print("Freeze")
+                param.requires_grad = False
+                print(name, param.requires_grad)
+            for i in range(
+                6
+            ):  # Number in range depends on how many layers (weight + bias) to freeze (2*N)
+                param = list_param[len(list_param) - i - 1]
+                name = list_name[len(list_name) - i - 1]
+                print("UnFreeze")
+                param.requires_grad = True
+                print(name, param.requires_grad)
+
         return model, current_epoch
 
     def _init_optimizer(self, model, split=None, resume=False):
