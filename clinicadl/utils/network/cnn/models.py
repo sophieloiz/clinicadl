@@ -5,6 +5,10 @@ from torch import nn
 from torchvision.models.resnet import BasicBlock
 
 from clinicadl.utils.network.cnn.resnet import ResNetDesigner, model_urls
+from clinicadl.utils.network.cnn.resnet3D import ResNetDesigner3D
+from clinicadl.utils.network.cnn.attentionnet import AttentionDesigner3D
+from clinicadl.utils.network.cnn.SE_CNN import SECNNDesigner3D
+from clinicadl.utils.network.cnn.inception import GoogLeNet3D_Designer
 from clinicadl.utils.network.network_utils import PadMaxPool2d, PadMaxPool3d
 from clinicadl.utils.network.sub_network import CNN
 
@@ -217,6 +221,103 @@ class resnet18(CNN):
     @staticmethod
     def get_task():
         return ["classification"]
+
+
+class ResNet3D(CNN):
+    def __init__(
+        self, input_size=[1, 169, 208, 179], gpu=True, output_size=2, dropout=0.5
+    ):
+        model = ResNetDesigner3D(input_size, dropout)
+
+        convolutions = nn.Sequential(
+            model.layer0, model.layer1, model.layer2, model.layer3, model.layer4
+        )
+
+        fc = model.fc
+
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+
+class SECNN3D(CNN):
+    def __init__(
+        self, input_size=[1, 169, 208, 179], gpu=True, output_size=2, dropout=0.5
+    ):
+        model = SECNNDesigner3D(input_size, dropout)
+
+        convolutions = nn.Sequential(
+            model.layer0, model.layer1, model.layer2, model.layer3, model.layer4
+        )
+
+        fc = model.fc
+
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+
+class AttentionNet(CNN):
+    def __init__(
+        self, input_size=[1, 169, 208, 179], gpu=True, output_size=2, dropout=0.5
+    ):
+        model = AttentionDesigner3D()
+
+        convolutions = nn.Sequential(
+            model.pre_conv,
+            model.stage1,
+            model.stage2,
+            model.stage3,
+            model.stage4,
+            model.avg,
+        )
+
+        fc = model.classifier
+
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+
+class GoogleNet(CNN):
+    def __init__(
+        self, input_size=[1, 169, 208, 179], gpu=True, output_size=2, dropout=0.5
+    ):
+        model = GoogLeNet3D_Designer()
+
+        convolutions = nn.Sequential(
+            model.pre_layers,
+            model.a3,
+            model.b3,
+            model.maxpool,
+            model.a4,  # output for the gradient injection
+            model.b4,
+            model.c4,
+            model.d4,  # output for the gradient injection
+            model.e4,
+            model.maxpool,
+            model.a5,
+            model.b5,
+            model.avgpool,  # Add dropout ?
+        )
+
+        fc = model.linear  # Need resize ?
+
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
 
 
 class Stride_Conv5_FC3(CNN):
