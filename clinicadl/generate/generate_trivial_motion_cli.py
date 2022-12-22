@@ -1,5 +1,5 @@
 import click
-
+from typing import Dict, Tuple, List, Union, Optional
 from clinicadl.utils import cli_param
 
 
@@ -12,6 +12,33 @@ from clinicadl.utils import cli_param
 @cli_param.option.use_uncropped_image
 @cli_param.option.acq_label
 @cli_param.option.suvr_reference_region
+@click.option(
+    "--motion_type",
+    type=click.Choice(["image", "kspace"]),
+    required=True,
+    help="Motion type : image or kspace",
+)
+@click.option(
+    "--translation",
+    type=float,
+    multiple=2,
+    default= [2,4],
+
+    help="Range in mm for the translation",
+)
+@click.option(
+    "--rotation",
+    type=float,
+    multiple=2,
+    default= [2,4],
+    help="Range in degree for the rotation",
+)
+@click.option(
+    "--num_transforms",
+    type=int,
+    default=2,
+    help="Number of transforms",
+)
 def cli(
     caps_directory,
     generated_caps_directory,
@@ -21,6 +48,10 @@ def cli(
     use_uncropped_image,
     acq_label,
     suvr_reference_region,
+    motion_type,
+    translation,
+    rotation,
+    num_transforms
 ):
     """Generation of trivial dataset with addition of synthetic brain atrophy.
 
@@ -39,6 +70,10 @@ def cli(
         uncropped_image=use_uncropped_image,
         acq_label=acq_label,
         suvr_reference_region=suvr_reference_region,
+        motion_type=motion_type,
+        translation=translation,
+        rotation=rotation,
+        num_transforms=num_transforms,
     )
 
 

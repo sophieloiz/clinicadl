@@ -7,7 +7,7 @@ import tarfile
 from os import makedirs
 from os.path import basename, dirname, exists, join
 from typing import Dict, Optional, Tuple
-
+from typing import Dict, Tuple, List, Union, Optional
 import nibabel as nib
 import numpy as np
 import pandas as pd
@@ -27,7 +27,10 @@ from .generate_utils import (
     load_and_check_tsv,
     write_missing_mods,
 )
-
+import sys
+sys.path.append("/network/lustre/iss02/home/sophie.loizillon/torchio")
+from torchio.transforms.augmentation.intensity import RandomMotionFromTimeCourse, RandomMotion
+from torchio.data.image import ScalarImage
 
 def generate_random_dataset(
     caps_directory: str,
@@ -302,6 +305,10 @@ def generate_motion_dataset(
     uncropped_image: bool = False,
     acq_label: str = "fdg",
     suvr_reference_region: str = "pons",
+    motion_type : str = "image",
+    translation: List = [2,4],
+    rotation: List = [2,4],
+    num_transforms: int = 2,
 ):
     """
     Generates a fully separable dataset.
@@ -317,12 +324,11 @@ def generate_motion_dataset(
         n_subjects: number of subjects in each class of the synthetic dataset.
         tsv_path: path to tsv file of list of subjects/sessions.
         preprocessing: preprocessing performed. Must be in ['linear', 'extensive'].
-        mask_path: path to the extracted masks to generate the two labels.
-        atrophy_percent: percentage of atrophy applied.
         multi_cohort: If True caps_directory is the path to a TSV file linking cohort names and paths.
         uncropped_image: If True the uncropped image of `t1-linear` or `pet-linear` will be used.
         acq_label: name of the tracer when using `pet-linear` preprocessing.
         suvr_reference_region: name of the reference region when using `pet-linear` preprocessing.
+        motion_type: type of motion simulation (image or kspace based)
 
     Returns:
         Folder structure where images are stored in CAPS format.
@@ -384,8 +390,7 @@ def generate_motion_dataset(
             [participant_id], [session_id], caps_dict[cohort], file_type
         )[0]
         image_nii = nib.load(image_paths[0])
-        image = image_nii.get_data()
-
+        
         input_filename = basename(image_paths[0])
         filename_pattern = "_".join(input_filename.split("_")[2::])
 
@@ -396,15 +401,21 @@ def generate_motion_dataset(
 
         makedirs(trivial_image_nii_dir, exist_ok=True)
 
-        import torchio as tio
-        # Create image with motion
-        motion = tio.RandomMotion(
-            degrees=(8,10),
-            translation=(8,10),
-            num_transforms=4,
-        )
-        trivial_image_nii = motion(image_nii)
-        trivial_image_nii.to_filename(
+        if motion_type == "image":
+            motion = RandomMotion(
+                degrees=(rotation[0],rotation[1]),
+                translation=(translation[0],translation[1]),
+                num_transforms=num_transforms,
+            )
+
+        elif motion_type == "kspace":
+            motion = RandomMotionFromTimeCourse(
+                maxGlobalRot=(rotation[0],rotation[1]),
+                maxGlobalDisp=(translation[0],translation[1])
+            )
+
+        trivial_image = motion(ScalarImage(image_paths[0]))
+        trivial_image.save(
             join(trivial_image_nii_dir, trivial_image_nii_filename)
         )
         print(join(trivial_image_nii_dir, trivial_image_nii_filename))
