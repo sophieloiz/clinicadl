@@ -298,7 +298,6 @@ def generate_trivial_dataset(
 def generate_motion_dataset(
     caps_directory: str,
     output_dir: str,
-    n_subjects: int,
     tsv_path: Optional[str] = None,
     preprocessing: str = "t1-linear",
     multi_cohort: bool = False,
@@ -344,8 +343,7 @@ def generate_motion_dataset(
         {
             "output_dir": output_dir,
             "caps_dir": caps_directory,
-            "preprocessing": preprocessing,
-            "n_subjects": n_subjects,
+            "preprocessing": preprocessing
         }
     )
 
@@ -360,17 +358,11 @@ def generate_motion_dataset(
 
     makedirs(cache_clinicadl, exist_ok=True)
 
-    if n_subjects > len(data_df):
-        raise IndexError(
-            f"The number of subjects {n_subjects} cannot be higher "
-            f"than the number of subjects in the baseline dataset of size {len(data_df)}"
-        )
-
     # Create subjects dir
     makedirs(join(output_dir, "subjects"), exist_ok=True)
 
     # Output tsv file
-    columns = ["participant_id", "session_id", "diagnosis", "age_bl", "sex"]
+    columns = ["participant_id", "session_id", "diagnosis"]
     output_df = pd.DataFrame(columns=columns)
     diagnosis_list = ["AD", "CN"]
 
@@ -379,9 +371,7 @@ def generate_motion_dataset(
         preprocessing, uncropped_image, acq_label, suvr_reference_region
     )
 
-    for i in range(2 * n_subjects):
-        data_idx = i // 2
-        label = i % 2
+    for data_idx in range(len(data_df)):
 
         participant_id = data_df.loc[data_idx, "participant_id"]
         session_id = data_df.loc[data_idx, "session_id"]
@@ -395,9 +385,9 @@ def generate_motion_dataset(
         filename_pattern = "_".join(input_filename.split("_")[2::])
 
         trivial_image_nii_dir = join(
-            output_dir, "subjects", f"{participant_id}-RM{i}", session_id, preprocessing
+            output_dir, "subjects", f"{participant_id}-RM{data_idx}", session_id, preprocessing
         )
-        trivial_image_nii_filename = f"{participant_id}-RM{i}_{session_id}_{filename_pattern}"
+        trivial_image_nii_filename = f"{participant_id}-RM{data_idx}_{session_id}_{filename_pattern}"
 
         makedirs(trivial_image_nii_dir, exist_ok=True)
 
@@ -421,7 +411,7 @@ def generate_motion_dataset(
         print(join(trivial_image_nii_dir, trivial_image_nii_filename))
 
         # Append row to output tsv
-        row = [f"{participant_id}_RM{i}", session_id, diagnosis_list[label], 60, "motion"]
+        row = [f"{participant_id}_RM{data_idx}", session_id,  "motion"]
         row_df = pd.DataFrame([row], columns=columns)
         output_df = output_df.append(row_df)
 
