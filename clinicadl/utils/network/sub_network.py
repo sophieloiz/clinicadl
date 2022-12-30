@@ -4,7 +4,7 @@ from logging import getLogger
 
 import torch
 from torch import nn
-
+import torch.nn.functional as F
 from clinicadl.utils.exceptions import ClinicaDLNetworksError
 from clinicadl.utils.network.network import Network
 from clinicadl.utils.network.network_utils import (
@@ -12,6 +12,7 @@ from clinicadl.utils.network.network_utils import (
     CropMaxUnpool3d,
     PadMaxPool2d,
     PadMaxPool3d,
+    GradReverse,
 )
 
 logger = getLogger("clinicadl.networks")
@@ -136,3 +137,88 @@ class CNN(Network):
             loss = torch.Tensor([0])
 
         return train_output, {"loss": loss}
+
+
+class CNN_SSDA(Network):
+    def __init__(self, convolutions, fc, fc_c, n_classes, gpu=False):
+        super().__init__(gpu=gpu)
+        self.convolutions = convolutions.to(self.device)
+        self.fc = fc.to(self.device)
+        self.fc_c = fc_c.to(self.device)
+        self.n_classes = n_classes
+
+    @property
+    def layers(self):
+        return nn.Sequential(self.convolutions, self.fc, self.fc_c)
+
+    def grad_reverse(self, x, lambd=1.0):
+        return GradReverse(lambd)(x)
+
+    def transfer_weights(self, state_dict, transfer_class):
+        if issubclass(transfer_class, CNN):
+            self.load_state_dict(state_dict)
+        elif issubclass(transfer_class, AutoEncoder):
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("encoder.", ""), v)
+                    for k, v in state_dict.items()
+                    if "encoder" in k
+                ]
+            )
+            self.convolutions.load_state_dict(convolutions_dict)
+        else:
+            raise ClinicaDLNetworksError(
+                f"Cannot transfer weights from {transfer_class} to CNN."
+            )
+
+    def forward(self, x, reverse=False, eta=0.1, temp=0.05):
+        x = self.convolutions(x)
+        out_g = self.fc(x)
+        if reverse:
+            x = self.grad_reverse(x, eta)
+        out_c = F.normalize(out_g)
+        out_c = self.fc(out_c) / temp
+        return out_g, out_c
+
+    def predict(self, x):
+        return self.forward(x)
+
+    def compute_outputs_and_loss_bce(self, input_dict, criterion, use_labels=True):
+
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        train_output, _ = self.forward(images)
+        if use_labels:
+            loss = criterion(train_output, labels)
+        else:
+            loss = torch.Tensor([0])
+
+        return train_output, {"loss_bce": loss}
+
+    def compute_outputs_and_loss(self, input_dict, criterion, use_labels=True):
+
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        _, train_output = self.forward(images)
+        if use_labels:
+            loss = criterion(train_output, labels)
+        else:
+            loss = torch.Tensor([0])
+
+        return train_output, {"loss": loss}
+
+    def adentropy(self, train_output, lamda=0.1, eta=1.0):
+        out_t1 = F.softmax(train_output)
+        loss_adent = lamda * torch.mean(
+            torch.sum(out_t1 * (torch.log(out_t1 + 1e-5)), 1)
+        )
+        return loss_adent
+
+    def compute_outputs_and_loss_entropy(self, input_dict):
+
+        images = input_dict["image"].to(self.device).to(self.device)
+        _, train_output = self.forward(images)
+        loss = self.adentropy(train_output)
+        return train_output, {"loss_entropy": loss}

@@ -136,7 +136,8 @@ class MapsManager:
         if self.multi_network:
             self._train_multi(split_list, resume=False)
         else:
-            self._train_single(split_list, resume=False)
+            # self._train_single(split_list, resume=False)
+            self._train_ssda(split_list, resume=False)
 
     def resume(self, split_list: List[int] = None):
         """
@@ -715,6 +716,143 @@ class MapsManager:
 
             self._erase_tmp(split)
 
+    def _train_ssda(self, split_list=None, resume=False):
+        """
+        Trains a single CNN for all inputs with SSDA.
+
+        Args:
+            split_list (list[int]): list of splits that are trained.
+            resume (bool): If True the job is resumed from checkpoint.
+        """
+        from torch.utils.data import DataLoader
+
+        train_transforms, all_transforms = get_transforms(
+            normalize=self.normalize,
+            data_augmentation=self.data_augmentation,
+        )
+
+        split_manager = self._init_split_manager(split_list)
+        for split in split_manager.split_iterator():
+            logger.info(f"Training split {split}")
+            seed_everything(self.seed, self.deterministic, self.compensation)
+
+            split_df_dict = split_manager[split]
+
+            logger.debug("Loading training data...")
+            data_train_source = return_dataset(
+                self.caps_directory,
+                split_df_dict["train"],
+                self.preprocessing_dict,
+                train_transformations=train_transforms,
+                all_transformations=all_transforms,
+                multi_cohort=self.multi_cohort,
+                label=self.label,
+                label_code=self.label_code,
+            )
+            data_train_target_labeled = return_dataset(
+                self.caps_directory,
+                split_df_dict["train"],
+                self.preprocessing_dict,
+                train_transformations=train_transforms,
+                all_transformations=all_transforms,
+                multi_cohort=self.multi_cohort,
+                label=self.label,
+                label_code=self.label_code,
+            )
+            data_target_unlabeled = return_dataset(
+                self.caps_directory,
+                split_df_dict["train"],
+                self.preprocessing_dict,
+                train_transformations=train_transforms,
+                all_transformations=all_transforms,
+                multi_cohort=self.multi_cohort,
+                label=self.label,
+                label_code=self.label_code,
+            )
+            logger.debug("Loading validation data...")
+            data_valid_target_labeled = return_dataset(
+                self.caps_directory,
+                split_df_dict["validation"],
+                self.preprocessing_dict,
+                train_transformations=train_transforms,
+                all_transformations=all_transforms,
+                multi_cohort=self.multi_cohort,
+                label=self.label,
+                label_code=self.label_code,
+            )
+
+            train_source_sampler = self.task_manager.generate_sampler(
+                data_train_source, self.sampler
+            )
+            train_target_sampler = self.task_manager.generate_sampler(
+                data_train_target_labeled, self.sampler
+            )
+            train_target_unl_sampler = self.task_manager.generate_sampler(
+                data_target_unlabeled, self.sampler
+            )
+
+            logger.debug(
+                f"Getting train and validation loader with batch size {self.batch_size}"
+            )
+            train_source_loader = DataLoader(
+                data_train_source,
+                batch_size=self.batch_size,
+                sampler=train_source_sampler,
+                num_workers=self.n_proc,
+                worker_init_fn=pl_worker_init_function,
+            )
+            train_target_loader = DataLoader(
+                data_train_target_labeled,
+                batch_size=self.batch_size,
+                sampler=train_target_sampler,
+                num_workers=self.n_proc,
+                worker_init_fn=pl_worker_init_function,
+            )
+            train_target_unl_loader = DataLoader(
+                data_target_unlabeled,
+                batch_size=self.batch_size,
+                sampler=train_target_unl_sampler,
+                num_workers=self.n_proc,
+                worker_init_fn=pl_worker_init_function,
+            )
+            logger.debug(f"Train source loader size is {len(train_source_loader)}")
+            logger.debug(
+                f"Train target labeled loader size is {len(train_target_loader)}"
+            )
+            logger.debug(
+                f"Train target unlabeled loader size is {len(train_target_unl_loader)}"
+            )
+
+            valid_loader = DataLoader(
+                data_valid_target_labeled,
+                batch_size=self.batch_size,
+                shuffle=False,
+                num_workers=self.n_proc,
+            )
+            logger.debug(f"Validation loader size is {len(valid_loader)}")
+
+            self._train_ssda(
+                train_source_loader,
+                train_target_loader,
+                train_target_unl_loader,
+                valid_loader,
+                split,
+                resume=resume,
+            )
+
+            self._ensemble_prediction(
+                "train",
+                split,
+                self.selection_metrics,
+            )
+            self._ensemble_prediction(
+                "validation",
+                split,
+                self.selection_metrics,
+            )
+
+            self._erase_tmp(split)
+
     def _train(
         self,
         train_loader,
@@ -910,6 +1048,231 @@ class MapsManager:
             )
             self._compute_output_tensors(
                 train_loader.dataset,
+                "validation",
+                split,
+                self.selection_metrics,
+                nb_images=1,
+                network=network,
+            )
+
+    def _train_ssda(
+        self,
+        train_source_loader,
+        train_target_loader,
+        train_target_unl_loader,
+        valid_loader,
+        split,
+        network=None,
+        resume=False,
+    ):
+        """
+        Core function shared by train and resume.
+
+        Args:
+            train_source_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of source domain.
+            train_target_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of target domain.
+            train_target_unl_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of target domain unlabeled.
+
+            valid_loader (torch.utils.data.DataLoader): DataLoader wrapping the validation set.
+            split (int): Index of the split trained.
+            network (int): Index of the network trained (used in multi-network setting only).
+            resume (bool): If True the job is resumed from the checkpoint.
+        """
+        # To modify with two models
+        model, beginning_epoch = self._init_model(
+            split=split,
+            resume=resume,
+            transfer_path=self.transfer_path,
+            transfer_selection=self.transfer_selection_metric,
+        )
+
+        criterion = self.task_manager.get_criterion(self.loss)
+        logger.debug(f"Criterion for {self.network_task} is {criterion}")
+        optimizer_g = self._init_optimizer(model, split=split, resume=resume)
+        optimizer_f = self._init_optimizer(
+            model, split=split, resume=resume
+        )  # optimizer g and f to change : SGD modify params
+        logger.debug(f"Optimizer used for training is optimizer")
+
+        model.train()
+
+        train_source_loader.dataset.train()
+        train_target_loader.dataset.train()
+        train_target_unl_loader.dataset.train()
+
+        early_stopping = EarlyStopping(
+            "min", min_delta=self.tolerance, patience=self.patience
+        )
+        metrics_valid = {"loss": None}
+
+        log_writer = LogWriter(
+            self.maps_path,
+            self.task_manager.evaluation_metrics + ["loss"],
+            split,
+            resume=resume,
+            beginning_epoch=beginning_epoch,
+            network=network,
+        )
+        epoch = log_writer.beginning_epoch
+
+        retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
+
+        len_train_source = len(train_source_loader)
+        len_train_target = len(train_target_loader)
+        len_train_target_unl = len(train_target_unl_loader)
+
+        while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
+            logger.info(f"Beginning epoch {epoch}.")
+
+            model.zero_grad()
+
+            evaluation_flag, step_flag = True, True
+
+            if epoch % len_train_target == 0:
+                data_iter_t = iter(train_target_loader)
+            if epoch % len_train_target_unl == 0:
+                data_iter_t_unl = iter(train_target_unl_loader)
+            if epoch % len_train_source == 0:
+                data_iter_s = iter(train_source_loader)
+
+            data_t = next(data_iter_t)
+            data_t_unl = next(data_iter_t_unl)
+            data_s = next(data_iter_s)
+            # To do : concat data
+            _, loss_dict = model.compute_outputs_and_loss_bce(data_s, data_t, criterion)
+            logger.debug(f"Train loss dictionnary {loss_dict}")
+            loss_bce = loss_dict["loss_bce"]
+            loss_bce.backward()
+            optimizer_g.step()
+            optimizer_f.step()
+
+            _, loss_dict_t = model.compute_outputs_and_loss_entropy(data_t_unl)
+            loss_t = loss_dict_t["loss_entropy"]
+            loss_t.backward()
+            optimizer_f.step()
+            optimizer_g.step()
+
+            # Evaluate the model only when no gradients are accumulated
+            if epoch % self.accumulation_steps == 0 and epoch > 0:
+                evaluation_flag = False
+
+                _, metrics_train = self.task_manager.test(
+                    model, train_target_loader, criterion
+                )
+                _, metrics_valid = self.task_manager.test(
+                    model, valid_loader, criterion
+                )
+
+                model.train()
+                train_target_loader.dataset.train()
+
+                log_writer.step(
+                    epoch,
+                    0,  # replace i
+                    metrics_train,
+                    metrics_valid,
+                    len(train_target_unl_loader),
+                )
+                logger.info(
+                    f"{self.mode} level training loss is {metrics_train['loss']} "
+                    f"at the end of epoch {epoch}"
+                )
+                logger.info(
+                    f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                    f"at the end of epoch {epoch}"
+                )
+
+            # If no step has been performed, raise Exception
+            if step_flag:
+                raise Exception(
+                    "The model has not been updated once in the epoch. The accumulation step may be too large."
+                )
+
+            # If no evaluation has been performed, warn the user
+            elif evaluation_flag and self.evaluation_steps != 0:
+                logger.warning(
+                    f"Your evaluation steps {self.evaluation_steps} are too big "
+                    f"compared to the size of the dataset. "
+                    f"The model is evaluated only once at the end epochs."
+                )
+
+            # Always test the results and save them once at the end of the epoch
+            model.zero_grad()
+            logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
+
+            _, metrics_train = self.task_manager.test(
+                model, train_target_loader, criterion
+            )
+            _, metrics_valid = self.task_manager.test(model, valid_loader, criterion)
+
+            model.train()
+            train_target_unl_loader.dataset.train()
+
+            log_writer.step(
+                epoch, 0, metrics_train, metrics_valid, len(train_target_unl_loader)
+            )
+            logger.info(
+                f"{self.mode} level training loss is {metrics_train['loss']} "
+                f"at the end of epochs {epoch}"
+            )
+            logger.info(
+                f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                f"at the end of epochs {epoch}"
+            )
+
+            # Save checkpoints and best models
+            best_dict = retain_best.step(metrics_valid)
+            self._write_weights(
+                {
+                    "model": model.state_dict(),
+                    "epoch": epoch,
+                    "name": self.architecture,
+                },
+                best_dict,
+                split,
+                network=network,
+            )
+            self._write_weights(
+                {
+                    "optimizer": optimizer_g.state_dict(),
+                    "epoch": epoch,
+                    "name": self.optimizer,
+                },
+                None,
+                split,
+                filename="optimizer.pth.tar",
+            )
+
+            epoch += 1
+
+        self._test_loader(
+            train_target_loader,
+            criterion,
+            "train",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+        self._test_loader(
+            valid_loader,
+            criterion,
+            "validation",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+
+        if self.task_manager.save_outputs:
+            self._compute_output_tensors(
+                train_target_unl_loader.dataset,
+                "train",
+                split,
+                self.selection_metrics,
+                nb_images=1,
+                network=network,
+            )
+            self._compute_output_tensors(
+                train_target_unl_loader.dataset,
                 "validation",
                 split,
                 self.selection_metrics,
@@ -1818,18 +2181,78 @@ class MapsManager:
             logger.debug(f"Transfer from {transfer_class}")
             model.transfer_weights(transfer_state["model"], transfer_class)
 
-
-            list_name = [name for (name, _) in  model.named_parameters()]
-            list_param = [param for (_, param) in  model.named_parameters()]
+            list_name = [name for (name, _) in model.named_parameters()]
+            list_param = [param for (_, param) in model.named_parameters()]
 
             for param, _ in zip(list_param, list_name):
                 param.requires_grad = False
-                
-            for i in range(6): # Freeze of the 3FC of the Conv5FC3
+
+            for i in range(6):  # Freeze of the 3FC of the Conv5FC3
                 param = list_param[len(list_param) - i - 1]
-                #name = list_name[len(list_name) - i - 1]
+                # name = list_name[len(list_name) - i - 1]
                 param.requires_grad = True
-                #print(name, param.requires_grad)
+                # print(name, param.requires_grad)
+
+        return model, current_epoch
+
+    def _init_model_ssda(
+        self,
+        transfer_path=None,
+        transfer_selection=None,
+        split=None,
+        resume=False,
+        gpu=None,
+        network=None,
+    ):
+        """
+        Instantiate the model
+
+        Args:
+            transfer_path (str): path to a MAPS in which a model's weights are used for transfer learning.
+            transfer_selection (str): name of the metric used to find the source model.
+            split (int): Index of the split (only used if transfer_path is not None of not resume).
+            resume (bool): If True initialize the network with the checkpoint weights.
+            gpu (bool): If given, a new value for the device of the model will be computed.
+            network (int): Index of the network trained (used in multi-network setting only).
+        """
+        import clinicadl.utils.network as network_package
+        from clinicadl.utils.network.cnn.models import Predictor
+
+        logger.debug(f"Initialization of model {self.architecture}")
+        # or choose to implement a dictionary
+        model_class = getattr(network_package, self.architecture)
+        args = list(
+            model_class.__init__.__code__.co_varnames[
+                : model_class.__init__.__code__.co_argcount
+            ]
+        )
+        args.remove("self")
+        kwargs = dict()
+        for arg in args:
+            kwargs[arg] = self.parameters[arg]
+
+        # Change device from the training parameters
+        if gpu is not None:
+            kwargs["gpu"] = gpu
+
+        model_g = model_class(**kwargs)
+        logger.debug(f"Model:\n{model_g.layers}")
+        device = model_g.device
+        logger.info(f"Working on {device}")
+        current_epoch = 0
+
+        model_f = Predictor()
+
+        if resume:
+            checkpoint_path = path.join(
+                self.maps_path,
+                f"{self.split_name}-{split}",
+                "tmp",
+                "checkpoint.pth.tar",
+            )
+            checkpoint_state = torch.load(checkpoint_path, map_location=device)
+            model_g.load_state_dict(checkpoint_state["model"])
+            current_epoch = checkpoint_state["epoch"]
 
         return model, current_epoch
 
@@ -1849,6 +2272,29 @@ class MapsManager:
             optimizer.load_state_dict(checkpoint_state["optimizer"])
 
         return optimizer
+
+    # def _init_optimizer_ssda(self, model, split=None, resume=False):
+    #     """Initialize the optimizer and use checkpoint weights if resume is True."""
+    #     optimizer_g = getattr(torch.optim, self.optimizer)(
+    #         filter(lambda x: x.requires_grad, model.parameters()),
+    #         lr=self.learning_rate,
+    #         weight_decay=self.weight_decay,
+    #     )
+
+    #     optimizer_f = getattr(torch.optim, self.optimizer)(
+    #         filter(lambda x: x.requires_grad, model.parameters()),
+    #         lr=self.learning_rate,
+    #         weight_decay=self.weight_decay,
+    #     )
+
+    #     if resume:
+    #         checkpoint_path = path.join(
+    #             self.maps_path, f"{self.split_name}-{split}", "tmp", "optimizer.pth.tar"
+    #         )
+    #         checkpoint_state = torch.load(checkpoint_path, map_location=model.device)
+    #         optimizer.load_state_dict(checkpoint_state["optimizer"])
+
+    #     return optimizer
 
     def _init_split_manager(self, split_list=None):
         from clinicadl.utils import split_manager

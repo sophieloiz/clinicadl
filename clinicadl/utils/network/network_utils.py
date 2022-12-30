@@ -3,6 +3,8 @@ Class of layers used in the CNN not directly implemented in pytorch.
 """
 
 import torch.nn as nn
+from torch.autograd import Function
+import torch.nn.functional as F
 
 
 class Reshape(nn.Module):
@@ -123,3 +125,14 @@ class CropMaxUnpool2d(nn.Module):
             output = output[:, :, x1::, y1::]
 
         return output
+
+
+class GradReverse(Function):
+    def __init__(self, lambd):
+        self.lambd = lambd
+
+    def forward(self, x):
+        return x.view_as(x)
+
+    def backward(self, grad_output):
+        return grad_output * -self.lambd

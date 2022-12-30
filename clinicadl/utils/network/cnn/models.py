@@ -3,13 +3,19 @@ import torch
 import torch.utils.model_zoo as model_zoo
 from torch import nn
 from torchvision.models.resnet import BasicBlock
+import torch.nn.functional as F
+
 
 from clinicadl.utils.network.cnn.resnet import ResNetDesigner, model_urls
 from clinicadl.utils.network.cnn.resnet3D import ResNetDesigner3D
 from clinicadl.utils.network.cnn.attentionnet import AttentionDesigner3D
 from clinicadl.utils.network.cnn.SE_CNN import SECNNDesigner3D
-from clinicadl.utils.network.network_utils import PadMaxPool2d, PadMaxPool3d
-from clinicadl.utils.network.sub_network import CNN
+from clinicadl.utils.network.network_utils import (
+    PadMaxPool2d,
+    PadMaxPool3d,
+    GradReverse,
+)
+from clinicadl.utils.network.sub_network import CNN, CNN_SSDA
 
 
 def get_layers_fn(input_size):
@@ -22,6 +28,10 @@ def get_layers_fn(input_size):
             f"The input is neither a 2D or 3D image.\n "
             f"Input shape is {input_size - 1}."
         )
+
+
+def grad_reverse(x, lambd=1.0):
+    return GradReverse(lambd)(x)
 
 
 class Conv5_FC3(CNN):
@@ -287,7 +297,6 @@ class AttentionNet(CNN):
         )
 
 
-
 class Stride_Conv5_FC3(CNN):
     """
     Convolutional neural network with 5 convolution and 3 fully-connected layer and a stride of 2 for each convolutional layer.
@@ -339,6 +348,95 @@ class Stride_Conv5_FC3(CNN):
         super().__init__(
             convolutions=convolutions,
             fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+    class Predictor(nn.Module):
+        def __init__(self, num_class=2, inc=1300, temp=0.05):
+            # super(Predictor, self).__init__()
+            self.fc = nn.Linear(inc, num_class, bias=False)
+            self.num_class = num_class
+            self.temp = temp
+
+        def forward(self, x, reverse=False, eta=0.1):
+            if reverse:
+                x = grad_reverse(x, eta)
+            x = F.normalize(x)
+            x_out = self.fc(x) / self.temp
+            return x_out
+
+    @staticmethod
+    def get_input_size():
+        return "1@128x128"
+
+    @staticmethod
+    def get_dimension():
+        return "2D or 3D"
+
+    @staticmethod
+    def get_task():
+        return ["classification", "regression"]
+
+
+class Conv5_FC3_SSDA(CNN_SSDA):
+    """
+    It is a convolutional neural network with 5 convolution and 3 fully-connected layer.
+    It reduces the 2D or 3D input image to an array of size output_size.
+    """
+
+    def __init__(self, input_size, gpu=True, output_size=2, dropout=0.5):
+        conv, norm, pool = get_layers_fn(input_size)
+        # fmt: off
+        convolutions = nn.Sequential(
+            conv(input_size[0], 8, 3, padding=1),
+            norm(8),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(8, 16, 3, padding=1),
+            norm(16),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(16, 32, 3, padding=1),
+            norm(32),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(32, 64, 3, padding=1),
+            norm(64),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(64, 128, 3, padding=1),
+            norm(128),
+            nn.ReLU(),
+            pool(2, 2),
+        )
+
+        # Compute the size of the first FC layer
+        input_tensor = torch.zeros(input_size).unsqueeze(0)
+        output_convolutions = convolutions(input_tensor)
+
+        fc = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(p=dropout),
+
+            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
+        )
+
+        fc_c = nn.Sequential(
+            nn.Linear(1300, 50),
+            nn.ReLU(),
+
+            nn.Linear(50, output_size)
+        )
+        # fmt: on
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            fc_c=fc_c,
             n_classes=output_size,
             gpu=gpu,
         )
