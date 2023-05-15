@@ -7,7 +7,7 @@ from glob import glob
 from logging import getLogger
 from os import listdir, makedirs, path
 from typing import Any, Dict, List, Optional, Tuple, Union
-
+from pathlib import Path
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
@@ -136,6 +136,8 @@ class MapsManager:
             self._train_multi(split_list, resume=False)
         else:
             self._train_single(split_list, resume=False)
+            #self._train_single_qc(split_list, resume=False)
+            
 
     def resume(self, split_list: List[int] = None):
         """
@@ -167,6 +169,8 @@ class MapsManager:
             self._train_multi(split_list, resume=True)
         else:
             self._train_single(split_list, resume=True)
+            #self._train_single_qc(split_list, resume=True)
+            
 
     def predict(
         self,
@@ -300,6 +304,7 @@ class MapsManager:
                     group_df,
                     self.preprocessing_dict,
                     all_transformations=all_transforms,
+                    #train_transformations=_, # TO REMOVE IF NO MOTION ON THE FLY
                     multi_cohort=group_parameters["multi_cohort"],
                     label_presence=use_labels,
                     label=self.label if label is None else label,
@@ -327,6 +332,136 @@ class MapsManager:
                     gpu=gpu,
                 )
             self._ensemble_prediction(data_group, split, selection_metrics, use_labels)
+
+
+    def predict_qc(
+        self,
+        data_group: str,
+        caps_directory: str = None,
+        tsv_path: str = None,
+        split_list: List[int] = None,
+        selection_metrics: List[str] = None,
+        multi_cohort: bool = False,
+        diagnoses: List[str] = (),
+        use_labels: bool = True,
+        batch_size: int = None,
+        n_proc: int = None,
+        gpu: bool = None,
+        overwrite: bool = False,
+        label: str = None,
+        label_code: Optional[Dict[str, int]] = "default",
+    ):
+        """
+        Performs the prediction task on a subset of caps_directory defined in a TSV file.
+
+        Args:
+            data_group: name of the data group tested.
+            caps_directory: path to the CAPS folder. For more information please refer to
+                [clinica documentation](https://aramislab.paris.inria.fr/clinica/docs/public/latest/CAPS/Introduction/).
+                Default will load the value of an existing data group
+            tsv_path: path to a TSV file containing the list of participants and sessions to test.
+                Default will load the DataFrame of an existing data group
+            split_list: list of splits to test. Default perform prediction on all splits available.
+            selection_metrics (list[str]): list of selection metrics to test.
+                Default performs the prediction on all selection metrics available.
+            multi_cohort: If True considers that tsv_path is the path to a multi-cohort TSV.
+            diagnoses: List of diagnoses to load if tsv_path is a split_directory.
+                Default uses the same as in training step.
+            use_labels: If True, the labels must exist in test meta-data and metrics are computed.
+            batch_size: If given, sets the value of batch_size, else use the same as in training step.
+            n_proc: If given, sets the value of num_workers, else use the same as in training step.
+            gpu: If given, a new value for the device of the model will be computed.
+            overwrite: If True erase the occurrences of data_group.
+            label: Target label used for training (if network_task in [`regression`, `classification`]).
+            label_code: dictionary linking the target values to a node number.
+        """
+        if split_list is None:
+            split_list = self._find_splits()
+        logger.debug(f"List of splits {split_list}")
+
+        _, all_transforms = get_transforms(
+            normalize=self.normalize,
+            data_augmentation=self.data_augmentation,
+        )
+
+        group_df = None
+        if tsv_path is not None:
+            group_df = load_data_test(
+                tsv_path,
+                diagnoses if len(diagnoses) != 0 else self.diagnoses,
+                multi_cohort=multi_cohort,
+            )
+
+        criterion = self.task_manager.get_criterion(self.loss)
+        self._check_data_group(
+            data_group,
+            caps_directory,
+            group_df,
+            multi_cohort,
+            overwrite,
+            label=label,
+        )
+        from torch.utils.data import DataLoader
+        from clinica.utils.inputs import RemoteFileStructure, fetch_file
+        from torch.utils.data import DataLoader
+
+        from clinicadl.generate.generate_utils import load_and_check_tsv2
+        from clinicadl.utils.caps_dataset.data import CapsDataset
+        from clinicadl.utils.exceptions import ClinicaDLArgumentError
+        from clinicadl.quality_check.t1_linear.utils import QCDataset
+        
+        for split in split_list:
+            logger.info(f"Prediction of split {split}")
+            group_df, group_parameters = self.get_group_info(data_group, split)
+
+            # Find label code if not given
+            if label is not None and label != self.label and label_code == "default":
+                self.task_manager.generate_label_code(group_df, label)
+
+            # Erase previous TSV files
+            if selection_metrics is None:
+                split_selection_metrics = self._find_selection_metrics(split)
+            else:
+                split_selection_metrics = selection_metrics
+            for selection in split_selection_metrics:
+                tsv_pattern = path.join(
+                    self.maps_path,
+                    f"{self.split_name}-{split}",
+                    f"best-{selection}",
+                    data_group,
+                    f"{data_group}*.tsv",
+                )
+                for tsv_file in glob(tsv_pattern):
+                    os.remove(tsv_file)
+            
+            caps_dict = CapsDataset.create_caps_dict(
+                self.caps_directory, multi_cohort=False
+            )
+
+            output_path = "/export/home/cse180022/"
+            df_test = load_and_check_tsv2(
+                group_df, caps_dict, output_path
+            )
+
+            dataset_test = QCDataset(self.caps_directory, df_test)
+            test_loader = DataLoader(
+                dataset_test,
+                batch_size=batch_size if batch_size is not None else self.batch_size,
+                shuffle=False,
+                num_workers=n_proc if n_proc is not None else self.n_proc,
+            )
+            self._test_loader(
+                test_loader,
+                criterion,
+                data_group,
+                split,
+                split_selection_metrics,
+                use_labels=use_labels,
+                gpu=gpu,
+            )
+                
+            self._ensemble_prediction(data_group, split, selection_metrics, use_labels)
+   
 
     def save_tensors(
         self,
@@ -685,6 +820,100 @@ class MapsManager:
 
             self._erase_tmp(split)
 
+
+    def _train_single_qc(self, split_list=None, resume=False):
+        """
+        Trains a single CNN for all inputs.
+
+        Args:
+            split_list (list[int]): list of splits that are trained.
+            resume (bool): If True the job is resumed from checkpoint.
+        """
+        from torch.utils.data import DataLoader
+        from clinica.utils.inputs import RemoteFileStructure, fetch_file
+        from torch.utils.data import DataLoader
+
+        from clinicadl.generate.generate_utils import load_and_check_tsv2
+        from clinicadl.utils.caps_dataset.data import CapsDataset
+        from clinicadl.utils.exceptions import ClinicaDLArgumentError
+        from clinicadl.quality_check.t1_linear.utils import QCDataset
+
+        caps_dict = CapsDataset.create_caps_dict(
+            self.caps_directory, multi_cohort=False
+        )
+
+        train_transforms, all_transforms = get_transforms(
+            normalize=self.normalize,
+            data_augmentation=self.data_augmentation,
+        )
+        split_manager = self._init_split_manager(split_list)
+        for split in split_manager.split_iterator():
+            logger.info(f"Training split {split}")
+            seed_everything(self.seed, self.deterministic, self.compensation)
+
+            split_df_dict = split_manager[split]
+
+            logger.debug("Loading training data...")
+
+            # Load DataFrame
+            logger.debug("Loading data to check.")
+            output_path = "/export/home/cse180022/crash_out.tsv" # A COMPLETER
+            print(split_df_dict["train"])
+            df_train = load_and_check_tsv2(
+                split_df_dict["train"], caps_dict, output_path#.resolve().parent
+            )
+
+            dataset_train = QCDataset(self.caps_directory, df_train)
+            train_loader = DataLoader(
+                dataset_train, batch_size=self.batch_size, pin_memory=True,
+                drop_last = True
+            )
+
+            logger.debug("Loading validation data...")
+
+            # Load DataFrame
+            output_path = "/export/home/cse180022/crash_out_val.tsv" # A COMPLETER
+            logger.debug("Loading data to check.")
+            df_val = load_and_check_tsv2(
+                split_df_dict["validation"], caps_dict, output_path#.resolve().parent
+            )
+
+            dataset_val = QCDataset(self.caps_directory, df_val)
+            valid_loader = DataLoader(
+                dataset_val, batch_size=self.batch_size, pin_memory=True,
+                drop_last = True
+            )
+            print(len(train_loader))
+            print(len(valid_loader))
+            
+            logger.debug(
+                f"Train target labeled loader size is {len(train_loader)}"
+            )
+            logger.debug(
+                f"Train target unlabeled loader size is {len(valid_loader)}"
+            )
+
+
+            self._train_qc(
+                train_loader,
+                valid_loader,
+                split,
+                resume=resume,
+            )
+
+            self._ensemble_prediction(
+                "train",
+                split,
+                self.selection_metrics,
+            )
+            self._ensemble_prediction(
+                "validation",
+                split,
+                self.selection_metrics,
+            )
+
+            self._erase_tmp(split)
+
     def _train_multi(self, split_list: List[int] = None, resume: bool = False):
         """
         Trains a single CNN per element in the image.
@@ -816,6 +1045,38 @@ class MapsManager:
             transfer_path=self.transfer_path,
             transfer_selection=self.transfer_selection_metric,
         )
+        
+        ##
+        #list_name = []
+        #list_param = []
+        #for name, param in model.named_parameters():
+         #   list_name.append(name)
+          #  list_param.append(param)
+       # for i in range(len(list_name)):
+        #    param = list_param[i]
+         #   name = list_name[i]
+          #  print("Freeze")
+           # param.requires_grad = False
+           # print(name, param.requires_grad)
+        #for i in range(6): # Number in range depends on how many layers (weight + bias) you want to freeze (2*N)
+         #   print(len(list_name)-i)
+          #  print(len(list_param)-i)
+
+           # param = list_param[len(list_param)-i-1]
+            #name = list_name[len(list_name)-i-1]
+            #print("UnFreeze")
+            #param.requires_grad = True
+            #print(name, param.requires_grad)
+        
+        #for i in range(6): # Number in range depends on how many layers (weight + bias) you want to freeze (2*N)
+          #  param = list_param[i]
+          #  name = list_name[i]
+          #  print("UnFreeze")
+           # param.requires_grad = True
+           # print(name, param.requires_grad)
+
+        ###
+
         criterion = self.task_manager.get_criterion(self.loss)
         logger.debug(f"Criterion for {self.network_task} is {criterion}")
         optimizer = self._init_optimizer(model, split=split, resume=resume)
@@ -993,6 +1254,343 @@ class MapsManager:
                 network=network,
             )
 
+
+
+    def _train_qc(
+            self,
+            train_loader,
+            valid_loader,
+            split,
+            network=None,
+            resume=False,
+        ):
+            """
+            Core function shared by train and resume.
+
+            Args:
+                train_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set.
+                valid_loader (torch.utils.data.DataLoader): DataLoader wrapping the validation set.
+                split (int): Index of the split trained.
+                network (int): Index of the network trained (used in multi-network setting only).
+                resume (bool): If True the job is resumed from the checkpoint.
+            """
+
+            model, beginning_epoch = self._init_model_qc(
+                split=split,
+                transfer_path=self.transfer_path,
+                transfer_selection=self.transfer_selection_metric,
+            )
+            criterion = self.task_manager.get_criterion(self.loss)
+            logger.debug(f"Criterion for {self.network_task} is {criterion}")
+            optimizer = self._init_optimizer(model, split=split, resume=resume)
+            logger.debug(f"Optimizer used for training is optimizer")
+            print(self.label_code)
+            model.train()
+            #train_loader.dataset.train()
+
+            early_stopping = EarlyStopping(
+                "min", min_delta=self.tolerance, patience=self.patience
+            )
+            metrics_valid = {"loss": None}
+
+            log_writer = LogWriter(
+                self.maps_path,
+                self.task_manager.evaluation_metrics + ["loss"],
+                split,
+                resume=resume,
+                beginning_epoch=beginning_epoch,
+                network=network,
+            )
+            epoch = log_writer.beginning_epoch
+
+            retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
+
+            while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
+                logger.info(f"Beginning epoch {epoch}.")
+
+                model.zero_grad()
+                evaluation_flag, step_flag = True, True
+
+                for i, data in enumerate(train_loader):
+
+                    _, loss_dict = model.compute_outputs_and_loss(data, criterion)
+                    logger.debug(f"Train loss dictionnary {loss_dict}")
+                    loss = loss_dict["loss"]
+                    loss.backward()
+
+                    if (i + 1) % self.accumulation_steps == 0:
+                        step_flag = False
+                        optimizer.step()
+                        optimizer.zero_grad()
+
+                        del loss
+
+                        # Evaluate the model only when no gradients are accumulated
+                        if (
+                            self.evaluation_steps != 0
+                            and (i + 1) % self.evaluation_steps == 0
+                        ):
+                            evaluation_flag = False
+
+                            _, metrics_train = self.task_manager.test(
+                                model, train_loader, criterion
+                            )
+                            _, metrics_valid = self.task_manager.test(
+                                model, valid_loader, criterion
+                            )
+
+                            model.train()
+                            train_loader.dataset.train()
+
+                            log_writer.step(
+                                epoch,
+                                i,
+                                metrics_train,
+                                metrics_valid,
+                                len(train_loader),
+                            )
+                            logger.info(
+                                f"{self.mode} level training loss is {metrics_train['loss']} "
+                                f"at the end of iteration {i}"
+                            )
+                            logger.info(
+                                f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                                f"at the end of iteration {i}"
+                            )
+
+                # If no step has been performed, raise Exception
+                if step_flag:
+                    raise Exception(
+                        "The model has not been updated once in the epoch. The accumulation step may be too large."
+                    )
+
+                # If no evaluation has been performed, warn the user
+                elif evaluation_flag and self.evaluation_steps != 0:
+                    logger.warning(
+                        f"Your evaluation steps {self.evaluation_steps} are too big "
+                        f"compared to the size of the dataset. "
+                        f"The model is evaluated only once at the end epochs."
+                    )
+
+                # Update weights one last time if gradients were computed without update
+                if (i + 1) % self.accumulation_steps != 0:
+                    optimizer.step()
+                    optimizer.zero_grad()
+
+                # Always test the results and save them once at the end of the epoch
+                model.zero_grad()
+                logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
+
+                _, metrics_train = self.task_manager.test(model, train_loader, criterion)
+                _, metrics_valid = self.task_manager.test(model, valid_loader, criterion)
+
+                model.train()
+                #train_loader.dataset.train()
+
+                log_writer.step(epoch, i, metrics_train, metrics_valid, len(train_loader))
+                logger.info(
+                    f"{self.mode} level training loss is {metrics_train['loss']} "
+                    f"at the end of iteration {i}"
+                )
+                logger.info(
+                    f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                    f"at the end of iteration {i}"
+                )
+
+                # Save checkpoints and best models
+                best_dict = retain_best.step(metrics_valid)
+                self._write_weights(
+                    {
+                        "model": model.state_dict(),
+                        "epoch": epoch,
+                        "name": self.architecture,
+                    },
+                    best_dict,
+                    split,
+                    network=network,
+                )
+                self._write_weights(
+                    {
+                        "optimizer": optimizer.state_dict(),
+                        "epoch": epoch,
+                        "name": self.optimizer,
+                    },
+                    None,
+                    split,
+                    filename="optimizer.pth.tar",
+                )
+
+                epoch += 1
+
+            self._test_loader(
+                train_loader,
+                criterion,
+                "train",
+                split,
+                self.selection_metrics,
+                network=network,
+            )
+            self._test_loader(
+                valid_loader,
+                criterion,
+                "validation",
+                split,
+                self.selection_metrics,
+                network=network,
+            )
+
+            if self.task_manager.save_outputs:
+                self._compute_output_tensors(
+                    train_loader.dataset,
+                    "train",
+                    split,
+                    self.selection_metrics,
+                    nb_images=1,
+                    network=network,
+                )
+                self._compute_output_tensors(
+                    train_loader.dataset,
+                    "validation",
+                    split,
+                    self.selection_metrics,
+                    nb_images=1,
+                    network=network,)
+
+    def _init_model_qc(
+            self,
+        transfer_path=None,
+        transfer_selection=None,
+        split=None,
+        resume=False,
+        gpu=None,
+        network=None,
+        ):
+            """
+            Instantiate the model
+
+            Args:
+                transfer_path (str): path to a MAPS in which a model's weights are used for transfer learning.
+                transfer_selection (str): name of the metric used to find the source model.
+                split (int): Index of the split (only used if transfer_path is not None of not resume).
+                resume (bool): If True initialize the network with the checkpoint weights.
+                gpu (bool): If given, a new value for the device of the model will be computed.
+                network (int): Index of the network trained (used in multi-network setting only).
+            """
+            import clinicadl.utils.network as network_package
+            from clinica.utils.inputs import RemoteFileStructure, fetch_file
+            from clinicadl.quality_check.t1_linear.models import (
+                resnet_darq_qc_18 as darq_r18,
+            )
+            from clinicadl.quality_check.t1_linear.models import (
+                resnet_deep_qc_18 as deep_r18,
+            )
+            from clinicadl.quality_check.t1_linear.models import squeezenet_qc as darq_sq101
+
+            logger.debug(f"Initialization of model {self.architecture}")
+            # or choose to implement a dictionary
+
+            # Fetch QC model
+            home = Path.home()
+
+            cache_clinicadl = home / ".cache" / "clinicadl" / "models"
+            url_aramis = "https://aramislab.paris.inria.fr/files/data/models/dl/qc/"
+
+            cache_clinicadl.mkdir(parents=True, exist_ok=True)
+
+            FILE1 = RemoteFileStructure(
+                filename="resnet_18_darq.pth",
+                url=url_aramis,
+                checksum="321928e0532f1be7a8dd7f5d805b747c7147ff52594f77ffed0858ab19c5df03",
+            )
+
+            # model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+            model = darq_r18()
+
+            model_file = cache_clinicadl / FILE1.filename
+
+            logger.info("Downloading quality check model.")
+
+            if not (model_file.is_file()):
+                try:
+                    model_file = fetch_file(FILE1, cache_clinicadl)
+                except IOError as err:
+                    print("Unable to download required model for QC process:", err)
+
+            # Load QC model
+            logger.debug("Loading quality check model.")
+            model.load_state_dict(torch.load(model_file))
+            #Load model on gpu
+            device = torch.device("cuda")
+            #model.to(device)
+            
+            list_name = [name for (name, _) in model.named_parameters()]
+            list_param = [param for (_, param) in model.named_parameters()]
+
+            for param, _ in zip(list_param, list_name):
+                param.requires_grad = True
+            
+            
+            if transfer_path:
+                logger.debug(f"Transfer weights from MAPS at {transfer_path}")
+                transfer_maps = MapsManager(transfer_path)
+                transfer_state = transfer_maps.get_state_dict(
+                    split,
+                    selection_metric=transfer_selection,
+                    network=network,
+                   # map_location=model.device,
+                )
+                transfer_class = getattr(network_package, transfer_maps.architecture)
+                logger.debug(f"Transfer from {transfer_class}")
+                model.transfer_weights(transfer_state["model"], transfer_class)
+
+            # model_class = getattr(network_package, self.architecture)
+            # args = list(
+            #   model_class.__init__.__code__.co_varnames[
+            #      : model_class.__init__.__code__.co_argcount
+            # ]
+            # )
+            # args.remove("self")
+            # kwargs = dict()
+            # for arg in args:
+            #   kwargs[arg] = self.parameters[arg]
+
+            # Change device from the training parameters
+            # if gpu is not None:
+            # kwargs["gpu"] = gpu
+
+            # model = model_class(**kwargs)
+            # logger.debug(f"Model:\n{model.layers}")
+            #device = model.device
+            #logger.info(f"Working on {device}")
+            current_epoch = 0
+
+            # elif transfer_path:
+            #     logger.debug(f"Transfer weights from MAPS at {transfer_path}")
+            #     transfer_maps = MapsManager(transfer_path)
+            #     transfer_state = transfer_maps.get_state_dict(
+            #         split,
+            #         selection_metric=transfer_selection,
+            #         network=network,
+            #         map_location=model.device,
+            #     )
+            #     transfer_class = getattr(network_package, transfer_maps.architecture)
+            #     logger.debug(f"Transfer from {transfer_class}")
+            #     model.transfer_weights(transfer_state["model"], transfer_class)
+
+            #     list_name = [name for (name, _) in model.named_parameters()]
+            #     list_param = [param for (_, param) in model.named_parameters()]
+
+            #     for param, _ in zip(list_param, list_name):
+            #         param.requires_grad = False
+
+            #     for i in range(6):  # Freeze of the 3FC of the Conv5FC3
+            #         param = list_param[len(list_param) - i - 1]
+            #         # name = list_name[len(list_name) - i - 1]
+            #         param.requires_grad = True
+            #         # print(name, param.requires_grad)
+
+            return model, current_epoch         
+            
     def _test_loader(
         self,
         dataloader,
@@ -1040,6 +1638,14 @@ class MapsManager:
                 gpu=gpu,
                 network=network,
             )
+            print("Predict label for QC (TO CHANGE IF NOT)")
+            #model, _ = self._init_model_qc(
+             #  transfer_path=self.maps_path,
+              # split=split,
+               #transfer_selection=selection_metric,
+                #gpu=gpu,
+                #network=network,
+            #)
 
             prediction_df, metrics = self.task_manager.test(
                 model, dataloader, criterion, use_labels=use_labels
@@ -1315,7 +1921,9 @@ class MapsManager:
 
     def _find_selection_metrics(self, split):
         """Find which selection metrics are available in MAPS for a given split."""
+        print(self.maps_path)
         split_path = path.join(self.maps_path, f"{self.split_name}-{split}")
+        print(split_path)
         if not path.exists(split_path):
             raise MAPSError(
                 f"Training of split {split} was not performed."
@@ -1436,7 +2044,8 @@ class MapsManager:
         elif not path.exists(
             group_path
         ):  # Data group does not exist yet / was overwritten + all data is provided
-            self._check_leakage(data_group, df)
+            print("ISSUE : No check leakage")
+            #self._check_leakage(data_group, df)
             self._write_data_group(
                 data_group, df, caps_directory, multi_cohort, label=label
             )
@@ -1543,6 +2152,7 @@ class MapsManager:
         for split in split_manager.split_iterator():
             for data_group in ["train", "validation"]:
                 df = split_manager[split][data_group]
+                
                 group_path = path.join(
                     self.maps_path, "groups", data_group, f"{self.split_name}-{split}"
                 )

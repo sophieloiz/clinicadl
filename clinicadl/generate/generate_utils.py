@@ -104,6 +104,48 @@ def load_and_check_tsv(
 
     return df
 
+def load_and_check_tsv2(
+    tsv_path: str, caps_dict: Dict[str, str], output_path: str
+) -> pd.DataFrame:
+    from os.path import join
+
+    from clinica.iotools.utils.data_handling import create_subs_sess_list
+
+    from clinicadl.utils.caps_dataset.data import check_multi_cohort_tsv
+
+    if tsv_path is not None:
+        if len(caps_dict) == 1:
+            df = tsv_path
+            if ("session_id" not in list(df.columns.values)) or (
+                "participant_id" not in list(df.columns.values)
+            ):
+                raise Exception(
+                    "the data file is not in the correct format."
+                    "Columns should include ['participant_id', 'session_id']"
+                )
+        else:
+            tsv_df = tsv_path
+            check_multi_cohort_tsv(tsv_df, "labels")
+            df = pd.DataFrame()
+            for idx in range(len(tsv_df)):
+                cohort_name = tsv_df.loc[idx, "cohort"]
+                cohort_path = tsv_df.loc[idx, "path"]
+                cohort_df = pd.read_csv(cohort_path, sep="\t")
+                cohort_df["cohort"] = cohort_name
+                df = pd.concat([df, cohort_df])
+    else:
+        df = pd.DataFrame()
+        for cohort, caps_path in caps_dict.items():
+            create_subs_sess_list(
+                caps_path, output_path, is_bids_dir=False, use_session_tsv=False
+            )
+            cohort_df = pd.read_csv(
+                join(output_path, "subjects_sessions_list.tsv"), sep="\t"
+            )
+            cohort_df["cohort"] = cohort
+            df = pd.concat([df, cohort_df])
+
+    return df
 
 def binary_t1_pgm(im_data: np.ndarray) -> np.ndarray:
     """

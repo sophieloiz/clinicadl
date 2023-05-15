@@ -24,6 +24,10 @@ from clinicadl.utils.tsvtools_utils import (
 )
 
 sex_dict = {"M": 0, "F": 1}
+gado_dict = {"gaudo_0": 0, "gaudo_1": 1}
+cont_dict = {"cont_0": 0, "cont_1": 1,"cont_2": 2}
+
+
 logger = getLogger("clinicadl")
 
 
@@ -34,6 +38,8 @@ def create_split(
     n_test,
     p_age_threshold=0.80,
     p_sex_threshold=0.80,
+    p_gado_threshold=0.80,
+    p_cont_threshold=0.80,
     supplementary_train_df=None,
     ignore_demographics=False,
 ):
@@ -61,9 +67,17 @@ def create_split(
     if supplementary_train_df is not None:
         sup_train_sex = [sex_dict[x] for x in supplementary_train_df.sex.values]
         sup_train_age = [float(x) for x in supplementary_train_df.age.values]
+        sup_train_gado = [float(x) for x in supplementary_train_df.diagnosis_gaudo.values]
+        #sup_train_cont = [float(x) for x in supplementary_train_df.diagnosis_z.values]
+        
+        
     else:
         sup_train_sex = []
         sup_train_age = []
+        sup_train_gado = []
+        #sup_train_cont = []
+        
+        
 
     baseline_df = extract_baseline(diagnosis_df)
 
@@ -80,8 +94,11 @@ def create_split(
 
     if not ignore_demographics:
         try:
-            sex_label = find_label(baseline_df.columns.values, "sex")
-            age_label = find_label(baseline_df.columns.values, "age")
+            #sex_label = find_label(baseline_df.columns.values, "sex")
+            #age_label = find_label(baseline_df.columns.values, "age")
+            gado_label = find_label(baseline_df.columns.values, "diagnosis_gaudo")
+            #cont_label = find_label(baseline_df.columns.values, "diagnosis_z")
+            
         except ClinicaDLArgumentError:
             raise ClinicaDLArgumentError(
                 "This dataset do not have age or sex values. "
@@ -89,8 +106,12 @@ def create_split(
                 "without trying to balance age or sex distributions."
             )
 
-        sex = list(baseline_df[sex_label].values)
-        age = list(baseline_df[age_label].values)
+        #sex = list(baseline_df[sex_label].values)
+        #age = list(baseline_df[age_label].values)
+        gado = list(baseline_df[gado_label].values)
+        #cont = list(baseline_df[cont_label].values)
+        
+        
         category = list(baseline_df[split_label].values)
         category = category_conversion(category)
         category = remove_unicity(category)
@@ -104,32 +125,56 @@ def create_split(
             for train_index, test_index in splits.split(category, category):
 
                 # Find the value for different demographics (age & sex)
-                if len(set(age)) != 1:
-                    age_test = [float(age[idx]) for idx in test_index]
-                    age_train = [float(age[idx]) for idx in train_index] + sup_train_age
-                    _, p_age = ttest_ind(age_test, age_train, nan_policy="omit")
+                #if len(set(age)) != 1:
+                 #   age_test = [float(age[idx]) for idx in test_index]
+                  #  age_train = [float(age[idx]) for idx in train_index] + sup_train_age
+                   # _, p_age = ttest_ind(age_test, age_train, nan_policy="omit")
+                #else:
+                 #   p_age = 1
+
+                #if len(set(sex)) != 1:
+                 #   sex_test = [sex_dict[sex[idx]] for idx in test_index]
+                  #  sex_train = [
+                   #     sex_dict[sex[idx]] for idx in train_index
+                    #] + sup_train_sex
+                    #_, p_sex = chi2(sex_test, sex_train)
+                #else:
+                 #   p_sex = 1
+
+                if len(set(gado)) != 1:
+                    gado_test = [gado_dict[gado[idx]] for idx in test_index]
+                    gado_train = [
+                        gado_dict[gado[idx]] for idx in train_index
+                    ] + sup_train_gado
+                    _, p_gado = chi2(gado_test, gado_train)
                 else:
-                    p_age = 1
+                    p_gado = 1
 
-                if len(set(sex)) != 1:
-                    sex_test = [sex_dict[sex[idx]] for idx in test_index]
-                    sex_train = [
-                        sex_dict[sex[idx]] for idx in train_index
-                    ] + sup_train_sex
-                    _, p_sex = chi2(sex_test, sex_train)
-                else:
-                    p_sex = 1
+                #if len(set(cont)) != 1:
+                 #   cont_test = [cont_dict[cont[idx]] for idx in test_index]
+                  #  cont_train = [
+                   #     cont_dict[cont[idx]] for idx in train_index
+                    #] + sup_train_cont
+                    #_, p_cont = chi2(cont_test, cont_train)
+                #else:
+                 #   p_cont = 1
+                #logger.debug(f"p_age={p_age:.2f}, p_sex={p_sex:.4f}")
 
-                logger.debug(f"p_age={p_age:.2f}, p_sex={p_sex:.4f}")
+               # if p_sex >= p_sex_threshold and p_age >= p_age_threshold:
+                #    flag_selection = False
+                 #   test_df = baseline_df.loc[test_index]
+                  #  train_df = baseline_df.loc[train_index]
+                   # if supplementary_train_df is not None:
+                    #    train_df = pd.concat([train_df, supplementary_train_df])
+                     #   train_df.reset_index(drop=True, inplace=True)
 
-                if p_sex >= p_sex_threshold and p_age >= p_age_threshold:
+                if p_gado >= p_gado_threshold: # and p_cont >= p_cont_threshold:
                     flag_selection = False
                     test_df = baseline_df.loc[test_index]
                     train_df = baseline_df.loc[train_index]
                     if supplementary_train_df is not None:
                         train_df = pd.concat([train_df, supplementary_train_df])
                         train_df.reset_index(drop=True, inplace=True)
-
                 n_try += 1
         logger.info(f"Split for diagnosis {diagnosis} was found after {n_try} trials.")
 

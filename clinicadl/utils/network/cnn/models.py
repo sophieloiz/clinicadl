@@ -5,13 +5,22 @@ from torch import nn
 from torchvision.models.resnet import BasicBlock
 
 from clinicadl.utils.network.cnn.resnet import ResNetDesigner, model_urls
+from clinicadl.utils.network.cnn.resnet3D import ResNetDesigner3D
+from clinicadl.utils.network.cnn.attentionnet import AttentionDesigner3D
+from clinicadl.utils.network.cnn.SECNN import SECNNDesigner3D
+
+
 from clinicadl.utils.network.network_utils import PadMaxPool2d, PadMaxPool3d
-from clinicadl.utils.network.sub_network import CNN
+from clinicadl.utils.network.sub_network import CNN, GNet
 
 
 def get_layers_fn(input_size):
     if len(input_size) == 4:
         return nn.Conv3d, nn.BatchNorm3d, PadMaxPool3d
+        #return nn.Conv3d, nn.GroupNorm, PadMaxPool3d
+    
+        #return nn.Conv3d, nn.InstanceNorm3d, PadMaxPool3d
+
     elif len(input_size) == 3:
         return nn.Conv2d, nn.BatchNorm2d, PadMaxPool2d
     else:
@@ -21,12 +30,13 @@ def get_layers_fn(input_size):
         )
 
 
+
 class Conv5_FC3(CNN):
     """
     Reduce the 2D or 3D input image to an array of size output_size.
     """
 
-    def __init__(self, input_size, gpu=True, output_size=2, dropout=0.5):
+    def __init__(self, input_size, gpu=True, output_size=2, dropout=0):
         conv, norm, pool = get_layers_fn(input_size)
         # fmt: off
         convolutions = nn.Sequential(
@@ -170,6 +180,83 @@ class resnet18(CNN):
             gpu=gpu,
         )
 
+class ResNet3D(CNN):
+    def __init__(self, input_size=[1, 169, 208, 179], gpu=False, output_size=2, dropout=0.5):
+        model = ResNetDesigner3D()
+        
+        convolutions = nn.Sequential(
+            model.layer0,
+            model.layer1,
+            model.layer2,
+            model.layer3,
+            model.layer4
+        )
+
+        fc = model.fc
+
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+class AttentionNet(CNN):
+     def __init__(self,  input_size=[1, 169, 208, 179], gpu=False, output_size=2, dropout=0.5):
+        model = AttentionDesigner3D()
+        
+        convolutions = nn.Sequential(
+            model.pre_conv,
+            model.stage1,
+            model.stage2,
+            model.stage3,
+            model.stage4,
+            model.avg
+        )
+
+        fc = model.classifier
+
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+ 
+# class GoogLeNet3D(CNN):
+#     def __init__(self):
+#         model = GoogLeNet3D_Designer()
+#         convolution = nn.Sequential(
+#             model.pre_layers,
+#             model.a3,
+#             model.b3,
+#             model.maxpool,
+#             model.a4
+#         )
+
+#         # For gradient injection
+#         if self.training:
+#             aux_out1 = self.aux1(out)
+
+#         out = self.b4(out)
+#         out = self.c4(out)
+#         out = self.d4(out)
+
+#         # For gradient injection
+#         if self.training:
+#             aux_out2 = self.aux2(out)
+
+#         out = self.e4(out)
+#         out = self.maxpool(out)
+#         out = self.a5(out)
+#         out = self.b5(out)
+#         out = self.avgpool(out)
+#         out = F.dropout(out, 0.4, training=self.training)
+#         out = out.view(out.size(0), -1)
+#         out = self.linear(out)
+#         if self.training:
+#             return out, aux_out1, aux_out2
+#         return out
 
 class Stride_Conv5_FC3(CNN):
     """
@@ -221,6 +308,98 @@ class Stride_Conv5_FC3(CNN):
         super().__init__(
             convolutions=convolutions,
             fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+class SE_CNN(CNN):
+    def __init__(self, input_size=[1, 169, 208, 179], gpu=True, output_size=2, dropout=0.5):
+        model = SECNNDesigner3D()
+        
+        convolutions = nn.Sequential(
+            model.layer0,
+            model.layer1,
+            model.layer2,
+            model.layer3,
+            model.layer4
+        )
+
+        fc = model.fc
+
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+
+class Gnet_Conv5_FC3(GNet):
+    """
+    Reduce the 2D or 3D input image to an array of size output_size.
+    """
+
+    def __init__(self, input_size, gpu=True, output_size=2, dropout=0.5):
+        conv, norm, pool = get_layers_fn(input_size)
+        # fmt: off
+        conv3d_c1_border = nn.Sequential(conv(input_size[0], 8, 3, padding=1),
+            norm(8),
+            nn.ReLU(),
+            pool(2, 2))
+        conv3d_c1_center = nn.Sequential(conv(input_size[0], 8, 3, padding=1),
+            norm(8),
+            nn.ReLU(),
+            pool(2, 2))
+
+        convolutions = nn.Sequential(
+            # conv(input_size[0], 8, 3, padding=1),
+            # norm(8),
+            # nn.ReLU(),
+            # pool(2, 2),
+
+            conv(8, 16, 3, padding=1),
+            norm(16),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(16, 32, 3, padding=1),
+            norm(32),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(32, 64, 3, padding=1),
+            norm(64),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(64, 128, 3, padding=1),
+            norm(128),
+            nn.ReLU(),
+            pool(2, 2),
+        )
+
+        # Compute the size of the first FC layer
+        input_tensor = torch.zeros([8, 85, 85, 90]).unsqueeze(0)
+        output_convolutions = convolutions(input_tensor)
+
+        fc = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(p=dropout),
+
+            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
+            nn.ReLU(),
+
+            nn.Linear(1300, 50),
+            nn.ReLU(),
+
+            nn.Linear(50, output_size)
+        )
+        # fmt: on
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            conv3d_c1_center=conv3d_c1_center,
+            conv3d_c1_border=conv3d_c1_border,
             n_classes=output_size,
             gpu=gpu,
         )

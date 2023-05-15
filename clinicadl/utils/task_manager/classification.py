@@ -32,7 +32,7 @@ class ClassificationManager(TaskManager):
         return [
             "participant_id",
             "session_id",
-            f"{self.mode}_id",
+            #f"{self.mode}_id",
             "true_label",
             "predicted_label",
         ] + [f"proba{i}" for i in range(self.n_classes)]
@@ -53,7 +53,7 @@ class ClassificationManager(TaskManager):
             [
                 data["participant_id"][idx],
                 data["session_id"][idx],
-                data[f"{self.mode}_id"][idx].item(),
+                #data[f"{self.mode}_id"][idx].item(),
                 data["label"][idx].item(),
                 prediction,
             ]

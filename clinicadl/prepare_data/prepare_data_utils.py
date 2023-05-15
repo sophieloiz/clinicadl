@@ -63,14 +63,30 @@ def compute_extract_json(extract_json: str) -> str:
 def compute_folder_and_file_type(
     parameters: Dict[str, Any]
 ) -> Tuple[str, Dict[str, str]]:
-    from clinica.utils.input_files import T1W_LINEAR, T1W_LINEAR_CROPPED, pet_linear_nii, FLAIR_T2W_LINEAR, FLAIR_T2W_LINEAR_CROPPED 
+    from clinica.utils.input_files import T1W_LINEAR, T1W_LINEAR_CROPPED, pet_linear_nii
 
     if parameters["preprocessing"] == "t1-linear":
         mod_subfolder = "t1_linear"
         if parameters["use_uncropped_image"]:
             file_type = T1W_LINEAR
         else:
-            file_type = T1W_LINEAR_CROPPED
+            file_type =  T1W_LINEAR_CROPPED
+    
+    elif parameters["preprocessing"] == "flair-linear":
+        mod_subfolder = "flair_linear"
+        if parameters["use_uncropped_image"]:
+            file_type =  {
+    "pattern": "*space-MNI152NLin2009cSym_res-1x1x1_flair.nii.gz",
+    "description": "T2w image registered in MNI152NLin2009cSym space using t2-linear pipeline",
+    "needed_pipeline": "flair-linear",
+}
+        else:
+            file_type = {
+    "pattern": "*space-MNI152NLin2009cSym_desc-Crop_res-1x1x1_flair.nii.gz",
+    "description": "T2W Image registered using t2-linear and cropped "
+    "(matrix size 169×208×179, 1 mm isotropic voxels)",
+    "needed_pipeline": "flair-linear",
+}
     elif parameters["preprocessing"] == "pet-linear":
         mod_subfolder = "pet_linear"
         file_type = pet_linear_nii(
@@ -78,17 +94,6 @@ def compute_folder_and_file_type(
             parameters["suvr_reference_region"],
             parameters["use_uncropped_image"],
         )
-    elif parameters["preprocessing"] == "flair-linear":
-        mod_subfolder = "flair_linear"
-        if parameters["use_uncropped_image"]:
-            file_type = {"pattern": "sub-*_ses-*_flair.nii*", "description": "FLAIR T2w MRI"}#FLAIR_T2W_LINEAR
-        else:
-            file_type = {
-                "pattern": "*space-MNI152NLin2009cSym_desc-Crop_res-1x1x1_flair.nii.gz",
-                "description": "T2W Image registered using t2-linear and cropped "
-                "(matrix size 169×208×179, 1 mm isotropic voxels)",
-                "needed_pipeline": "flair-linear",
-            }
     elif parameters["preprocessing"] == "custom":
         mod_subfolder = "custom"
         file_type = {
@@ -115,7 +120,7 @@ def compute_discarded_slices(discarded_slices: Union[int, tuple]) -> Tuple[int, 
     elif len(discarded_slices) == 2:
         begin_discard, end_discard = discarded_slices[0], discarded_slices[1]
     else:
-        raise ValueError(
+        raise IndexError(
             f"Maximum two number of discarded slices can be defined. "
             f"You gave discarded slices = {discarded_slices}."
         )
@@ -200,8 +205,8 @@ def extract_slice_path(
 
     direction_dict = {0: "sag", 1: "cor", 2: "axi"}
     if slice_direction not in direction_dict:
-        raise ValueError(
-            f"Slice direction {slice_direction} should be in the keys of {direction_dict}."
+        raise KeyError(
+            f"Slice direction {slice_direction} should be in {direction_dict.keys()} corresponding to {direction_dict}."
         )
 
     input_img_filename = path.basename(img_path)
@@ -336,7 +341,7 @@ def check_mask_list(masks_location, roi_list, mask_pattern, cropping):
     for roi in roi_list:
         roi_path, desc = find_mask_path(masks_location, roi, mask_pattern, cropping)
         if roi_path is None:
-            raise ValueError(
+            raise FileNotFoundError(
                 f"The ROI '{roi}' does not correspond to a mask in the CAPS directory. {desc}"
             )
         roi_mask = nib.load(roi_path).get_fdata()

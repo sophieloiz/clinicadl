@@ -59,14 +59,19 @@ def complementary_list(total_list, sub_list):
 
 def first_session(subject_df):
     session_list = [int(session[5:]) for _, session in subject_df.index.values]
+    idx = np.argmin(session_list)
     session_list.sort()
-    
     first_session = session_list[0]
-    #print(subject_df.columns) # .session_id)
     if first_session < 10:
-        return "ses-M0" + str(first_session)
+        if(len(subject_df.index[idx][1])<8):
+            return "ses-M0" + str(first_session)
+        else:
+            return "ses-M00" + str(first_session)
     else:
-        return "ses-M" + str(first_session)
+        if(len(subject_df.index[idx][1])<8):
+            return "ses-M" + str(first_session)
+        else:
+            return "ses-M0" + str(first_session)
 
 
 def next_session(subject_df, session_orig):
@@ -75,9 +80,15 @@ def next_session(subject_df, session_orig):
     session_id_list = []
     for session in session_list:
         if session < 10:
-            session_id_list.append("ses-M0" + str(session))
+            if(len(session_list[session])<8):
+                session_id_list.append("ses-M0" + str(session))
+            else:
+                session_id_list.append("ses-M00" + str(session))
         else:
-            session_id_list.append("ses-M" + str(session))
+            if(len(session_list[session])<8):
+                session_id_list.append("ses-M" + str(session))
+            else:
+                session_id_list.append("ses-M0" + str(session))
     index = session_id_list.index(session_orig)
     if index < len(session_id_list) - 1:
         return session_id_list[index + 1]
@@ -86,6 +97,7 @@ def next_session(subject_df, session_orig):
 
 
 def extract_baseline(diagnosis_df, set_index=True):
+    baseline_list = list(diagnosis_df.session_id)
     from copy import deepcopy
 
     if set_index:
@@ -94,11 +106,9 @@ def extract_baseline(diagnosis_df, set_index=True):
         all_df = deepcopy(diagnosis_df)
 
     result_df = pd.DataFrame()
-    print(all_df.groupby(level=0))
     for subject, subject_df in all_df.groupby(level=0):
-        print(subject)
-        #print(subject_df.columns)
         baseline =first_session(subject_df)
+        print(subject_df.loc[(subject, baseline)])
         subject_baseline_df = pd.DataFrame(
             data=[[subject, baseline] + subject_df.loc[(subject, baseline)].tolist()],
             columns=["participant_id", "session_id"]
