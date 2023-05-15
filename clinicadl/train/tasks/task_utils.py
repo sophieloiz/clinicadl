@@ -57,6 +57,33 @@ def task_launcher(network_task: str, task_options_list: List[str], **kwargs):
     preprocessing_dict = read_preprocessing(preprocessing_json)
     train_dict["preprocessing_dict"] = preprocessing_dict
     train_dict["mode"] = preprocessing_dict["mode"]
+    
+    
+    if kwargs["ssda_network"]:
+        caps_dict = CapsDataset.create_caps_dict(
+            kwargs["caps_target"], train_dict["multi_cohort"]
+        )
+        json_found = False
+        for caps_name, caps_path in caps_dict.items():
+            if os.path.exists(
+                os.path.join(
+                    caps_path, "tensor_extraction", kwargs["preprocessing_json_target"]
+                )
+            ):
+                preprocessing_json_target = os.path.join(
+                    caps_path, "tensor_extraction", kwargs["preprocessing_json_target"]
+                )
+                logger.info(
+                    f"Preprocessing JSON {preprocessing_json} found in CAPS {caps_name}."
+                )
+                json_found = True
+        if not json_found:
+            raise ValueError(
+                f"Preprocessing JSON {kwargs['preprocessing_json']} was not found for any CAPS "
+                f"in {caps_dict}."
+            )
+        preprocessing_dict_target = read_preprocessing(preprocessing_json_target)
+        train_dict["preprocessing_dict_target"] = preprocessing_dict_target
 
     # Add arguments
     train_dict["network_task"] = network_task
@@ -80,6 +107,10 @@ def task_launcher(network_task: str, task_options_list: List[str], **kwargs):
         "multi_cohort",
         "multi_network",
         "ssda_network",
+        "caps_target",
+        "tsv_target_lab",
+        "tsv_target_unlab",
+        "preprocessing_json_target",
         "n_proc",
         "n_splits",
         "normalize",

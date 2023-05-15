@@ -182,6 +182,30 @@ sampler = cli_param.option_group.data_group.option(
     # default="random",
     help="Sampler used to load the training data set.",
 )
+caps_target = cli_param.option_group.data_group.option(
+    "--caps_target",
+    "-d",
+    type=str,
+    help="CAPS of target data.",
+)
+tsv_target_lab = cli_param.option_group.data_group.option(
+    "--tsv_target_lab",
+    "-d",
+    type=str,
+    help="TSV of labeled target data.",
+)
+tsv_target_unlab = cli_param.option_group.data_group.option(
+    "--tsv_target_unlab",
+    "-d",
+    type=str,
+    help="TSV of unllabeled target data.",
+)
+preprocessing_json_target = cli_param.option_group.data_group.option(
+    "--preprocessing_json_target",
+    "-d",
+    type=str,
+    help="Path to json taget.",
+)
 # Cross validation
 n_splits = cli_param.option_group.cross_validation.option(
     "--n_splits",

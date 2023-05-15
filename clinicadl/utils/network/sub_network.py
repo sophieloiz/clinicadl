@@ -13,6 +13,7 @@ from clinicadl.utils.network.network_utils import (
     PadMaxPool3d,
 )
 from torch.fft import fftn, ifftn, fftshift, ifftshift
+from torch.autograd import Function
 
 logger = getLogger("clinicadl")
 
@@ -397,3 +398,92 @@ class GNet(Network):
             loss = torch.Tensor([0])
 
         return train_output, {"loss": loss}
+
+class ReverseLayerF(Function):
+
+    def forward(self, x):
+        self.alpha = 0.1 #alpha
+        return x.view_as(x)
+
+    def backward(self, grad_output):
+        output = grad_output.neg() * self.alpha
+        return output, None
+    
+    
+class CNN_da(Network):
+    def __init__(self, convolutions, fc_class, fc_domain, n_classes, gpu=False): #
+        super().__init__(gpu=gpu)
+        self.convolutions = convolutions.to(self.device)
+        self.fc_class = fc_class.to(self.device)
+        self.fc_domain = fc_domain.to(self.device)
+        self.n_classes = n_classes
+
+    @property
+    def layers(self):
+        return nn.Sequential(self.convolutions, self.fc_class, self.fc_domain) #,
+
+    def transfer_weights(self, state_dict, transfer_class):
+        if issubclass(transfer_class, CNN_da):
+            self.load_state_dict(state_dict)
+
+        elif issubclass(transfer_class, AutoEncoder):
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("encoder.", ""), v)
+                    for k, v in state_dict.items()
+                    if "encoder" in k
+                ]
+            )
+            self.convolutions.load_state_dict(convolutions_dict)
+        else:
+            raise ClinicaDLNetworksError(
+                f"Cannot transfer weights from {transfer_class} to CNN."
+            )
+
+    def forward(self, x):
+        x = self.convolutions(x)
+        x_class = self.fc_class(x)
+        x_reverse = ReverseLayerF.apply(x)
+        x_domain = self.fc_domain(x_reverse) 
+        return x_class, x_domain
+
+    def predict(self, x):
+        return self.forward(x)
+
+
+    def compute_outputs_and_loss_domain(self, input_dict, input_dict_target, criterion, use_labels=True):
+
+        images = input_dict["image"].to(self.device)
+
+        images_target = input_dict_target["image"].to(self.device)
+
+        _, train_output_domain_source = self.forward(images) #alpha
+        _, train_output_domain_target = self.forward(images_target)
+
+
+        labels_domain_s = torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
+
+        labels_domain_t = torch.ones(input_dict_target["image"].shape[0]).long().to(self.device)
+
+
+        loss_domain_s = criterion(train_output_domain_source, labels_domain_s)
+        loss_domain_t = criterion(train_output_domain_target, labels_domain_t)
+        loss_domain = loss_domain_s + loss_domain_t
+
+        return train_output_domain_source, train_output_domain_target, {"loss_domain": loss_domain}
+
+
+    def compute_outputs_and_loss(self, input_dict, criterion, use_labels=True):
+
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+
+        train_output_class, _ = self.forward(images)
+
+        if use_labels:
+            loss = criterion(train_output_class, labels)
+        else:
+            loss = torch.Tensor([0])
+
+        return train_output_class, {"loss": loss}
