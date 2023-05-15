@@ -79,6 +79,12 @@ multi_network = cli_param.option_group.model_group.option(
     default=None,
     help="If provided uses a multi-network framework.",
 )
+ssda_network = cli_param.option_group.model_group.option(
+    "--ssda_network/--classic_network",
+    type=bool,
+    default=None,
+    help="If provided uses a ssda-network framework.",
+)
 # Task
 label = cli_param.option_group.task_group.option(
     "--label",

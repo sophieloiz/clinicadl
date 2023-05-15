@@ -134,6 +134,8 @@ class MapsManager:
             )
         if self.multi_network:
             self._train_multi(split_list, resume=False)
+        elif self.ssda_network:
+            self._train_ssda(split_list, resume=False)
         else:
             self._train_single(split_list, resume=False)
             #self._train_single_qc(split_list, resume=False)
@@ -1638,7 +1640,7 @@ class MapsManager:
                 gpu=gpu,
                 network=network,
             )
-            print("Predict label for QC (TO CHANGE IF NOT)")
+            #print("Predict label for QC (TO CHANGE IF NOT)")
             #model, _ = self._init_model_qc(
              #  transfer_path=self.maps_path,
               # split=split,
