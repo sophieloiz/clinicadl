@@ -1442,7 +1442,7 @@ class MapsManager:
             resume=False,
         ):
             """
-            Core function shared by train and resume.
+            Core function shared by train and resume for SSDA using DANN.
 
             Args:
                 train_source_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of source domain.
@@ -1468,11 +1468,11 @@ class MapsManager:
 
             logger.debug(f"Optimizer used for training is optimizer")
 
-            model.train()
+            #model.train()
 
-            train_source_loader.dataset.train()
-            train_target_loader.dataset.train()
-            train_target_unl_loader.dataset.train()
+            #train_source_loader.dataset.train()
+            #train_target_loader.dataset.train()
+            #train_target_unl_loader.dataset.train()
 
             early_stopping = EarlyStopping(
                 "min", min_delta=self.tolerance, patience=self.patience
@@ -1500,6 +1500,9 @@ class MapsManager:
             while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
                 p = float(epoch * len_train_source) / 100 / len_train_source
                 alpha = 2. / (1. + np.exp(-10 * p)) - 1
+                alpha = 0
+                print("ALPHA: 0 (to remove for normal training)")
+                print(alpha)
                 logger.info(f"Beginning epoch {epoch} with alpha {alpha}.")
 
                 model.zero_grad()
@@ -1517,43 +1520,53 @@ class MapsManager:
                 data_t_unl = next(data_iter_t_unl)
                 data_s = next(data_iter_s)
 
-                _, _, loss_dict_unl = model.compute_outputs_and_loss_domain(data_s, data_t_unl, criterion)
-                _, loss_dict_l = model.compute_outputs_and_loss(data_t, criterion)
+                #_, _, loss_dict_unl = model.compute_outputs_and_loss_domain(data_s, data_t_unl, criterion, alpha)
+                _, loss_dict_l_t = model.compute_outputs_and_loss(data_t, criterion, alpha)
+                _, loss_dict_l_s = model.compute_outputs_and_loss(data_s, criterion, alpha)
+                
 
-                loss_t = loss_dict_unl["loss_domain"] 
-                lossc = loss_dict_l["loss"]
+                #loss_t = loss_dict_unl["loss_domain"] 
+                loss_c_t = loss_dict_l_t["loss"]
+                loss_c_s = loss_dict_l_s["loss"]
+                
 
-                loss = lossc + alpha*loss_t
+                loss = loss_c_t + loss_c_s #+ loss_t
 
                 loss.backward()
-
+                optimizer = model.lr_scheduler(self.learning_rate,optimizer, p)
                 optimizer.step()
-                optimizer.zero_grad()
-                model.zero_grad()
+                #optimizer.zero_grad()
+                #model.zero_grad()
+                
+                #Write results for source data 
+                
+                # _, metrics_source_train = self.task_manager.test(
+                #     model, train_source_loader, criterion, alpha
+                # )
+                # _, metrics_source_valid = self.task_manager.test(model, valid_source_loader, criterion, alpha)
 
+                # model.train()
+                # train_target_unl_loader.dataset.train()
+
+                # log_writer.step(
+                #     epoch, 0, metrics_source_train, metrics_source_valid, len_train_source
+                # )
+                
+                #Write results for target data 
+                
                 _, metrics_train = self.task_manager.test(
-                    model, train_target_loader, criterion
+                    model, train_target_loader, criterion, alpha
                 )
-                _, metrics_valid = self.task_manager.test(model, valid_loader, criterion)
+                _, metrics_valid = self.task_manager.test(model, valid_loader, criterion, alpha)
 
-                model.train()
+                #model.train()
                 train_target_unl_loader.dataset.train()
 
                 log_writer.step(
-                    epoch, 0, metrics_train, metrics_valid, len(train_target_unl_loader)
+                    epoch, 0, metrics_train, metrics_valid, len(train_target_unl_loader), "training_target.tsv"
                 )
-
-                logger.info(
-                    f"{self.mode} level training loss is {metrics_train['loss']} "
-                    f"at the end of epochs {epoch}"
-                )
-                logger.info(
-                    f"{self.mode} level validation loss is {metrics_valid['loss']} "
-                    f"at the end of epochs {epoch}"
-                )
-
+                
                 # Save checkpoints and best models
-                print(network)
                 best_dict = retain_best.step(metrics_valid)
                 self._write_weights(
                     {
@@ -1577,7 +1590,7 @@ class MapsManager:
                     epoch,
                     filename="optimizer.pth.tar",
                 )
-                del loss_t, loss, lossc
+                del loss, loss_c_t, loss_c_s#, loss_t
 
                 epoch += 1
 
@@ -2407,8 +2420,8 @@ class MapsManager:
         elif not path.exists(
             group_path
         ):  # Data group does not exist yet / was overwritten + all data is provided
-            print("ISSUE : No check leakage")
-            #self._check_leakage(data_group, df)
+            #print("ISSUE : No check leakage")
+            self._check_leakage(data_group, df)
             self._write_data_group(
                 data_group, df, caps_directory, multi_cohort, label=label
             )

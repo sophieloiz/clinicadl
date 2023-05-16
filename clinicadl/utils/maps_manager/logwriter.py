@@ -113,7 +113,7 @@ class LogWriter:
             path.join(self.file_dir, "tensorboard", "validation")
         )
 
-    def step(self, epoch, i, metrics_train, metrics_valid, len_epoch):
+    def step(self, epoch, i, metrics_train, metrics_valid, len_epoch, file_name=None):
         """
         Write a new row on the output file training.tsv.
 
@@ -123,12 +123,16 @@ class LogWriter:
             metrics_train (Dict[str:float]): metrics on the training set
             metrics_valid (Dict[str:float]): metrics on the validation set
             len_epoch (int): number of iterations in an epoch
+            file_name (str): name of the tsv file to store results (by default it's storing training.tsv)
         """
         from time import time
 
         # Write TSV file
-        tsv_path = path.join(self.file_dir, "training.tsv")
-
+        if file_name:
+            tsv_path = path.join(self.file_dir, file_name)
+        else:
+            tsv_path = path.join(self.file_dir, "training.tsv")
+            
         t_current = time() - self.beginning_time
         general_row = [epoch, i, t_current]
         train_row = list()

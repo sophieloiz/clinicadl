@@ -401,12 +401,13 @@ class GNet(Network):
 
 class ReverseLayerF(Function):
 
-    def forward(self, x):
-        self.alpha = 0.1 #alpha
+    def forward(self, x, alpha):
+        self.alpha = alpha
         return x.view_as(x)
 
     def backward(self, grad_output):
-        output = grad_output.neg() * self.alpha
+        output = grad_output.neg()* self.alpha
+
         return output, None
     
     
@@ -440,10 +441,10 @@ class CNN_da(Network):
                 f"Cannot transfer weights from {transfer_class} to CNN."
             )
 
-    def forward(self, x):
+    def forward(self, x,alpha):
         x = self.convolutions(x)
         x_class = self.fc_class(x)
-        x_reverse = ReverseLayerF.apply(x)
+        x_reverse = ReverseLayerF.apply(x, alpha)
         x_domain = self.fc_domain(x_reverse) 
         return x_class, x_domain
 
@@ -451,14 +452,14 @@ class CNN_da(Network):
         return self.forward(x)
 
 
-    def compute_outputs_and_loss_domain(self, input_dict, input_dict_target, criterion, use_labels=True):
+    def compute_outputs_and_loss_domain(self, input_dict, input_dict_target, criterion, alpha, use_labels=True):
 
         images = input_dict["image"].to(self.device)
 
         images_target = input_dict_target["image"].to(self.device)
 
-        _, train_output_domain_source = self.forward(images) #alpha
-        _, train_output_domain_target = self.forward(images_target)
+        _, train_output_domain_source = self.forward(images,alpha) #alpha
+        _, train_output_domain_target = self.forward(images_target,alpha)
 
 
         labels_domain_s = torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
@@ -473,13 +474,13 @@ class CNN_da(Network):
         return train_output_domain_source, train_output_domain_target, {"loss_domain": loss_domain}
 
 
-    def compute_outputs_and_loss(self, input_dict, criterion, use_labels=True):
+    def compute_outputs_and_loss(self, input_dict, criterion, alpha, use_labels=True):
 
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
 
-        train_output_class, _ = self.forward(images)
+        train_output_class, _ = self.forward(images, alpha)
 
         if use_labels:
             loss = criterion(train_output_class, labels)
@@ -487,3 +488,11 @@ class CNN_da(Network):
             loss = torch.Tensor([0])
 
         return train_output_class, {"loss": loss}
+    
+        # Define the learning rate scheduler function
+    
+    def lr_scheduler(self, lr,optimizer, p):
+        lr = lr / (1 + 10 * p) ** 0.75
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+        return optimizer
