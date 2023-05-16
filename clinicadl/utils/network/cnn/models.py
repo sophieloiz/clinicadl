@@ -11,7 +11,7 @@ from clinicadl.utils.network.cnn.SECNN import SECNNDesigner3D
 
 
 from clinicadl.utils.network.network_utils import PadMaxPool2d, PadMaxPool3d
-from clinicadl.utils.network.sub_network import CNN, GNet, CNN_da, CNN_SSDA
+from clinicadl.utils.network.sub_network import CNN, GNet, CNN_DANN, CNN_MME
 
 
 def get_layers_fn(input_size):
@@ -407,7 +407,7 @@ class Gnet_Conv5_FC3(GNet):
         )
 
 
-class Conv5_FC3_inv(CNN_da):
+class Conv5_FC3_DANN(CNN_DANN):
     """
     Reduce the 2D or 3D input image to an array of size output_size.
     """
@@ -486,7 +486,7 @@ class Conv5_FC3_inv(CNN_da):
         )
 
 
-class Conv5_FC3_MME(CNN_SSDA):
+class Conv5_FC3_MME(CNN_MME):
     """
     It is a convolutional neural network with 5 convolution and 3 fully-connected layer.
     It reduces the 2D or 3D input image to an array of size output_size.

@@ -429,7 +429,7 @@ class ReverseLayerF(Function):
         return output, None
 
 
-class CNN_da(Network):
+class CNN_DANN(Network):
     def __init__(self, convolutions, fc_class, fc_domain, n_classes, gpu=False):  #
         super().__init__(gpu=gpu)
         self.convolutions = convolutions.to(self.device)
@@ -442,7 +442,7 @@ class CNN_da(Network):
         return nn.Sequential(self.convolutions, self.fc_class, self.fc_domain)  # ,
 
     def transfer_weights(self, state_dict, transfer_class):
-        if issubclass(transfer_class, CNN_da):
+        if issubclass(transfer_class, CNN_DANN):
             self.load_state_dict(state_dict)
 
         elif issubclass(transfer_class, AutoEncoder):
@@ -576,7 +576,7 @@ class CNN_da(Network):
         return optimizer
 
 
-class CNN_SSDA(Network):
+class CNN_MME(Network):
     def __init__(self, convolutions, fc, fc_c, n_classes, gpu=False):
         super().__init__(gpu=gpu)
         self.convolutions = convolutions.to(self.device)
@@ -594,7 +594,7 @@ class CNN_SSDA(Network):
     def transfer_weights(self, state_dict, transfer_class):
         if issubclass(transfer_class, CNN):
             self.load_state_dict(state_dict)
-        elif issubclass(transfer_class, CNN_SSDA):
+        elif issubclass(transfer_class, CNN_MME):
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
@@ -614,7 +614,6 @@ class CNN_SSDA(Network):
         x = self.convolutions(x)
         out_g = self.fc(x)
         if reverse:
-            # out_g = self.grad_reverse(out_g, eta)
             out_g = ReverseLayerF.apply(out_g, eta)
 
         out_c = F.normalize(out_g)
