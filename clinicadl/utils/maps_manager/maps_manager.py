@@ -1502,14 +1502,17 @@ class MapsManager:
             data_s = next(data_iter_s)
 
             # _, _, loss_dict_unl = model.compute_outputs_and_loss_domain(data_s, data_t_unl, criterion, alpha)
-            _, loss_dict_l_t = model.compute_outputs_and_loss(data_t, criterion, alpha)
-            _, loss_dict_l_s = model.compute_outputs_and_loss(data_s, criterion, alpha)
+            _, _, loss_dict_unl = model.compute_outputs_and_loss_new(
+                data_s, data_t, data_t_unl, criterion, alpha
+            )
+            # _, loss_dict_l_t = model.compute_outputs_and_loss(data_t, criterion, alpha)
+            # _, loss_dict_l_s = model.compute_outputs_and_loss(data_s, criterion, alpha)
 
             # loss_t = loss_dict_unl["loss_domain"]
-            loss_c_t = loss_dict_l_t["loss"]
-            loss_c_s = loss_dict_l_s["loss"]
+            loss = loss_dict_unl["loss"]
+            # loss_c_s = loss_dict_l_s["loss"]
 
-            loss = loss_c_t + loss_c_s  # + loss_t
+            # loss = loss_c_t + loss_c_s  # + loss_t
 
             loss.backward()
             optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)

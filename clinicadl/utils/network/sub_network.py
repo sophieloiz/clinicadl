@@ -120,8 +120,8 @@ class CNN(Network):
 
     def forward(self, x):
         x = self.convolutions(x)
-        #print("Attention Net : resize function")
-        #x = x.view(x.size(0), -1) # for attentionnet
+        # print("Attention Net : resize function")
+        # x = x.view(x.size(0), -1) # for attentionnet
         return self.fc(x)
 
     def predict(self, x):
@@ -140,21 +140,32 @@ class CNN(Network):
 
         return train_output, {"loss": loss}
 
-    
+
 class ViT(Network):
-    def __init__(self, patch_to_embedding, transformer, to_latent, mlp_head, dropout, pos_embedding, cls_token, patch_size,pool='cls', gpu=True):
+    def __init__(
+        self,
+        patch_to_embedding,
+        transformer,
+        to_latent,
+        mlp_head,
+        dropout,
+        pos_embedding,
+        cls_token,
+        patch_size,
+        pool="cls",
+        gpu=True,
+    ):
         super().__init__(gpu=True)
         self.patch_to_embedding = patch_to_embedding.to(self.device)
         self.transformer = transformer.to(self.device)
-        self.to_latent=to_latent.to(self.device)
-        self.mlp_head=mlp_head.to(self.device)
+        self.to_latent = to_latent.to(self.device)
+        self.mlp_head = mlp_head.to(self.device)
         self.pos_embedding = pos_embedding.to(self.device)
-        self.cls_token=cls_token.to(self.device)
-        self.patch_size=patch_size
-        self.dropout=dropout
-        self.pool=pool
+        self.cls_token = cls_token.to(self.device)
+        self.patch_size = patch_size
+        self.dropout = dropout
+        self.pool = pool
 
-        
     def transfer_weights(self, state_dict, transfer_class):
         if issubclass(transfer_class, CNN):
             self.load_state_dict(state_dict)
@@ -174,24 +185,28 @@ class ViT(Network):
                 f"Cannot transfer weights from {transfer_class} to class ViTVNet:."
             )
 
-
     def forward(self, img, mask=None):
         p = self.patch_size
 
         x = rearrange(
-            img[:,:,:,:,:176], 'b c (x p1) (y p2) (z p3) -> b (x y z) (p1 p2 p3 c)', p1=p, p2=p, p3=16)
+            img[:, :, :, :, :176],
+            "b c (x p1) (y p2) (z p3) -> b (x y z) (p1 p2 p3 c)",
+            p1=p,
+            p2=p,
+            p3=16,
+        )
         print(x.shape)
         x = self.patch_to_embedding(x)
         b, n, _ = x.shape
 
-        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b=b)
+        cls_tokens = repeat(self.cls_token, "() n d -> b n d", b=b)
         x = torch.cat((cls_tokens, x), dim=1)
-        x += self.pos_embedding[:, :(n + 1)]
+        x += self.pos_embedding[:, : (n + 1)]
         x = self.dropout(x)
 
         x = self.transformer(x, mask)
 
-        x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]
+        x = x.mean(dim=1) if self.pool == "mean" else x[:, 0]
 
         x = self.to_latent(x)
         return self.mlp_head(x)
@@ -211,6 +226,7 @@ class ViT(Network):
             loss = torch.Tensor([0])
 
         return train_output, {"loss": loss}
+
 
 class GNet(Network):
     def __init__(
@@ -317,24 +333,24 @@ class GNet(Network):
 
         # input_tensor, target = torch.zeros((160,160,128)), torch.zeros((160,160,128))
         print(x.shape)
-        x = x[:,:, :169, :169, :]
+        x = x[:, :, :169, :169, :]
         print(x.shape)
         input_dim = tuple(range(2, x.ndim))
         print("Distangle")
         # Do fftn for input to disentangle
         input_f = fftn(x, dim=input_dim)
-        #input_f = fftshift(
-         #   input_f
-        #)  # [ONLY-LOW] For the high-frequency model, we just remove this line
+        # input_f = fftshift(
+        #   input_f
+        # )  # [ONLY-LOW] For the high-frequency model, we just remove this line
         # Use mask to get the center and border
         print("Mask")
         input_center_f, input_border_f = self.mask_tensor(input_f)
-        #input_center_f = ifftshift(
-         #   input_center_f
-        #)  # [ONLY-LOW] For the high-frequency model, we just remove this line
-        #input_border_f = ifftshift(
-         #   input_border_f
-        #)  # [ONLY-LOW] For the high-frequency model, we just remove this line
+        # input_center_f = ifftshift(
+        #   input_center_f
+        # )  # [ONLY-LOW] For the high-frequency model, we just remove this line
+        # input_border_f = ifftshift(
+        #   input_border_f
+        # )  # [ONLY-LOW] For the high-frequency model, we just remove this line
         input_center_i = ifftn(
             input_center_f, dim=tuple(range(2, input_center_f.ndim))
         ).type(torch.float32)
@@ -354,23 +370,23 @@ class GNet(Network):
         output_border_f = fftn(
             output_border_i, dim=tuple(range(2, output_border_i.ndim))
         )
-        #output_border_f = fftshift(
-         #   output_border_f
-        #)  # [ONLY-LOW] For the high-frequency model, we just remove this line
+        # output_border_f = fftshift(
+        #   output_border_f
+        # )  # [ONLY-LOW] For the high-frequency model, we just remove this line
         output_center_f = fftn(
             output_center_i, dim=tuple(range(2, output_center_i.ndim))
         )
-        #output_center_f = fftshift(
-         #   output_center_f
-        #)  # [ONLY-LOW] For the high-frequency model, we just remove this line
+        # output_center_f = fftshift(
+        #   output_center_f
+        # )  # [ONLY-LOW] For the high-frequency model, we just remove this line
         # merge output of border and center frequency together in Frequency domain
         output_center_border_f = self.merge_center_border(
             output_center_f, output_border_f
         )
         # Transform back to image domain
-        #output_center_border_f = ifftshift(
-         #   output_center_border_f
-        #)  # [ONLY-LOW] For the high-frequency model, we just remove this line
+        # output_center_border_f = ifftshift(
+        #   output_center_border_f
+        # )  # [ONLY-LOW] For the high-frequency model, we just remove this line
         output_center_border_i = ifftn(
             output_center_border_f, dim=tuple(range(2, output_center_border_f.ndim))
         ).type(torch.float32)
@@ -399,20 +415,20 @@ class GNet(Network):
 
         return train_output, {"loss": loss}
 
-class ReverseLayerF(Function):
 
+class ReverseLayerF(Function):
     def forward(self, x, alpha):
         self.alpha = alpha
         return x.view_as(x)
 
     def backward(self, grad_output):
-        output = grad_output.neg()* self.alpha
+        output = grad_output.neg() * self.alpha
 
         return output, None
-    
-    
+
+
 class CNN_da(Network):
-    def __init__(self, convolutions, fc_class, fc_domain, n_classes, gpu=False): #
+    def __init__(self, convolutions, fc_class, fc_domain, n_classes, gpu=False):  #
         super().__init__(gpu=gpu)
         self.convolutions = convolutions.to(self.device)
         self.fc_class = fc_class.to(self.device)
@@ -421,7 +437,7 @@ class CNN_da(Network):
 
     @property
     def layers(self):
-        return nn.Sequential(self.convolutions, self.fc_class, self.fc_domain) #,
+        return nn.Sequential(self.convolutions, self.fc_class, self.fc_domain)  # ,
 
     def transfer_weights(self, state_dict, transfer_class):
         if issubclass(transfer_class, CNN_da):
@@ -441,38 +457,99 @@ class CNN_da(Network):
                 f"Cannot transfer weights from {transfer_class} to CNN."
             )
 
-    def forward(self, x,alpha):
+    def forward(self, x, alpha):
         x = self.convolutions(x)
         x_class = self.fc_class(x)
         x_reverse = ReverseLayerF.apply(x, alpha)
-        x_domain = self.fc_domain(x_reverse) 
+        x_domain = self.fc_domain(x_reverse)
         return x_class, x_domain
 
     def predict(self, x):
         return self.forward(x)
 
+    def compute_outputs_and_loss_new(
+        self,
+        input_dict,
+        input_dict_target,
+        input_dict_target_unl,
+        criterion,
+        alpha,
+        use_labels=True,
+    ):
 
-    def compute_outputs_and_loss_domain(self, input_dict, input_dict_target, criterion, alpha, use_labels=True):
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+
+        images_target, labels_target = input_dict_target["image"].to(
+            self.device
+        ), input_dict_target["label"].to(self.device)
+
+        images_target_unl = input_dict_target_unl["image"].to(self.device)
+
+        train_output_class_source, train_output_domain_source = self.forward(
+            images, alpha
+        )  # alpha
+        train_output_class_target, train_output_domain_target = self.forward(
+            images_target, alpha
+        )
+        _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
+
+        loss_source = criterion(train_output_class_source, labels)
+        loss_target = criterion(train_output_class_target, labels_target)
+
+        loss_classif = loss_source + loss_target
+
+        labels_domain_s = (
+            torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
+        )
+
+        labels_domain_t = (
+            torch.ones(input_dict_target["image"].shape[0]).long().to(self.device)
+        )
+
+        loss_domain_s = criterion(train_output_domain_source, labels_domain_s)
+        loss_domain_t = criterion(train_output_domain_target, labels_domain_t)
+        loss_domain_t_unl = criterion(train_output_domain_target_lab, labels_domain_t)
+
+        loss_domain = loss_domain_s + loss_domain_t + loss_domain_t_unl
+
+        total_loss = loss_domain + loss_classif
+
+        return (
+            train_output_class_source,
+            train_output_class_target,
+            {"loss": total_loss},
+        )
+
+    def compute_outputs_and_loss_domain(
+        self, input_dict, input_dict_target, criterion, alpha, use_labels=True
+    ):
 
         images = input_dict["image"].to(self.device)
 
         images_target = input_dict_target["image"].to(self.device)
 
-        _, train_output_domain_source = self.forward(images,alpha) #alpha
-        _, train_output_domain_target = self.forward(images_target,alpha)
+        _, train_output_domain_source = self.forward(images, alpha)  # alpha
+        _, train_output_domain_target = self.forward(images_target, alpha)
 
+        labels_domain_s = (
+            torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
+        )
 
-        labels_domain_s = torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
-
-        labels_domain_t = torch.ones(input_dict_target["image"].shape[0]).long().to(self.device)
-
+        labels_domain_t = (
+            torch.ones(input_dict_target["image"].shape[0]).long().to(self.device)
+        )
 
         loss_domain_s = criterion(train_output_domain_source, labels_domain_s)
         loss_domain_t = criterion(train_output_domain_target, labels_domain_t)
         loss_domain = loss_domain_s + loss_domain_t
 
-        return train_output_domain_source, train_output_domain_target, {"loss_domain": loss_domain}
-
+        return (
+            train_output_domain_source,
+            train_output_domain_target,
+            {"loss_domain": loss_domain},
+        )
 
     def compute_outputs_and_loss(self, input_dict, criterion, alpha, use_labels=True):
 
@@ -488,11 +565,11 @@ class CNN_da(Network):
             loss = torch.Tensor([0])
 
         return train_output_class, {"loss": loss}
-    
+
         # Define the learning rate scheduler function
-    
-    def lr_scheduler(self, lr,optimizer, p):
+
+    def lr_scheduler(self, lr, optimizer, p):
         lr = lr / (1 + 10 * p) ** 0.75
         for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
+            param_group["lr"] = lr
         return optimizer

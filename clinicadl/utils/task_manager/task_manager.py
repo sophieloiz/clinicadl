@@ -187,19 +187,20 @@ class TaskManager:
             the results and metrics on the image level.
         """
         model.eval()
-       # dataloader.dataset.eval()
+        # dataloader.dataset.eval()
 
         results_df = pd.DataFrame(columns=self.columns)
         total_loss = 0
         with torch.no_grad():
             for i, data in enumerate(dataloader):
+                print("Remove alpha from task manager if no ssda training")
                 outputs, loss_dict = model.compute_outputs_and_loss(
                     data, criterion, alpha, use_labels=use_labels
                 )
-                #import frequency_feature_map_visualization as fv
-                #feature_map_dict = fv.visualize_feature_maps_3d(model, data["image"], device=torch.device('cpu'))
-                #print(feature_map_dict)
-                #fv.save_feature_maps_to_npy(feature_map_dict, f'/export/home/cse180022/apprimage_sophie/Distangle_Guanghui/saved_feature_maps2/')
+                # import frequency_feature_map_visualization as fv
+                # feature_map_dict = fv.visualize_feature_maps_3d(model, data["image"], device=torch.device('cpu'))
+                # print(feature_map_dict)
+                # fv.save_feature_maps_to_npy(feature_map_dict, f'/export/home/cse180022/apprimage_sophie/Distangle_Guanghui/saved_feature_maps2/')
 
                 total_loss += loss_dict["loss"].item()
 
