@@ -206,7 +206,7 @@ preprocessing_json_target = cli_param.option_group.data_group.option(
     type=str,
     help="Path to json taget.",
 )
-ssda = cli_param.option_group.optimization_group.option(
+ssda = cli_param.option_group.data_group.option(
     "--ssda",
     type=click.Choice(
         [
@@ -214,7 +214,7 @@ ssda = cli_param.option_group.optimization_group.option(
             "MME",
         ]
     ),
-    help="Optimizer used to train the network.",
+    help="SSDA network used to train the network.",
 )
 # Cross validation
 n_splits = cli_param.option_group.cross_validation.option(
