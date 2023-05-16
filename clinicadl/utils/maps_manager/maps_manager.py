@@ -138,8 +138,7 @@ class MapsManager:
             self._train_ssda(split_list, resume=False)
         else:
             self._train_single(split_list, resume=False)
-            #self._train_single_qc(split_list, resume=False)
-            
+            # self._train_single_qc(split_list, resume=False)
 
     def resume(self, split_list: List[int] = None):
         """
@@ -171,8 +170,7 @@ class MapsManager:
             self._train_multi(split_list, resume=True)
         else:
             self._train_single(split_list, resume=True)
-            #self._train_single_qc(split_list, resume=True)
-            
+            # self._train_single_qc(split_list, resume=True)
 
     def predict(
         self,
@@ -306,7 +304,7 @@ class MapsManager:
                     group_df,
                     self.preprocessing_dict,
                     all_transformations=all_transforms,
-                    #train_transformations=_, # TO REMOVE IF NO MOTION ON THE FLY
+                    # train_transformations=_, # TO REMOVE IF NO MOTION ON THE FLY
                     multi_cohort=group_parameters["multi_cohort"],
                     label_presence=use_labels,
                     label=self.label if label is None else label,
@@ -334,7 +332,6 @@ class MapsManager:
                     gpu=gpu,
                 )
             self._ensemble_prediction(data_group, split, selection_metrics, use_labels)
-
 
     def predict_qc(
         self,
@@ -411,7 +408,7 @@ class MapsManager:
         from clinicadl.utils.caps_dataset.data import CapsDataset
         from clinicadl.utils.exceptions import ClinicaDLArgumentError
         from clinicadl.quality_check.t1_linear.utils import QCDataset
-        
+
         for split in split_list:
             logger.info(f"Prediction of split {split}")
             group_df, group_parameters = self.get_group_info(data_group, split)
@@ -435,15 +432,13 @@ class MapsManager:
                 )
                 for tsv_file in glob(tsv_pattern):
                     os.remove(tsv_file)
-            
+
             caps_dict = CapsDataset.create_caps_dict(
                 self.caps_directory, multi_cohort=False
             )
 
             output_path = "/export/home/cse180022/"
-            df_test = load_and_check_tsv2(
-                group_df, caps_dict, output_path
-            )
+            df_test = load_and_check_tsv2(group_df, caps_dict, output_path)
 
             dataset_test = QCDataset(self.caps_directory, df_test)
             test_loader = DataLoader(
@@ -461,9 +456,8 @@ class MapsManager:
                 use_labels=use_labels,
                 gpu=gpu,
             )
-                
+
             self._ensemble_prediction(data_group, split, selection_metrics, use_labels)
-   
 
     def save_tensors(
         self,
@@ -840,22 +834,15 @@ class MapsManager:
         split_manager = self._init_split_manager(split_list)
 
         split_manager_ssda_lab = self._init_split_manager_ssda(
-            self.caps_target,
-            self.tsv_target_lab,
-            split_list
+            self.caps_target, self.tsv_target_lab, split_list
         )
-        #split_manager_ssda_unl = self._init_split_manager_ssda(
-            #self.caps_target,
-            #self.tsv_target_unlab,
-            #split_list
-        #)
+
         for split in split_manager.split_iterator():
             logger.info(f"Training split {split}")
             seed_everything(self.seed, self.deterministic, self.compensation)
 
             split_df_dict = split_manager[split]
             split_df_dict_ssda_lab = split_manager_ssda_lab[split]
-            #split_df_dict_ssda_unl = split_manager_ssda_unl[split]
 
             data_train_source = return_dataset(
                 self.caps_directory,
@@ -879,9 +866,9 @@ class MapsManager:
                 label_code=self.label_code,
             )
             import pandas as pd
+
             data_target_unlabeled = return_dataset(
                 self.caps_target,
-                #split_df_dict_ssda_unl["train"],
                 pd.read_csv(self.tsv_target_unlab, sep="\t"),
                 self.preprocessing_dict_target,
                 train_transformations=train_transforms,
@@ -918,9 +905,6 @@ class MapsManager:
             train_target_sampler = self.task_manager.generate_sampler(
                 data_train_target_labeled, self.sampler
             )
-            #train_target_unl_sampler = self.task_manager.generate_sampler(
-             #   data_target_unlabeled, self.sampler
-            #)
 
             logger.info(
                 f"Getting train and validation loader with batch size {self.batch_size}"
@@ -943,12 +927,13 @@ class MapsManager:
             train_target_unl_loader = DataLoader(
                 data_target_unlabeled,
                 batch_size=self.batch_size,
-                #sampler=train_target_unl_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
             )
 
-            logger.info(f"Train source loader size is {len(train_source_loader)*self.batch_size}")
+            logger.info(
+                f"Train source loader size is {len(train_source_loader)*self.batch_size}"
+            )
             logger.info(
                 f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
             )
@@ -970,8 +955,10 @@ class MapsManager:
                 num_workers=self.n_proc,
             )
 
-            logger.info(f"Validation loader size is {len(valid_loader)*self.batch_size}")
-            
+            logger.info(
+                f"Validation loader size is {len(valid_loader)*self.batch_size}"
+            )
+
             self._train_dann(
                 train_source_loader,
                 train_target_loader,
@@ -994,7 +981,6 @@ class MapsManager:
             )
 
             self._erase_tmp(split)
-
 
     def _train_single_qc(self, split_list=None, resume=False):
         """
@@ -1032,42 +1018,38 @@ class MapsManager:
 
             # Load DataFrame
             logger.debug("Loading data to check.")
-            output_path = "/export/home/cse180022/crash_out.tsv" # A COMPLETER
+            output_path = "/export/home/cse180022/crash_out.tsv"  # A COMPLETER
             print(split_df_dict["train"])
             df_train = load_and_check_tsv2(
-                split_df_dict["train"], caps_dict, output_path#.resolve().parent
+                split_df_dict["train"], caps_dict, output_path  # .resolve().parent
             )
 
             dataset_train = QCDataset(self.caps_directory, df_train)
             train_loader = DataLoader(
-                dataset_train, batch_size=self.batch_size, pin_memory=True,
-                drop_last = True
+                dataset_train,
+                batch_size=self.batch_size,
+                pin_memory=True,
+                drop_last=True,
             )
 
             logger.debug("Loading validation data...")
 
             # Load DataFrame
-            output_path = "/export/home/cse180022/crash_out_val.tsv" # A COMPLETER
+            output_path = "/export/home/cse180022/crash_out_val.tsv"  # A COMPLETER
             logger.debug("Loading data to check.")
             df_val = load_and_check_tsv2(
-                split_df_dict["validation"], caps_dict, output_path#.resolve().parent
+                split_df_dict["validation"], caps_dict, output_path  # .resolve().parent
             )
 
             dataset_val = QCDataset(self.caps_directory, df_val)
             valid_loader = DataLoader(
-                dataset_val, batch_size=self.batch_size, pin_memory=True,
-                drop_last = True
+                dataset_val, batch_size=self.batch_size, pin_memory=True, drop_last=True
             )
             print(len(train_loader))
             print(len(valid_loader))
-            
-            logger.debug(
-                f"Train target labeled loader size is {len(train_loader)}"
-            )
-            logger.debug(
-                f"Train target unlabeled loader size is {len(valid_loader)}"
-            )
 
+            logger.debug(f"Train target labeled loader size is {len(train_loader)}")
+            logger.debug(f"Train target unlabeled loader size is {len(valid_loader)}")
 
             self._train_qc(
                 train_loader,
@@ -1220,35 +1202,35 @@ class MapsManager:
             transfer_path=self.transfer_path,
             transfer_selection=self.transfer_selection_metric,
         )
-        
-        ##
-        #list_name = []
-        #list_param = []
-        #for name, param in model.named_parameters():
-         #   list_name.append(name)
-          #  list_param.append(param)
-       # for i in range(len(list_name)):
-        #    param = list_param[i]
-         #   name = list_name[i]
-          #  print("Freeze")
-           # param.requires_grad = False
-           # print(name, param.requires_grad)
-        #for i in range(6): # Number in range depends on how many layers (weight + bias) you want to freeze (2*N)
-         #   print(len(list_name)-i)
-          #  print(len(list_param)-i)
 
-           # param = list_param[len(list_param)-i-1]
-            #name = list_name[len(list_name)-i-1]
-            #print("UnFreeze")
-            #param.requires_grad = True
-            #print(name, param.requires_grad)
-        
-        #for i in range(6): # Number in range depends on how many layers (weight + bias) you want to freeze (2*N)
-          #  param = list_param[i]
-          #  name = list_name[i]
-          #  print("UnFreeze")
-           # param.requires_grad = True
-           # print(name, param.requires_grad)
+        ##
+        # list_name = []
+        # list_param = []
+        # for name, param in model.named_parameters():
+        #   list_name.append(name)
+        #  list_param.append(param)
+        # for i in range(len(list_name)):
+        #    param = list_param[i]
+        #   name = list_name[i]
+        #  print("Freeze")
+        # param.requires_grad = False
+        # print(name, param.requires_grad)
+        # for i in range(6): # Number in range depends on how many layers (weight + bias) you want to freeze (2*N)
+        #   print(len(list_name)-i)
+        #  print(len(list_param)-i)
+
+        # param = list_param[len(list_param)-i-1]
+        # name = list_name[len(list_name)-i-1]
+        # print("UnFreeze")
+        # param.requires_grad = True
+        # print(name, param.requires_grad)
+
+        # for i in range(6): # Number in range depends on how many layers (weight + bias) you want to freeze (2*N)
+        #  param = list_param[i]
+        #  name = list_name[i]
+        #  print("UnFreeze")
+        # param.requires_grad = True
+        # print(name, param.requires_grad)
 
         ###
 
@@ -1429,544 +1411,554 @@ class MapsManager:
                 network=network,
             )
 
-
     def _train_dann(
-            self,
-            train_source_loader,
-            train_target_loader,
-            train_target_unl_loader,
-            valid_loader,
-            valid_source_loader,
+        self,
+        train_source_loader,
+        train_target_loader,
+        train_target_unl_loader,
+        valid_loader,
+        valid_source_loader,
+        split,
+        network=None,
+        resume=False,
+    ):
+        """
+        Core function shared by train and resume for SSDA using DANN.
+
+        Args:
+            train_source_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of source domain.
+            train_target_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of target domain.
+            train_target_unl_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of target domain unlabeled.
+
+            valid_loader (torch.utils.data.DataLoader): DataLoader wrapping the validation set.
+            split (int): Index of the split trained.
+            network (int): Index of the network trained (used in multi-network setting only).
+            resume (bool): If True the job is resumed from the checkpoint.
+        """
+
+        model, beginning_epoch = self._init_model(
+            split=split,
+            resume=resume,
+            transfer_path=self.transfer_path,
+            transfer_selection=self.transfer_selection_metric,
+        )
+
+        criterion = self.task_manager.get_criterion(self.loss)
+        logger.debug(f"Criterion for {self.network_task} is {criterion}")
+        optimizer = self._init_optimizer(model, split=split, resume=resume)
+
+        logger.debug(f"Optimizer used for training is optimizer")
+
+        # model.train()
+
+        # train_source_loader.dataset.train()
+        # train_target_loader.dataset.train()
+        # train_target_unl_loader.dataset.train()
+
+        early_stopping = EarlyStopping(
+            "min", min_delta=self.tolerance, patience=self.patience
+        )
+        metrics_valid = {"loss": None}
+
+        log_writer = LogWriter(
+            self.maps_path,
+            self.task_manager.evaluation_metrics + ["loss"],
             split,
-            network=None,
-            resume=False,
-        ):
-            """
-            Core function shared by train and resume for SSDA using DANN.
+            resume=resume,
+            beginning_epoch=beginning_epoch,
+            network=network,
+        )
+        epoch = log_writer.beginning_epoch
 
-            Args:
-                train_source_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of source domain.
-                train_target_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of target domain.
-                train_target_unl_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of target domain unlabeled.
+        retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
 
-                valid_loader (torch.utils.data.DataLoader): DataLoader wrapping the validation set.
-                split (int): Index of the split trained.
-                network (int): Index of the network trained (used in multi-network setting only).
-                resume (bool): If True the job is resumed from the checkpoint.
-            """
+        len_train_source = len(train_source_loader)
+        len_train_target = len(train_target_loader)
+        len_train_target_unl = len(train_target_unl_loader)
 
-            model, beginning_epoch = self._init_model(
-                split=split,
-                resume=resume,
-                transfer_path=self.transfer_path,
-                transfer_selection=self.transfer_selection_metric,
+        import numpy as np
+
+        while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
+            p = float(epoch * len_train_source) / 100 / len_train_source
+            alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+            alpha = 0
+            print("ALPHA: 0 (to remove for normal training)")
+            print(alpha)
+            logger.info(f"Beginning epoch {epoch} with alpha {alpha}.")
+
+            model.zero_grad()
+
+            evaluation_flag, step_flag = True, True
+
+            if epoch % len_train_target == 0:
+                data_iter_t = iter(train_target_loader)
+            if epoch % len_train_target_unl == 0:
+                data_iter_t_unl = iter(train_target_unl_loader)
+            if epoch % len_train_source == 0:
+                data_iter_s = iter(train_source_loader)
+
+            data_t = next(data_iter_t)
+            data_t_unl = next(data_iter_t_unl)
+            data_s = next(data_iter_s)
+
+            # _, _, loss_dict_unl = model.compute_outputs_and_loss_domain(data_s, data_t_unl, criterion, alpha)
+            _, loss_dict_l_t = model.compute_outputs_and_loss(data_t, criterion, alpha)
+            _, loss_dict_l_s = model.compute_outputs_and_loss(data_s, criterion, alpha)
+
+            # loss_t = loss_dict_unl["loss_domain"]
+            loss_c_t = loss_dict_l_t["loss"]
+            loss_c_s = loss_dict_l_s["loss"]
+
+            loss = loss_c_t + loss_c_s  # + loss_t
+
+            loss.backward()
+            optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
+            optimizer.step()
+            # optimizer.zero_grad()
+            # model.zero_grad()
+
+            # Write results for source data
+
+            # _, metrics_source_train = self.task_manager.test(
+            #     model, train_source_loader, criterion, alpha
+            # )
+            # _, metrics_source_valid = self.task_manager.test(model, valid_source_loader, criterion, alpha)
+
+            # model.train()
+            # train_target_unl_loader.dataset.train()
+
+            # log_writer.step(
+            #     epoch, 0, metrics_source_train, metrics_source_valid, len_train_source
+            # )
+
+            # Write results for target data
+
+            _, metrics_train = self.task_manager.test(
+                model, train_target_loader, criterion, alpha
+            )
+            _, metrics_valid = self.task_manager.test(
+                model, valid_loader, criterion, alpha
             )
 
-            criterion = self.task_manager.get_criterion(self.loss)
-            logger.debug(f"Criterion for {self.network_task} is {criterion}")
-            optimizer = self._init_optimizer(model, split=split, resume=resume)
-
-            logger.debug(f"Optimizer used for training is optimizer")
-
-            #model.train()
-
-            #train_source_loader.dataset.train()
-            #train_target_loader.dataset.train()
-            #train_target_unl_loader.dataset.train()
-
-            early_stopping = EarlyStopping(
-                "min", min_delta=self.tolerance, patience=self.patience
+            logger.info(
+                f"{self.mode} level training loss is {metrics_train['loss']} "
+                f"at the end of epochs {epoch}"
             )
-            metrics_valid = {"loss": None}
+            logger.info(
+                f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                f"at the end of epochs {epoch}"
+            )
 
-            log_writer = LogWriter(
-                self.maps_path,
-                self.task_manager.evaluation_metrics + ["loss"],
+            # model.train()
+            # train_target_unl_loader.dataset.train()
+
+            log_writer.step(
+                epoch,
+                0,
+                metrics_train,
+                metrics_valid,
+                len(train_target_unl_loader),
+                "training_target.tsv",
+            )
+
+            # Save checkpoints and best models
+            best_dict = retain_best.step(metrics_valid)
+            self._write_weights(
+                {
+                    "model": model.state_dict(),
+                    "epoch": epoch,
+                    "name": self.architecture,
+                },
+                best_dict,
                 split,
-                resume=resume,
-                beginning_epoch=beginning_epoch,
-                network=network,
+                epoch,
             )
-            epoch = log_writer.beginning_epoch
 
-            retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
+            self._write_weights(
+                {
+                    "optimizer": optimizer.state_dict(),
+                    "epoch": epoch,
+                    "name": optimizer,
+                },
+                None,
+                split,
+                epoch,
+                filename="optimizer.pth.tar",
+            )
+            del loss, loss_c_t, loss_c_s  # , loss_t
 
-            len_train_source = len(train_source_loader)
-            len_train_target = len(train_target_loader)
-            len_train_target_unl = len(train_target_unl_loader)
+            epoch += 1
 
-            import numpy as np
+        self._test_loader(
+            train_target_loader,
+            criterion,
+            "train",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+        self._test_loader(
+            valid_loader,
+            criterion,
+            "validation",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
 
-            while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
-                p = float(epoch * len_train_source) / 100 / len_train_source
-                alpha = 2. / (1. + np.exp(-10 * p)) - 1
-                alpha = 0
-                print("ALPHA: 0 (to remove for normal training)")
-                print(alpha)
-                logger.info(f"Beginning epoch {epoch} with alpha {alpha}.")
-
-                model.zero_grad()
-
-                evaluation_flag, step_flag = True, True
-
-                if epoch % len_train_target == 0:
-                    data_iter_t = iter(train_target_loader)
-                if epoch % len_train_target_unl == 0:
-                    data_iter_t_unl = iter(train_target_unl_loader)
-                if epoch % len_train_source == 0:
-                    data_iter_s = iter(train_source_loader)
-
-                data_t = next(data_iter_t)
-                data_t_unl = next(data_iter_t_unl)
-                data_s = next(data_iter_s)
-
-                #_, _, loss_dict_unl = model.compute_outputs_and_loss_domain(data_s, data_t_unl, criterion, alpha)
-                _, loss_dict_l_t = model.compute_outputs_and_loss(data_t, criterion, alpha)
-                _, loss_dict_l_s = model.compute_outputs_and_loss(data_s, criterion, alpha)
-                
-
-                #loss_t = loss_dict_unl["loss_domain"] 
-                loss_c_t = loss_dict_l_t["loss"]
-                loss_c_s = loss_dict_l_s["loss"]
-                
-
-                loss = loss_c_t + loss_c_s #+ loss_t
-
-                loss.backward()
-                optimizer = model.lr_scheduler(self.learning_rate,optimizer, p)
-                optimizer.step()
-                #optimizer.zero_grad()
-                #model.zero_grad()
-                
-                #Write results for source data 
-                
-                # _, metrics_source_train = self.task_manager.test(
-                #     model, train_source_loader, criterion, alpha
-                # )
-                # _, metrics_source_valid = self.task_manager.test(model, valid_source_loader, criterion, alpha)
-
-                # model.train()
-                # train_target_unl_loader.dataset.train()
-
-                # log_writer.step(
-                #     epoch, 0, metrics_source_train, metrics_source_valid, len_train_source
-                # )
-                
-                #Write results for target data 
-                
-                _, metrics_train = self.task_manager.test(
-                    model, train_target_loader, criterion, alpha
-                )
-                _, metrics_valid = self.task_manager.test(model, valid_loader, criterion, alpha)
-
-                #model.train()
-                train_target_unl_loader.dataset.train()
-
-                log_writer.step(
-                    epoch, 0, metrics_train, metrics_valid, len(train_target_unl_loader), "training_target.tsv"
-                )
-                
-                # Save checkpoints and best models
-                best_dict = retain_best.step(metrics_valid)
-                self._write_weights(
-                    {
-                        "model": model.state_dict(),
-                        "epoch": epoch,
-                        "name": self.architecture,
-                    },
-                    best_dict,
-                    split,
-                    epoch,
-                )
-
-                self._write_weights(
-                    {
-                        "optimizer": optimizer.state_dict(),
-                        "epoch": epoch,
-                        "name": optimizer,
-                    },
-                    None,
-                    split,
-                    epoch,
-                    filename="optimizer.pth.tar",
-                )
-                del loss, loss_c_t, loss_c_s#, loss_t
-
-                epoch += 1
-
-
-            self._test_loader(
-                train_target_loader,
-                criterion,
+        if self.task_manager.save_outputs:
+            self._compute_output_tensors(
+                train_target_unl_loader.dataset,
                 "train",
                 split,
                 self.selection_metrics,
+                nb_images=1,
                 network=network,
             )
-            self._test_loader(
-                valid_loader,
-                criterion,
+            self._compute_output_tensors(
+                train_target_unl_loader.dataset,
                 "validation",
                 split,
                 self.selection_metrics,
+                nb_images=1,
                 network=network,
             )
 
-
-            if self.task_manager.save_outputs:
-                self._compute_output_tensors(
-                    train_target_unl_loader.dataset,
-                    "train",
-                    split,
-                    self.selection_metrics,
-                    nb_images=1,
-                    network=network,
-                )
-                self._compute_output_tensors(
-                    train_target_unl_loader.dataset,
-                    "validation",
-                    split,
-                    self.selection_metrics,
-                    nb_images=1,
-                    network=network,
-                )
-                
-                
     def _train_qc(
-            self,
-            train_loader,
-            valid_loader,
+        self,
+        train_loader,
+        valid_loader,
+        split,
+        network=None,
+        resume=False,
+    ):
+        """
+        Core function shared by train and resume.
+
+        Args:
+            train_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set.
+            valid_loader (torch.utils.data.DataLoader): DataLoader wrapping the validation set.
+            split (int): Index of the split trained.
+            network (int): Index of the network trained (used in multi-network setting only).
+            resume (bool): If True the job is resumed from the checkpoint.
+        """
+
+        model, beginning_epoch = self._init_model_qc(
+            split=split,
+            transfer_path=self.transfer_path,
+            transfer_selection=self.transfer_selection_metric,
+        )
+        criterion = self.task_manager.get_criterion(self.loss)
+        logger.debug(f"Criterion for {self.network_task} is {criterion}")
+        optimizer = self._init_optimizer(model, split=split, resume=resume)
+        logger.debug(f"Optimizer used for training is optimizer")
+        print(self.label_code)
+        model.train()
+        # train_loader.dataset.train()
+
+        early_stopping = EarlyStopping(
+            "min", min_delta=self.tolerance, patience=self.patience
+        )
+        metrics_valid = {"loss": None}
+
+        log_writer = LogWriter(
+            self.maps_path,
+            self.task_manager.evaluation_metrics + ["loss"],
             split,
-            network=None,
-            resume=False,
-        ):
-            """
-            Core function shared by train and resume.
+            resume=resume,
+            beginning_epoch=beginning_epoch,
+            network=network,
+        )
+        epoch = log_writer.beginning_epoch
 
-            Args:
-                train_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set.
-                valid_loader (torch.utils.data.DataLoader): DataLoader wrapping the validation set.
-                split (int): Index of the split trained.
-                network (int): Index of the network trained (used in multi-network setting only).
-                resume (bool): If True the job is resumed from the checkpoint.
-            """
+        retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
 
-            model, beginning_epoch = self._init_model_qc(
-                split=split,
-                transfer_path=self.transfer_path,
-                transfer_selection=self.transfer_selection_metric,
-            )
-            criterion = self.task_manager.get_criterion(self.loss)
-            logger.debug(f"Criterion for {self.network_task} is {criterion}")
-            optimizer = self._init_optimizer(model, split=split, resume=resume)
-            logger.debug(f"Optimizer used for training is optimizer")
-            print(self.label_code)
-            model.train()
-            #train_loader.dataset.train()
+        while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
+            logger.info(f"Beginning epoch {epoch}.")
 
-            early_stopping = EarlyStopping(
-                "min", min_delta=self.tolerance, patience=self.patience
-            )
-            metrics_valid = {"loss": None}
+            model.zero_grad()
+            evaluation_flag, step_flag = True, True
 
-            log_writer = LogWriter(
-                self.maps_path,
-                self.task_manager.evaluation_metrics + ["loss"],
-                split,
-                resume=resume,
-                beginning_epoch=beginning_epoch,
-                network=network,
-            )
-            epoch = log_writer.beginning_epoch
+            for i, data in enumerate(train_loader):
 
-            retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
+                _, loss_dict = model.compute_outputs_and_loss(data, criterion)
+                logger.debug(f"Train loss dictionnary {loss_dict}")
+                loss = loss_dict["loss"]
+                loss.backward()
 
-            while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
-                logger.info(f"Beginning epoch {epoch}.")
-
-                model.zero_grad()
-                evaluation_flag, step_flag = True, True
-
-                for i, data in enumerate(train_loader):
-
-                    _, loss_dict = model.compute_outputs_and_loss(data, criterion)
-                    logger.debug(f"Train loss dictionnary {loss_dict}")
-                    loss = loss_dict["loss"]
-                    loss.backward()
-
-                    if (i + 1) % self.accumulation_steps == 0:
-                        step_flag = False
-                        optimizer.step()
-                        optimizer.zero_grad()
-
-                        del loss
-
-                        # Evaluate the model only when no gradients are accumulated
-                        if (
-                            self.evaluation_steps != 0
-                            and (i + 1) % self.evaluation_steps == 0
-                        ):
-                            evaluation_flag = False
-
-                            _, metrics_train = self.task_manager.test(
-                                model, train_loader, criterion
-                            )
-                            _, metrics_valid = self.task_manager.test(
-                                model, valid_loader, criterion
-                            )
-
-                            model.train()
-                            train_loader.dataset.train()
-
-                            log_writer.step(
-                                epoch,
-                                i,
-                                metrics_train,
-                                metrics_valid,
-                                len(train_loader),
-                            )
-                            logger.info(
-                                f"{self.mode} level training loss is {metrics_train['loss']} "
-                                f"at the end of iteration {i}"
-                            )
-                            logger.info(
-                                f"{self.mode} level validation loss is {metrics_valid['loss']} "
-                                f"at the end of iteration {i}"
-                            )
-
-                # If no step has been performed, raise Exception
-                if step_flag:
-                    raise Exception(
-                        "The model has not been updated once in the epoch. The accumulation step may be too large."
-                    )
-
-                # If no evaluation has been performed, warn the user
-                elif evaluation_flag and self.evaluation_steps != 0:
-                    logger.warning(
-                        f"Your evaluation steps {self.evaluation_steps} are too big "
-                        f"compared to the size of the dataset. "
-                        f"The model is evaluated only once at the end epochs."
-                    )
-
-                # Update weights one last time if gradients were computed without update
-                if (i + 1) % self.accumulation_steps != 0:
+                if (i + 1) % self.accumulation_steps == 0:
+                    step_flag = False
                     optimizer.step()
                     optimizer.zero_grad()
 
-                # Always test the results and save them once at the end of the epoch
-                model.zero_grad()
-                logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
+                    del loss
 
-                _, metrics_train = self.task_manager.test(model, train_loader, criterion)
-                _, metrics_valid = self.task_manager.test(model, valid_loader, criterion)
+                    # Evaluate the model only when no gradients are accumulated
+                    if (
+                        self.evaluation_steps != 0
+                        and (i + 1) % self.evaluation_steps == 0
+                    ):
+                        evaluation_flag = False
 
-                model.train()
-                #train_loader.dataset.train()
+                        _, metrics_train = self.task_manager.test(
+                            model, train_loader, criterion
+                        )
+                        _, metrics_valid = self.task_manager.test(
+                            model, valid_loader, criterion
+                        )
 
-                log_writer.step(epoch, i, metrics_train, metrics_valid, len(train_loader))
-                logger.info(
-                    f"{self.mode} level training loss is {metrics_train['loss']} "
-                    f"at the end of iteration {i}"
-                )
-                logger.info(
-                    f"{self.mode} level validation loss is {metrics_valid['loss']} "
-                    f"at the end of iteration {i}"
-                )
+                        model.train()
+                        train_loader.dataset.train()
 
-                # Save checkpoints and best models
-                best_dict = retain_best.step(metrics_valid)
-                self._write_weights(
-                    {
-                        "model": model.state_dict(),
-                        "epoch": epoch,
-                        "name": self.architecture,
-                    },
-                    best_dict,
-                    split,
-                    network=network,
-                )
-                self._write_weights(
-                    {
-                        "optimizer": optimizer.state_dict(),
-                        "epoch": epoch,
-                        "name": self.optimizer,
-                    },
-                    None,
-                    split,
-                    filename="optimizer.pth.tar",
+                        log_writer.step(
+                            epoch,
+                            i,
+                            metrics_train,
+                            metrics_valid,
+                            len(train_loader),
+                        )
+                        logger.info(
+                            f"{self.mode} level training loss is {metrics_train['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+                        logger.info(
+                            f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+
+            # If no step has been performed, raise Exception
+            if step_flag:
+                raise Exception(
+                    "The model has not been updated once in the epoch. The accumulation step may be too large."
                 )
 
-                epoch += 1
+            # If no evaluation has been performed, warn the user
+            elif evaluation_flag and self.evaluation_steps != 0:
+                logger.warning(
+                    f"Your evaluation steps {self.evaluation_steps} are too big "
+                    f"compared to the size of the dataset. "
+                    f"The model is evaluated only once at the end epochs."
+                )
 
-            self._test_loader(
-                train_loader,
-                criterion,
+            # Update weights one last time if gradients were computed without update
+            if (i + 1) % self.accumulation_steps != 0:
+                optimizer.step()
+                optimizer.zero_grad()
+
+            # Always test the results and save them once at the end of the epoch
+            model.zero_grad()
+            logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
+
+            _, metrics_train = self.task_manager.test(model, train_loader, criterion)
+            _, metrics_valid = self.task_manager.test(model, valid_loader, criterion)
+
+            model.train()
+            # train_loader.dataset.train()
+
+            log_writer.step(epoch, i, metrics_train, metrics_valid, len(train_loader))
+            logger.info(
+                f"{self.mode} level training loss is {metrics_train['loss']} "
+                f"at the end of iteration {i}"
+            )
+            logger.info(
+                f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                f"at the end of iteration {i}"
+            )
+
+            # Save checkpoints and best models
+            best_dict = retain_best.step(metrics_valid)
+            self._write_weights(
+                {
+                    "model": model.state_dict(),
+                    "epoch": epoch,
+                    "name": self.architecture,
+                },
+                best_dict,
+                split,
+                network=network,
+            )
+            self._write_weights(
+                {
+                    "optimizer": optimizer.state_dict(),
+                    "epoch": epoch,
+                    "name": self.optimizer,
+                },
+                None,
+                split,
+                filename="optimizer.pth.tar",
+            )
+
+            epoch += 1
+
+        self._test_loader(
+            train_loader,
+            criterion,
+            "train",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+        self._test_loader(
+            valid_loader,
+            criterion,
+            "validation",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+
+        if self.task_manager.save_outputs:
+            self._compute_output_tensors(
+                train_loader.dataset,
                 "train",
                 split,
                 self.selection_metrics,
+                nb_images=1,
                 network=network,
             )
-            self._test_loader(
-                valid_loader,
-                criterion,
+            self._compute_output_tensors(
+                train_loader.dataset,
                 "validation",
                 split,
                 self.selection_metrics,
+                nb_images=1,
                 network=network,
             )
 
-            if self.task_manager.save_outputs:
-                self._compute_output_tensors(
-                    train_loader.dataset,
-                    "train",
-                    split,
-                    self.selection_metrics,
-                    nb_images=1,
-                    network=network,
-                )
-                self._compute_output_tensors(
-                    train_loader.dataset,
-                    "validation",
-                    split,
-                    self.selection_metrics,
-                    nb_images=1,
-                    network=network,)
-
     def _init_model_qc(
-            self,
+        self,
         transfer_path=None,
         transfer_selection=None,
         split=None,
         resume=False,
         gpu=None,
         network=None,
-        ):
-            """
-            Instantiate the model
+    ):
+        """
+        Instantiate the model
 
-            Args:
-                transfer_path (str): path to a MAPS in which a model's weights are used for transfer learning.
-                transfer_selection (str): name of the metric used to find the source model.
-                split (int): Index of the split (only used if transfer_path is not None of not resume).
-                resume (bool): If True initialize the network with the checkpoint weights.
-                gpu (bool): If given, a new value for the device of the model will be computed.
-                network (int): Index of the network trained (used in multi-network setting only).
-            """
-            import clinicadl.utils.network as network_package
-            from clinica.utils.inputs import RemoteFileStructure, fetch_file
-            from clinicadl.quality_check.t1_linear.models import (
-                resnet_darq_qc_18 as darq_r18,
+        Args:
+            transfer_path (str): path to a MAPS in which a model's weights are used for transfer learning.
+            transfer_selection (str): name of the metric used to find the source model.
+            split (int): Index of the split (only used if transfer_path is not None of not resume).
+            resume (bool): If True initialize the network with the checkpoint weights.
+            gpu (bool): If given, a new value for the device of the model will be computed.
+            network (int): Index of the network trained (used in multi-network setting only).
+        """
+        import clinicadl.utils.network as network_package
+        from clinica.utils.inputs import RemoteFileStructure, fetch_file
+        from clinicadl.quality_check.t1_linear.models import (
+            resnet_darq_qc_18 as darq_r18,
+        )
+        from clinicadl.quality_check.t1_linear.models import (
+            resnet_deep_qc_18 as deep_r18,
+        )
+        from clinicadl.quality_check.t1_linear.models import squeezenet_qc as darq_sq101
+
+        logger.debug(f"Initialization of model {self.architecture}")
+        # or choose to implement a dictionary
+
+        # Fetch QC model
+        home = Path.home()
+
+        cache_clinicadl = home / ".cache" / "clinicadl" / "models"
+        url_aramis = "https://aramislab.paris.inria.fr/files/data/models/dl/qc/"
+
+        cache_clinicadl.mkdir(parents=True, exist_ok=True)
+
+        FILE1 = RemoteFileStructure(
+            filename="resnet_18_darq.pth",
+            url=url_aramis,
+            checksum="321928e0532f1be7a8dd7f5d805b747c7147ff52594f77ffed0858ab19c5df03",
+        )
+
+        # model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+        model = darq_r18()
+
+        model_file = cache_clinicadl / FILE1.filename
+
+        logger.info("Downloading quality check model.")
+
+        if not (model_file.is_file()):
+            try:
+                model_file = fetch_file(FILE1, cache_clinicadl)
+            except IOError as err:
+                print("Unable to download required model for QC process:", err)
+
+        # Load QC model
+        logger.debug("Loading quality check model.")
+        model.load_state_dict(torch.load(model_file))
+        # Load model on gpu
+        device = torch.device("cuda")
+        # model.to(device)
+
+        list_name = [name for (name, _) in model.named_parameters()]
+        list_param = [param for (_, param) in model.named_parameters()]
+
+        for param, _ in zip(list_param, list_name):
+            param.requires_grad = True
+
+        if transfer_path:
+            logger.debug(f"Transfer weights from MAPS at {transfer_path}")
+            transfer_maps = MapsManager(transfer_path)
+            transfer_state = transfer_maps.get_state_dict(
+                split,
+                selection_metric=transfer_selection,
+                network=network,
+                # map_location=model.device,
             )
-            from clinicadl.quality_check.t1_linear.models import (
-                resnet_deep_qc_18 as deep_r18,
-            )
-            from clinicadl.quality_check.t1_linear.models import squeezenet_qc as darq_sq101
+            transfer_class = getattr(network_package, transfer_maps.architecture)
+            logger.debug(f"Transfer from {transfer_class}")
+            model.transfer_weights(transfer_state["model"], transfer_class)
 
-            logger.debug(f"Initialization of model {self.architecture}")
-            # or choose to implement a dictionary
+        # model_class = getattr(network_package, self.architecture)
+        # args = list(
+        #   model_class.__init__.__code__.co_varnames[
+        #      : model_class.__init__.__code__.co_argcount
+        # ]
+        # )
+        # args.remove("self")
+        # kwargs = dict()
+        # for arg in args:
+        #   kwargs[arg] = self.parameters[arg]
 
-            # Fetch QC model
-            home = Path.home()
+        # Change device from the training parameters
+        # if gpu is not None:
+        # kwargs["gpu"] = gpu
 
-            cache_clinicadl = home / ".cache" / "clinicadl" / "models"
-            url_aramis = "https://aramislab.paris.inria.fr/files/data/models/dl/qc/"
+        # model = model_class(**kwargs)
+        # logger.debug(f"Model:\n{model.layers}")
+        # device = model.device
+        # logger.info(f"Working on {device}")
+        current_epoch = 0
 
-            cache_clinicadl.mkdir(parents=True, exist_ok=True)
+        # elif transfer_path:
+        #     logger.debug(f"Transfer weights from MAPS at {transfer_path}")
+        #     transfer_maps = MapsManager(transfer_path)
+        #     transfer_state = transfer_maps.get_state_dict(
+        #         split,
+        #         selection_metric=transfer_selection,
+        #         network=network,
+        #         map_location=model.device,
+        #     )
+        #     transfer_class = getattr(network_package, transfer_maps.architecture)
+        #     logger.debug(f"Transfer from {transfer_class}")
+        #     model.transfer_weights(transfer_state["model"], transfer_class)
 
-            FILE1 = RemoteFileStructure(
-                filename="resnet_18_darq.pth",
-                url=url_aramis,
-                checksum="321928e0532f1be7a8dd7f5d805b747c7147ff52594f77ffed0858ab19c5df03",
-            )
+        #     list_name = [name for (name, _) in model.named_parameters()]
+        #     list_param = [param for (_, param) in model.named_parameters()]
 
-            # model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
-            model = darq_r18()
+        #     for param, _ in zip(list_param, list_name):
+        #         param.requires_grad = False
 
-            model_file = cache_clinicadl / FILE1.filename
+        #     for i in range(6):  # Freeze of the 3FC of the Conv5FC3
+        #         param = list_param[len(list_param) - i - 1]
+        #         # name = list_name[len(list_name) - i - 1]
+        #         param.requires_grad = True
+        #         # print(name, param.requires_grad)
 
-            logger.info("Downloading quality check model.")
+        return model, current_epoch
 
-            if not (model_file.is_file()):
-                try:
-                    model_file = fetch_file(FILE1, cache_clinicadl)
-                except IOError as err:
-                    print("Unable to download required model for QC process:", err)
-
-            # Load QC model
-            logger.debug("Loading quality check model.")
-            model.load_state_dict(torch.load(model_file))
-            #Load model on gpu
-            device = torch.device("cuda")
-            #model.to(device)
-            
-            list_name = [name for (name, _) in model.named_parameters()]
-            list_param = [param for (_, param) in model.named_parameters()]
-
-            for param, _ in zip(list_param, list_name):
-                param.requires_grad = True
-            
-            
-            if transfer_path:
-                logger.debug(f"Transfer weights from MAPS at {transfer_path}")
-                transfer_maps = MapsManager(transfer_path)
-                transfer_state = transfer_maps.get_state_dict(
-                    split,
-                    selection_metric=transfer_selection,
-                    network=network,
-                   # map_location=model.device,
-                )
-                transfer_class = getattr(network_package, transfer_maps.architecture)
-                logger.debug(f"Transfer from {transfer_class}")
-                model.transfer_weights(transfer_state["model"], transfer_class)
-
-            # model_class = getattr(network_package, self.architecture)
-            # args = list(
-            #   model_class.__init__.__code__.co_varnames[
-            #      : model_class.__init__.__code__.co_argcount
-            # ]
-            # )
-            # args.remove("self")
-            # kwargs = dict()
-            # for arg in args:
-            #   kwargs[arg] = self.parameters[arg]
-
-            # Change device from the training parameters
-            # if gpu is not None:
-            # kwargs["gpu"] = gpu
-
-            # model = model_class(**kwargs)
-            # logger.debug(f"Model:\n{model.layers}")
-            #device = model.device
-            #logger.info(f"Working on {device}")
-            current_epoch = 0
-
-            # elif transfer_path:
-            #     logger.debug(f"Transfer weights from MAPS at {transfer_path}")
-            #     transfer_maps = MapsManager(transfer_path)
-            #     transfer_state = transfer_maps.get_state_dict(
-            #         split,
-            #         selection_metric=transfer_selection,
-            #         network=network,
-            #         map_location=model.device,
-            #     )
-            #     transfer_class = getattr(network_package, transfer_maps.architecture)
-            #     logger.debug(f"Transfer from {transfer_class}")
-            #     model.transfer_weights(transfer_state["model"], transfer_class)
-
-            #     list_name = [name for (name, _) in model.named_parameters()]
-            #     list_param = [param for (_, param) in model.named_parameters()]
-
-            #     for param, _ in zip(list_param, list_name):
-            #         param.requires_grad = False
-
-            #     for i in range(6):  # Freeze of the 3FC of the Conv5FC3
-            #         param = list_param[len(list_param) - i - 1]
-            #         # name = list_name[len(list_name) - i - 1]
-            #         param.requires_grad = True
-            #         # print(name, param.requires_grad)
-
-            return model, current_epoch         
-            
     def _test_loader(
         self,
         dataloader,
@@ -2014,14 +2006,14 @@ class MapsManager:
                 gpu=gpu,
                 network=network,
             )
-            #print("Predict label for QC (TO CHANGE IF NOT)")
-            #model, _ = self._init_model_qc(
-             #  transfer_path=self.maps_path,
-              # split=split,
-               #transfer_selection=selection_metric,
-                #gpu=gpu,
-                #network=network,
-            #)
+            # print("Predict label for QC (TO CHANGE IF NOT)")
+            # model, _ = self._init_model_qc(
+            #  transfer_path=self.maps_path,
+            # split=split,
+            # transfer_selection=selection_metric,
+            # gpu=gpu,
+            # network=network,
+            # )
 
             prediction_df, metrics = self.task_manager.test(
                 model, dataloader, criterion, use_labels=use_labels
@@ -2420,7 +2412,7 @@ class MapsManager:
         elif not path.exists(
             group_path
         ):  # Data group does not exist yet / was overwritten + all data is provided
-            #print("ISSUE : No check leakage")
+            # print("ISSUE : No check leakage")
             self._check_leakage(data_group, df)
             self._write_data_group(
                 data_group, df, caps_directory, multi_cohort, label=label
@@ -2528,15 +2520,15 @@ class MapsManager:
         for split in split_manager.split_iterator():
             for data_group in ["train", "validation"]:
                 df = split_manager[split][data_group]
-                
+
                 group_path = path.join(
                     self.maps_path, "groups", data_group, f"{self.split_name}-{split}"
                 )
                 makedirs(group_path, exist_ok=True)
 
                 columns = ["participant_id", "session_id", "cohort"]
-                #if self.label is not None:
-                    #columns.append(self.label)
+                # if self.label is not None:
+                # columns.append(self.label)
 
                 df.to_csv(path.join(group_path, "data.tsv"), sep="\t", columns=columns)
                 self.write_parameters(
@@ -2910,12 +2902,12 @@ class MapsManager:
         for arg in args:
             kwargs[arg] = self.parameters[arg]
         return split_class(**kwargs)
-    
+
     def _init_split_manager_ssda(self, caps_dir, tsv_dir, split_list=None):
         from clinicadl.utils import split_manager
 
         split_class = getattr(split_manager, self.validation)
-        #print(split_class)
+        # print(split_class)
         args = list(
             split_class.__init__.__code__.co_varnames[
                 : split_class.__init__.__code__.co_argcount
@@ -2926,13 +2918,13 @@ class MapsManager:
         kwargs = {"split_list": split_list}
         for arg in args:
             kwargs[arg] = self.parameters[arg]
-        
+
         kwargs["caps_directory"] = caps_dir
         kwargs["tsv_path"] = tsv_dir
 
-        #print(kwargs)
+        # print(kwargs)
         return split_class(**kwargs)
-    
+
     def _init_task_manager(self, df=None, n_classes=None):
         from clinicadl.utils.task_manager import (
             ClassificationManager,
