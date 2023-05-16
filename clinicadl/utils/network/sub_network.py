@@ -418,15 +418,15 @@ class GNet(Network):
         return train_output, {"loss": loss}
 
 
-# class ReverseLayerF(Function):
-#     def forward(self, x, alpha):
-#         self.alpha = alpha
-#         return x.view_as(x)
+class ReverseLayerF(Function):
+    def forward(self, x, alpha):
+        self.alpha = alpha
+        return x.view_as(x)
 
-#     def backward(self, grad_output):
-#         output = grad_output.neg() * self.alpha
+    def backward(self, grad_output):
+        output = grad_output.neg() * self.alpha
 
-#         return output, None
+        return output, None
 
 
 class CNN_da(Network):
@@ -465,8 +465,8 @@ class CNN_da(Network):
     def forward(self, x, alpha):
         x = self.convolutions(x)
         x_class = self.fc_class(x)
-        # x_reverse = ReverseLayerF.apply(x, alpha)
-        x_reverse = self.grad_reverse(x, alpha)
+        x_reverse = ReverseLayerF.apply(x, alpha)
+        # x_reverse = self.grad_reverse(x, alpha)
 
         x_domain = self.fc_domain(x_reverse)
         return x_class, x_domain
@@ -614,8 +614,8 @@ class CNN_SSDA(Network):
         x = self.convolutions(x)
         out_g = self.fc(x)
         if reverse:
-            out_g = self.grad_reverse(out_g, eta)
-            # out_g = ReverseLayerF.apply(out_g)
+            # out_g = self.grad_reverse(out_g, eta)
+            out_g = ReverseLayerF.apply(out_g, eta)
 
         out_c = F.normalize(out_g)
         out_c = self.fc_c(out_c) / temp
