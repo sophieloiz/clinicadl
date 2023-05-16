@@ -57,8 +57,7 @@ def task_launcher(network_task: str, task_options_list: List[str], **kwargs):
     preprocessing_dict = read_preprocessing(preprocessing_json)
     train_dict["preprocessing_dict"] = preprocessing_dict
     train_dict["mode"] = preprocessing_dict["mode"]
-    
-    
+
     if kwargs["ssda_network"]:
         caps_dict = CapsDataset.create_caps_dict(
             kwargs["caps_target"], train_dict["multi_cohort"]
@@ -111,6 +110,7 @@ def task_launcher(network_task: str, task_options_list: List[str], **kwargs):
         "tsv_target_lab",
         "tsv_target_unlab",
         "preprocessing_json_target",
+        "ssda",
         "n_proc",
         "n_splits",
         "normalize",

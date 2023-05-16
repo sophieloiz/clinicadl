@@ -36,6 +36,7 @@ from .task_utils import task_launcher
 @train_option.tsv_target_lab
 @train_option.tsv_target_unlab
 @train_option.preprocessing_json_target
+@train_option.ssda
 # Cross validation
 @train_option.n_splits
 @train_option.split

@@ -958,16 +958,26 @@ class MapsManager:
             logger.info(
                 f"Validation loader size is {len(valid_loader)*self.batch_size}"
             )
-
-            self._train_dann(
-                train_source_loader,
-                train_target_loader,
-                train_target_unl_loader,
-                valid_loader,
-                valid_loader_source,
-                split,
-                resume=resume,
-            )
+            if self.ssda == "DANN":
+                self._train_dann(
+                    train_source_loader,
+                    train_target_loader,
+                    train_target_unl_loader,
+                    valid_loader,
+                    valid_loader_source,
+                    split,
+                    resume=resume,
+                )
+            elif self.ssda == "MME":
+                self._train_mme(
+                    train_source_loader,
+                    train_target_loader,
+                    train_target_unl_loader,
+                    valid_loader,
+                    valid_loader_source,
+                    split,
+                    resume=resume,
+                )
 
             self._ensemble_prediction(
                 "train",
@@ -1411,6 +1421,226 @@ class MapsManager:
                 network=network,
             )
 
+    def _train_mme(
+        self,
+        train_source_loader,
+        train_target_loader,
+        train_target_unl_loader,
+        valid_loader,
+        valid_source_loader,
+        split,
+        network=None,
+        resume=False,
+    ):
+        """
+        Core function shared by train and resume for the Mini-Max Entropy (MME) SSDA.
+
+        Args:
+            train_source_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of source domain.
+            train_target_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of target domain.
+            train_target_unl_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set of target domain unlabeled.
+
+            valid_loader (torch.utils.data.DataLoader): DataLoader wrapping the validation set.
+            split (int): Index of the split trained.
+            network (int): Index of the network trained (used in multi-network setting only).
+            resume (bool): If True the job is resumed from the checkpoint.
+        """
+
+        model, beginning_epoch = self._init_model(
+            split=split,
+            resume=resume,
+            transfer_path=self.transfer_path,
+            transfer_selection=self.transfer_selection_metric,
+        )
+
+        criterion = self.task_manager.get_criterion(self.loss)
+        logger.debug(f"Criterion for {self.network_task} is {criterion}")
+        optimizer_g, optimizer_f = self._init_optimizer_ssda(
+            model, split=split, resume=resume
+        )
+
+        param_lr_g = []
+        for param_group in optimizer_g.param_groups:
+            param_lr_g.append(param_group["lr"])
+        param_lr_f = []
+        for param_group in optimizer_f.param_groups:
+            param_lr_f.append(param_group["lr"])
+        logger.debug(f"Optimizer used for training is optimizer")
+
+        early_stopping = EarlyStopping(
+            "min", min_delta=self.tolerance, patience=self.patience
+        )
+        metrics_valid = {"loss": None}
+
+        log_writer = LogWriter(
+            self.maps_path,
+            self.task_manager.evaluation_metrics + ["loss"],
+            split,
+            resume=resume,
+            beginning_epoch=beginning_epoch,
+            network=network,
+        )
+        epoch = log_writer.beginning_epoch
+
+        retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
+
+        len_train_source = len(train_source_loader)
+        len_train_target = len(train_target_loader)
+        len_train_target_unl = len(train_target_unl_loader)
+
+        while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
+            logger.info(f"Beginning epoch {epoch}.")
+            optimizer_g = model.inv_lr_scheduler(
+                param_lr_g, optimizer_g, epoch, init_lr=0.01
+            )  # Try with 0.001, 0.01 (0.001)
+            optimizer_f = model.inv_lr_scheduler(
+                param_lr_f, optimizer_f, epoch, init_lr=0.01
+            )  # Try with 0.001, 0.01
+            lr = optimizer_g.param_groups[0]["lr"]
+
+            model.zero_grad()
+
+            if epoch % len_train_target == 0:
+                data_iter_t = iter(train_target_loader)
+            if epoch % len_train_target_unl == 0:
+                data_iter_t_unl = iter(train_target_unl_loader)
+            if epoch % len_train_source == 0:
+                data_iter_s = iter(train_source_loader)
+
+            data_t = next(data_iter_t)
+            data_t_unl = next(data_iter_t_unl)
+            data_s = next(data_iter_s)
+            # Concat data_t and data_s
+            for key, value in data_s.items():
+                if type(data_s[key]) == list:
+                    for val in value:
+                        data_t[key].append(val)
+                else:
+                    data_t[key] = torch.cat((data_t[key], value))
+            optimizer_g.zero_grad()
+            optimizer_f.zero_grad()
+
+            _, loss_dict = model.compute_outputs_and_loss_bce(data_t, criterion)
+
+            logger.debug(f"Train loss dictionnary {loss_dict}")
+            loss_bce = loss_dict["loss_bce"]
+
+            loss_bce.backward(retain_graph=True)
+            optimizer_f.step()
+            optimizer_g.step()
+            optimizer_g.zero_grad()
+            optimizer_f.zero_grad()
+
+            _, loss_dict_t = model.compute_outputs_and_loss_entropy(data_t_unl)
+            loss_t = loss_dict_t["loss_entropy"]
+
+            loss_t.backward()
+            optimizer_f.step()
+            optimizer_g.step()
+            optimizer_g.zero_grad()
+            optimizer_f.zero_grad()
+            model.zero_grad()
+
+            _, metrics_train = self.task_manager.test_da(
+                model, train_target_loader, criterion
+            )
+            _, metrics_valid = self.task_manager.test_da(model, valid_loader, criterion)
+
+            log_writer.step(
+                epoch, 0, metrics_train, metrics_valid, len(train_target_unl_loader)
+            )
+
+            logger.info(
+                f"{self.mode} level training loss is {metrics_train['loss']} "  # metrics_train
+                f"at the end of epochs {epoch}"
+            )
+            logger.info(
+                f"{self.mode} level validation loss is {metrics_valid['loss']} "  # metrics_valid
+                f"at the end of epochs {epoch}"
+            )
+
+            # Save checkpoints and best models
+            best_dict = retain_best.step(metrics_valid)
+            self._write_weights(
+                {
+                    "model": model.state_dict(),
+                    "epoch": epoch,
+                    "name": self.architecture,
+                },
+                best_dict,
+                split,
+                epoch,
+                network=network,
+            )
+
+            self._write_weights(
+                {
+                    "optimizer": optimizer_g.state_dict(),
+                    "epoch": epoch,
+                    "name": optimizer_g,
+                },
+                None,
+                split,
+                epoch,
+                filename="optimizer.pth.tar",
+            )
+
+            del loss_t, loss_bce
+
+            epoch += 1
+
+        self._test_loader(
+            train_target_loader,
+            criterion,
+            "train",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+        self._test_loader(
+            valid_loader,
+            criterion,
+            "validation",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+
+        # self._test_loader(
+        #     train_source_loader,
+        #     criterion,
+        #     "train",
+        #     split,
+        #     self.selection_metrics,
+        #     network=network,
+        # )
+        # self._test_loader(
+        #     valid_source_loader,
+        #     criterion,
+        #     "validation",
+        #     split,
+        #     self.selection_metrics,
+        #     network=network,
+        # )
+
+        if self.task_manager.save_outputs:
+            self._compute_output_tensors(
+                train_target_unl_loader.dataset,
+                "train",
+                split,
+                self.selection_metrics,
+                nb_images=1,
+                network=network,
+            )
+            self._compute_output_tensors(
+                train_target_unl_loader.dataset,
+                "validation",
+                split,
+                self.selection_metrics,
+                nb_images=1,
+                network=network,
+            )
+
     def _train_dann(
         self,
         train_source_loader,
@@ -1449,12 +1679,6 @@ class MapsManager:
 
         logger.debug(f"Optimizer used for training is optimizer")
 
-        # model.train()
-
-        # train_source_loader.dataset.train()
-        # train_target_loader.dataset.train()
-        # train_target_unl_loader.dataset.train()
-
         early_stopping = EarlyStopping(
             "min", min_delta=self.tolerance, patience=self.patience
         )
@@ -1487,8 +1711,6 @@ class MapsManager:
             logger.info(f"Beginning epoch {epoch} with alpha {alpha}.")
 
             model.zero_grad()
-
-            evaluation_flag, step_flag = True, True
 
             if epoch % len_train_target == 0:
                 data_iter_t = iter(train_target_loader)
@@ -2889,6 +3111,32 @@ class MapsManager:
             optimizer.load_state_dict(checkpoint_state["optimizer"])
 
         return optimizer
+
+    def _init_optimizer_ssda(self, model, split=None, resume=False):
+        """Initialize the optimizer and use checkpoint weights if resume is True."""
+
+        # params = []
+        G = model.convolutions
+        F = model.fc
+
+        optimizer_g = torch.optim.SGD(
+            G.parameters(),
+            lr=0.1,
+            momentum=0.9,  # 0.1
+            weight_decay=0.0005,
+            nesterov=True,
+        )
+        optimizer_f = torch.optim.SGD(
+            F.parameters(), lr=1, momentum=0.9, weight_decay=0.0005, nesterov=True  # 1
+        )
+        if resume:
+            checkpoint_path = path.join(
+                self.maps_path, f"{self.split_name}-{split}", "tmp", "optimizer.pth.tar"
+            )
+            checkpoint_state = torch.load(checkpoint_path, map_location=model.device)
+            optimizer_f.load_state_dict(checkpoint_state["optimizer"])
+
+        return optimizer_g, optimizer_f
 
     def _init_split_manager(self, split_list=None):
         from clinicadl.utils import split_manager

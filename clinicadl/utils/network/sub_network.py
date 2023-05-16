@@ -11,9 +11,11 @@ from clinicadl.utils.network.network_utils import (
     CropMaxUnpool3d,
     PadMaxPool2d,
     PadMaxPool3d,
+    GradReverse,
 )
 from torch.fft import fftn, ifftn, fftshift, ifftshift
 from torch.autograd import Function
+import torch.nn.functional as F
 
 logger = getLogger("clinicadl")
 
@@ -416,15 +418,15 @@ class GNet(Network):
         return train_output, {"loss": loss}
 
 
-class ReverseLayerF(Function):
-    def forward(self, x, alpha):
-        self.alpha = alpha
-        return x.view_as(x)
+# class ReverseLayerF(Function):
+#     def forward(self, x, alpha):
+#         self.alpha = alpha
+#         return x.view_as(x)
 
-    def backward(self, grad_output):
-        output = grad_output.neg() * self.alpha
+#     def backward(self, grad_output):
+#         output = grad_output.neg() * self.alpha
 
-        return output, None
+#         return output, None
 
 
 class CNN_da(Network):
@@ -457,10 +459,15 @@ class CNN_da(Network):
                 f"Cannot transfer weights from {transfer_class} to CNN."
             )
 
+    def grad_reverse(self, x, lambd=1.0):
+        return GradReverse(lambd)(x)
+
     def forward(self, x, alpha):
         x = self.convolutions(x)
         x_class = self.fc_class(x)
-        x_reverse = ReverseLayerF.apply(x, alpha)
+        # x_reverse = ReverseLayerF.apply(x, alpha)
+        x_reverse = self.grad_reverse(x, alpha)
+
         x_domain = self.fc_domain(x_reverse)
         return x_class, x_domain
 
@@ -468,13 +475,7 @@ class CNN_da(Network):
         return self.forward(x)
 
     def compute_outputs_and_loss_new(
-        self,
-        input_dict,
-        input_dict_target,
-        input_dict_target_unl,
-        criterion,
-        alpha,
-        use_labels=True,
+        self, input_dict, input_dict_target, input_dict_target_unl, criterion, alpha
     ):
 
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
@@ -572,4 +573,110 @@ class CNN_da(Network):
         lr = lr / (1 + 10 * p) ** 0.75
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
+        return optimizer
+
+
+class CNN_SSDA(Network):
+    def __init__(self, convolutions, fc, fc_c, n_classes, gpu=False):
+        super().__init__(gpu=gpu)
+        self.convolutions = convolutions.to(self.device)
+        self.fc = fc.to(self.device)
+        self.fc_c = fc_c.to(self.device)
+        self.n_classes = n_classes
+
+    @property
+    def layers(self):
+        return nn.Sequential(self.convolutions, self.fc, self.fc_c)
+
+    def grad_reverse(self, x, lambd=1.0):
+        return GradReverse(lambd)(x)
+
+    def transfer_weights(self, state_dict, transfer_class):
+        if issubclass(transfer_class, CNN):
+            self.load_state_dict(state_dict)
+        elif issubclass(transfer_class, CNN_SSDA):
+            self.load_state_dict(state_dict)
+        elif issubclass(transfer_class, AutoEncoder):
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("encoder.", ""), v)
+                    for k, v in state_dict.items()
+                    if "encoder" in k
+                ]
+            )
+            self.convolutions.load_state_dict(convolutions_dict)
+        else:
+            raise ClinicaDLNetworksError(
+                f"Cannot transfer weights from {transfer_class} to CNN."
+            )
+
+    def forward(self, x, reverse=False, eta=0.1, temp=0.05):
+        x = self.convolutions(x)
+        out_g = self.fc(x)
+        if reverse:
+            out_g = self.grad_reverse(out_g, eta)
+            # out_g = ReverseLayerF.apply(out_g)
+
+        out_c = F.normalize(out_g)
+        out_c = self.fc_c(out_c) / temp
+        return out_g, out_c
+
+    def predict(self, x):
+        return self.forward(x)
+
+    def compute_outputs_and_loss_bce(self, input_dict, criterion, use_labels=True):
+
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        _, train_output = self.forward(images)
+        if use_labels:
+            loss = criterion(train_output, labels)
+        else:
+            loss = torch.Tensor([0])
+
+        return train_output, {"loss_bce": loss}
+
+    def adentropy(self, train_output, lamda=0.1, eta=1.0):
+        out_t1 = F.softmax(train_output)
+        loss_adent = lamda * torch.mean(
+            torch.sum(out_t1 * (torch.log(out_t1 + 1e-5)), 1)
+        )
+        return loss_adent
+
+    def entropy(self, train_output, lamda=0.1, eta=1.0):
+        out_t1 = F.softmax(train_output)
+        loss_adent = -lamda * torch.mean(
+            torch.sum(out_t1 * (torch.log(out_t1 + 1e-5)), 1)
+        )
+        return loss_adent
+
+    def compute_outputs_and_loss_entropy(self, input_dict):
+
+        images = input_dict["image"].to(self.device).to(self.device)
+        _, train_output = self.forward(images, reverse=True)
+        loss = self.adentropy(train_output)
+        # loss = self.entropy(train_output)
+
+        return train_output, {"loss_entropy": loss}
+
+    def compute_outputs_and_loss_test(self, input_dict, criterion):
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        _, train_output = self.forward(images)
+        _, train_output_ = self.forward(images, reverse=True)
+        loss_bce = criterion(train_output, labels)
+        loss_a = self.adentropy(train_output_)
+
+        return train_output, {"loss": loss_bce + loss_a}
+
+    def inv_lr_scheduler(
+        self, param_lr, optimizer, iter_num, gamma=0.0001, power=0.75, init_lr=0.001
+    ):
+        lr = init_lr * (1 + gamma * iter_num) ** (-power)
+        i = 0
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = lr * param_lr[i]
+            i += 1
         return optimizer
