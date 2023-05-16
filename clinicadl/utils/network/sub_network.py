@@ -466,8 +466,6 @@ class CNN_DANN(Network):
         x = self.convolutions(x)
         x_class = self.fc_class(x)
         x_reverse = ReverseLayerF.apply(x, alpha)
-        # x_reverse = self.grad_reverse(x, alpha)
-
         x_domain = self.fc_domain(x_reverse)
         return x_class, x_domain
 
@@ -490,7 +488,7 @@ class CNN_DANN(Network):
 
         train_output_class_source, train_output_domain_source = self.forward(
             images, alpha
-        )  # alpha
+        )
         train_output_class_target, train_output_domain_target = self.forward(
             images_target, alpha
         )
@@ -531,7 +529,7 @@ class CNN_DANN(Network):
 
         images_target = input_dict_target["image"].to(self.device)
 
-        _, train_output_domain_source = self.forward(images, alpha)  # alpha
+        _, train_output_domain_source = self.forward(images, alpha)
         _, train_output_domain_target = self.forward(images_target, alpha)
 
         labels_domain_s = (
@@ -567,8 +565,7 @@ class CNN_DANN(Network):
 
         return train_output_class, {"loss": loss}
 
-        # Define the learning rate scheduler function
-
+    # Define the learning rate scheduler function
     def lr_scheduler(self, lr, optimizer, p):
         lr = lr / (1 + 10 * p) ** 0.75
         for param_group in optimizer.param_groups:
