@@ -1570,7 +1570,7 @@ class MapsManager:
                 best_dict,
                 split,
                 epoch,
-                network=network,
+                # network=network,
             )
 
             self._write_weights(
