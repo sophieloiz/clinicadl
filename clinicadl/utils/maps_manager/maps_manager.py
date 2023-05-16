@@ -1758,10 +1758,10 @@ class MapsManager:
 
             # Write results for target data
 
-            _, metrics_train = self.task_manager.test(
+            _, metrics_train = self.task_manager.test_da(
                 model, train_target_loader, criterion, alpha
             )
-            _, metrics_valid = self.task_manager.test(
+            _, metrics_valid = self.task_manager.test_da(
                 model, valid_loader, criterion, alpha
             )
 
