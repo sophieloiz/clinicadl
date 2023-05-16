@@ -1588,7 +1588,7 @@ class MapsManager:
                 epoch,
                 filename="optimizer.pth.tar",
             )
-            del loss, loss_c_t, loss_c_s  # , loss_t
+            del loss  # , loss_c_t, loss_c_s  # , loss_t
 
             epoch += 1
 
