@@ -1541,32 +1541,70 @@ class MapsManager:
                     ):
                         evaluation_flag = False
 
-                        _, metrics_train = self.task_manager.test_da(
-                            model, train_target_loader, criterion, alpha
+                        # Evaluate on source data
+                        logger.info("Evaluation on source data")
+                        _, metrics_train_source = self.task_manager.test_da(
+                            model, train_source_loader, criterion, alpha
                         )
 
-                        _, metrics_valid = self.task_manager.test_da(
-                            model, valid_loader, criterion, alpha
+                        _, metrics_valid_source = self.task_manager.test_da(
+                            model, valid_source_loader, criterion, alpha
                         )
 
                         model.train()
                         train_source_loader.dataset.train()
-                        train_target_loader.dataset.train()
-                        train_target_unl_loader.dataset.train()
 
                         log_writer.step(
                             epoch,
                             i,
-                            metrics_train,
-                            metrics_valid,
-                            len(train_target_loader),
+                            metrics_train_source,
+                            metrics_valid_source,
+                            len(train_source_loader),
                         )
                         logger.info(
-                            f"{self.mode} level training loss is {metrics_train['loss']} "
+                            f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
                             f"at the end of iteration {i}"
                         )
                         logger.info(
-                            f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                            f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+
+                        # Evaluate on taget data
+                        logger.info("Evaluation on target data")
+                        _, metrics_train_target = self.task_manager.test_da(
+                            model,
+                            train_target_loader,
+                            criterion,
+                            alpha,
+                            target=True,
+                        )
+
+                        _, metrics_valid_target = self.task_manager.test_da(
+                            model,
+                            valid_loader,
+                            criterion,
+                            alpha,
+                            target=True,
+                        )
+
+                        model.train()
+                        train_target_loader.dataset.train()
+
+                        log_writer.step(
+                            epoch,
+                            i,
+                            metrics_train_target,
+                            metrics_valid_target,
+                            len(train_target_loader),
+                            "training_target.tsv",
+                        )
+                        logger.info(
+                            f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+                        logger.info(
+                            f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
                             f"at the end of iteration {i}"
                         )
 

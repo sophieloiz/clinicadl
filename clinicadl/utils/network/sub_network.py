@@ -565,17 +565,21 @@ class CNN_DANN(Network):
 
         return train_output_class, {"loss": loss}
 
-    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha):
+    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
         train_output, train_output_domain = self.forward(images, alpha)
 
         loss_bce = criterion(train_output, labels)
-
-        labels_domain_t = (
-            torch.ones(input_dict["image"].shape[0]).long().to(self.device)
-        )
+        if target:
+            labels_domain_t = (
+                torch.ones(input_dict["image"].shape[0]).long().to(self.device)
+            )
+        else:
+            labels_domain_t = (
+                torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
+            )
         loss_domain = criterion(train_output_domain, labels_domain_t)
 
         return train_output, {"loss": loss_bce + alpha * loss_domain}
