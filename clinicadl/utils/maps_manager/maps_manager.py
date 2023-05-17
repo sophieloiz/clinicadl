@@ -912,16 +912,16 @@ class MapsManager:
             train_source_loader = DataLoader(
                 data_train_source,
                 batch_size=self.batch_size,
-                sampler=train_source_sampler,
+                # sampler=train_source_sampler,
+                shuffle=len(data_train_source) < len(data_train_target_labeled),
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
-                shuffle=True,
             )
             train_target_loader = DataLoader(
                 data_train_target_labeled,
                 batch_size=self.batch_size,
                 # sampler=train_target_sampler,
-                sampler=train_source_sampler,
+                # sampler=train_target_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 shuffle=True,
@@ -931,9 +931,9 @@ class MapsManager:
                 data_target_unlabeled,
                 batch_size=self.batch_size,
                 num_workers=self.n_proc,
-                sampler=train_source_sampler,
+                # sampler=train_source_sampler,
                 worker_init_fn=pl_worker_init_function,
-                shuffle=True,
+                shuffle=len(data_target_unlabeled) < len(data_train_target_labeled),
             )
 
             logger.info(
