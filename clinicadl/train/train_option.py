@@ -212,6 +212,7 @@ ssda = cli_param.option_group.data_group.option(
         [
             "DANN",
             "MME",
+            "DANN2",
         ]
     ),
     help="SSDA network used to train the network.",
