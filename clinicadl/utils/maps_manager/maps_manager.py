@@ -916,6 +916,7 @@ class MapsManager:
                 shuffle=len(data_train_source) < len(data_train_target_labeled),
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
+                drop_last=True,
             )
             train_target_loader = DataLoader(
                 data_train_target_labeled,
@@ -925,6 +926,7 @@ class MapsManager:
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 shuffle=True,
+                drop_last=True,
             )
 
             train_target_unl_loader = DataLoader(
@@ -934,6 +936,7 @@ class MapsManager:
                 # sampler=train_source_sampler,
                 worker_init_fn=pl_worker_init_function,
                 shuffle=len(data_target_unlabeled) < len(data_train_target_labeled),
+                drop_last=True,
             )
 
             logger.info(
