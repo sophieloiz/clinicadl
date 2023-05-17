@@ -1460,6 +1460,7 @@ class MapsManager:
         split,
         network=None,
         resume=False,
+        evaluate_source=False,
     ):
         """
         Core function shared by train and resume.
@@ -1636,39 +1637,39 @@ class MapsManager:
             model.zero_grad()
             logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
 
-            logger.info(
-                f"Evaluate source data at the end of the epoch {epoch} with alpha: {alpha}."
-            )
+            if evaluate_source:
+                logger.info(
+                    f"Evaluate source data at the end of the epoch {epoch} with alpha: {alpha}."
+                )
+                _, metrics_train_source = self.task_manager.test_da(
+                    model,
+                    train_source_loader,
+                    criterion,
+                    alpha,
+                )
+                _, metrics_valid_source = self.task_manager.test_da(
+                    model,
+                    valid_source_loader,
+                    criterion,
+                    alpha,
+                )
 
-            _, metrics_train_source = self.task_manager.test_da(
-                model,
-                train_source_loader,
-                criterion,
-                alpha,
-            )
-            _, metrics_valid_source = self.task_manager.test_da(
-                model,
-                valid_source_loader,
-                criterion,
-                alpha,
-            )
+                log_writer.step(
+                    epoch,
+                    i,
+                    metrics_train_source,
+                    metrics_valid_source,
+                    len(train_source_loader),
+                )
 
-            log_writer.step(
-                epoch,
-                i,
-                metrics_train_source,
-                metrics_valid_source,
-                len(train_source_loader),
-            )
-
-            logger.info(
-                f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
-                f"at the end of iteration {i}"
-            )
-            logger.info(
-                f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
-                f"at the end of iteration {i}"
-            )
+                logger.info(
+                    f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
+                    f"at the end of iteration {i}"
+                )
+                logger.info(
+                    f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
+                    f"at the end of iteration {i}"
+                )
 
             _, metrics_train_target = self.task_manager.test_da(
                 model,
