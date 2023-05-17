@@ -1523,6 +1523,7 @@ class MapsManager:
             ):
                 p = float(epoch * len(data_source)) / 100 / len(data_source)
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+                alpha = 0
                 print(alpha)
                 _, _, loss_dict = model.compute_outputs_and_loss_new(
                     data_source, data_target, data_target_unl, criterion, alpha
