@@ -576,9 +576,9 @@ class CNN_DANN(Network):
         labels_domain_t = (
             torch.ones(input_dict["image"].shape[0]).long().to(self.device)
         )
-        loss_domain = criterion(train_output, labels_domain_t)
+        loss_domain = criterion(train_output_domain, labels_domain_t)
 
-        return train_output, {"loss": loss_bce + loss_domain}
+        return train_output, {"loss": loss_bce + alpha * loss_domain}
 
     # Define the learning rate scheduler function
     def lr_scheduler(self, lr, optimizer, p):
