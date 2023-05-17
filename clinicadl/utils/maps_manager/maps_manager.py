@@ -1493,6 +1493,8 @@ class MapsManager:
             "min", min_delta=self.tolerance, patience=self.patience
         )
         metrics_valid = {"loss": None}
+        metrics_valid_target = {"loss": None}
+        metrics_valid_source = {"loss": None}
 
         log_writer = LogWriter(
             self.maps_path,
@@ -1507,7 +1509,9 @@ class MapsManager:
         retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
         import numpy as np
 
-        while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
+        while epoch < self.epochs and not early_stopping.step(
+            metrics_valid_target["loss"]
+        ):
             logger.info(f"Beginning epoch {epoch}.")
 
             model.zero_grad()
