@@ -919,7 +919,8 @@ class MapsManager:
             train_target_loader = DataLoader(
                 data_train_target_labeled,
                 batch_size=self.batch_size,
-                sampler=train_target_sampler,
+                # sampler=train_target_sampler,
+                sampler=train_source_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
             )
@@ -928,6 +929,7 @@ class MapsManager:
                 data_target_unlabeled,
                 batch_size=self.batch_size,
                 num_workers=self.n_proc,
+                sampler=train_source_sampler,
                 worker_init_fn=pl_worker_init_function,
             )
 
