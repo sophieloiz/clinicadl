@@ -1633,7 +1633,7 @@ class MapsManager:
             logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
 
             logger.info(
-                f"Last checkpoint at the end of the epoch {epoch}. Evaluate source data"
+                f"Evaluate source data at the end of the epoch {epoch} with alpha: {alpha}."
             )
 
             _, metrics_train_source = self.task_manager.test_da(
@@ -1704,7 +1704,7 @@ class MapsManager:
             )
 
             # Save checkpoints and best models
-            best_dict = retain_best.step(metrics_valid)
+            best_dict = retain_best.step(metrics_valid_target)
             self._write_weights(
                 {
                     "model": model.state_dict(),
