@@ -1460,7 +1460,7 @@ class MapsManager:
         split,
         network=None,
         resume=False,
-        evaluate_source=True,
+        evaluate_source=True,  # TO MODIFY
     ):
         """
         Core function shared by train and resume.

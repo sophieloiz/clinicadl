@@ -513,7 +513,7 @@ class CNN_DANN(Network):
 
         loss_domain = loss_domain_s + loss_domain_t + loss_domain_t_unl
 
-        total_loss = loss_domain + loss_classif
+        total_loss = loss_classif  # +loss_domain
 
         return (
             train_output_class_source,
