@@ -915,30 +915,46 @@ class MapsManager:
             from torch.utils.data.sampler import WeightedRandomSampler
             import math
 
-            # Calculez les poids d'échantillonnage en fonction de la taille de chaque ensemble de données
-            weight_source = 1.0 / len(data_train_source)
-            weight_target = 1.0 / len(data_train_target_labeled)
-            weight_target_unl = 1.0 / len(data_target_unlabeled)
+            from torch.utils.data import SubsetRandomSampler
 
-            # Déterminez le facteur de suréchantillonnage en arrondissant vers le haut
-            oversample_factor = int(
-                math.ceil(len(data_train_source) / len(data_train_target_labeled))
+            # Determine the maximum size based on the largest dataset (source data)
+            max_size = max(
+                len(data_train_source),
+                len(data_train_target_labeled),
+                len(data_target_unlabeled),
             )
 
-            # Créez une liste de poids d'échantillonnage pour chaque élément dans l'ensemble de données cible
-            weights_target = [weight_target] * len(data_train_target_labeled)
+            # Create index lists for each dataset
+            source_indices = list(range(len(data_train_source)))
+            labeled_indices = list(range(len(data_train_target_labeled)))
+            unlabeled_indices = list(range(len(data_target_unlabeled)))
 
-            # Suréchantillonnez les poids de l'ensemble de données cible
-            weights_target_oversampled = weights_target * oversample_factor
-
-            logger.info(f"Size weight : {oversample_factor}")
-            logger.info(f"Size weight : {len(weights_target)}")
-            logger.info(f"Size weight : {len(weights_target)}")
-
-            # Créez un WeightedRandomSampler avec les poids calculés pour l'ensemble de données cible
-            train_target_sampler = WeightedRandomSampler(
-                weights_target_oversampled, len(weights_target_oversampled)
+            # Oversample the indices for each dataset to match the size of the largest dataset
+            source_oversampled_indices = source_indices * (
+                max_size // len(source_indices)
             )
+            labeled_oversampled_indices = labeled_indices * (
+                max_size // len(labeled_indices)
+            )
+            unlabeled_oversampled_indices = unlabeled_indices * (
+                max_size // len(unlabeled_indices)
+            )
+
+            # Append remaining indices to match the size of the largest dataset
+            source_oversampled_indices += source_indices[
+                : max_size % len(source_indices)
+            ]
+            labeled_oversampled_indices += labeled_indices[
+                : max_size % len(labeled_indices)
+            ]
+            unlabeled_oversampled_indices += unlabeled_indices[
+                : max_size % len(unlabeled_indices)
+            ]
+
+            # Create SubsetRandomSamplers using the oversampled indices
+            source_sampler = SubsetRandomSampler(source_oversampled_indices)
+            labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
+            unlabeled_sampler = SubsetRandomSampler(unlabeled_oversampled_indices)
 
             logger.info(f"data_train_source size : {len(data_train_source)}")
             logger.info(
@@ -947,12 +963,11 @@ class MapsManager:
             # logger.info(
             #     f"data_train_target_unlabeled size : {len(train_target_unl_sampler)}"
             # )
-            logger.info(f"Sursample factor : {len(weights_target_oversampled)}")
 
             train_source_loader = DataLoader(
                 data_train_source,
                 batch_size=self.batch_size,
-                sampler=train_target_sampler,
+                sampler=source_sampler,
                 # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
@@ -966,7 +981,7 @@ class MapsManager:
                 data_train_target_labeled,
                 batch_size=self.batch_size,
                 # sampler=train_target_sampler,
-                sampler=train_target_sampler,
+                sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
@@ -979,7 +994,7 @@ class MapsManager:
                 data_target_unlabeled,
                 batch_size=self.batch_size,
                 num_workers=self.n_proc,
-                sampler=train_target_sampler,
+                sampler=unlabeled_sampler,
                 worker_init_fn=pl_worker_init_function,
                 # shuffle=True,  # len(data_target_unlabeled) < len(data_train_target_labeled),
                 drop_last=True,
