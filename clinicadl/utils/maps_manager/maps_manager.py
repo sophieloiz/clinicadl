@@ -1523,15 +1523,14 @@ class MapsManager:
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
-                logger.info(f"Iteration {i} out of {len(train_source_loader)}")
                 p = (
                     float(epoch * len(train_target_loader))
                     / 100
                     / len(train_target_loader)
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
-                alpha = 0
-                print(alpha)
+                logger.info(f"Iteration {i} out of {len(train_source_loader)} with alpha = {alpha}")
+
                 _, _, loss_dict = model.compute_outputs_and_loss_new(
                     data_source, data_target, data_target_unl, criterion, alpha
                 )
