@@ -927,7 +927,7 @@ class MapsManager:
                 # sampler=train_target_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
-                shuffle=True,
+                shuffle=len(data_train_target_labeled) < len(data_train_source),
                 drop_last=True,
             )
 
