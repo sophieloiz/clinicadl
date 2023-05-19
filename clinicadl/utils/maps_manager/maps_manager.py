@@ -918,28 +918,41 @@ class MapsManager:
             # Calculez les poids d'échantillonnage en fonction de la taille de chaque ensemble de données
             weight_source = 1.0 / len(data_train_source)
             weight_target = 1.0 / len(data_train_target_labeled)
+            weight_target_unl = 1.0 / len(data_target_unlabeled)
 
             # Déterminez le facteur de suréchantillonnage en arrondissant vers le haut
             oversample_factor = int(
                 math.ceil(len(data_train_source) / len(data_train_target_labeled))
             )
 
+            oversample_factor_unl = int(
+                math.ceil(len(data_train_source) / len(data_target_unlabeled))
+            )
+
             # Créez une liste de poids d'échantillonnage pour chaque élément dans l'ensemble de données cible
             weights_target = [weight_target] * len(data_train_target_labeled)
+            weights_target_unl = [weight_target_unl] * len(data_target_unlabeled)
 
             # Suréchantillonnez les poids de l'ensemble de données cible
             weights_target_oversampled = weights_target * oversample_factor
+            weights_target_unl_oversampled = weights_target_unl * oversample_factor_unl
 
             # Créez un WeightedRandomSampler avec les poids calculés pour l'ensemble de données cible
             train_target_sampler = WeightedRandomSampler(
                 weights_target_oversampled, len(weights_target_oversampled)
             )
 
+            train_target_unl_sampler = WeightedRandomSampler(
+                weights_target_unl_oversampled, len(weights_target_unl_oversampled)
+            )
+
             logger.info(f"data_train_source size : {len(data_train_source)}")
             logger.info(
                 f"data_train_target_labeled size : {len(data_train_target_labeled)}"
             )
-
+            logger.info(
+                f"data_train_target_unlabeled size : {len(train_target_unl_sampler)}"
+            )
             logger.info(f"Sursample factor : {weights_target_oversampled}")
 
             train_source_loader = DataLoader(
@@ -966,7 +979,7 @@ class MapsManager:
                 data_target_unlabeled,
                 batch_size=self.batch_size,
                 num_workers=self.n_proc,
-                # sampler=train_source_sampler,
+                sampler=train_target_unl_sampler,
                 worker_init_fn=pl_worker_init_function,
                 shuffle=True,  # len(data_target_unlabeled) < len(data_train_target_labeled),
                 drop_last=True,
