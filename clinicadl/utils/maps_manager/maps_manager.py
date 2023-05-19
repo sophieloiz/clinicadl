@@ -1511,6 +1511,24 @@ class MapsManager:
 
         retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
         import numpy as np
+        import itertools
+
+        # Determine the number of repetitions needed
+        num_repetitions = len(train_source_loader) // len(train_target_loader)
+
+        # Repeat the target and target unlabeled loaders
+        repeated_target_loader = itertools.islice(
+            itertools.cycle(train_target_loader), num_repetitions
+        )
+        repeated_target_unl_loader = itertools.islice(
+            itertools.cycle(train_target_unl_loader), num_repetitions
+        )
+        logger.info(
+            f"Size of repeated target labeled data : {len(repeated_target_loader)}"
+        )
+        logger.info(
+            f"Size of repeated target unlabeled data : {len(repeated_target_unl_loader)}"
+        )
 
         while epoch < self.epochs and not early_stopping.step(
             metrics_valid_target["loss"]
@@ -1520,8 +1538,15 @@ class MapsManager:
             model.zero_grad()
             evaluation_flag, step_flag = True, True
 
+            # for i, (data_source, data_target, data_target_unl) in enumerate(
+            #     zip(train_source_loader, train_target_loader, train_target_unl_loader)
+            # ):
             for i, (data_source, data_target, data_target_unl) in enumerate(
-                zip(train_source_loader, train_target_loader, train_target_unl_loader)
+                zip(
+                    train_source_loader,
+                    repeated_target_loader,
+                    repeated_target_unl_loader,
+                )
             ):
                 p = (
                     float(epoch * len(train_target_loader))
@@ -1529,7 +1554,9 @@ class MapsManager:
                     / len(train_target_loader)
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
-                logger.info(f"Iteration {i} out of {len(train_source_loader)} with alpha = {alpha}")
+                logger.info(
+                    f"Iteration {i} out of {len(train_source_loader)} with alpha = {alpha}"
+                )
 
                 _, _, loss_dict = model.compute_outputs_and_loss_new(
                     data_source, data_target, data_target_unl, criterion, alpha
