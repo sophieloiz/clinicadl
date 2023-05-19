@@ -125,8 +125,8 @@ class MapsManager:
                     shutil.rmtree(split_path)
                 else:
                     existing_splits.append(split)
-        
-        print(self.ssda_network)    
+
+        print(self.ssda_network)
         if len(existing_splits) > 0:
             raise MAPSError(
                 f"Splits {existing_splits} already exist. Please "
@@ -135,7 +135,7 @@ class MapsManager:
             )
         if self.multi_network:
             self._train_multi(split_list, resume=False)
-        
+
         elif self.ssda_network == "ssda_network":
             self._train_ssda(split_list, resume=False)
         else:
@@ -901,12 +901,12 @@ class MapsManager:
                 label_code=self.label_code,
             )
 
-            train_source_sampler = self.task_manager.generate_sampler(
-                data_train_source, self.sampler
-            )
-            train_target_sampler = self.task_manager.generate_sampler(
-                data_train_target_labeled, self.sampler
-            )
+            # train_source_sampler = self.task_manager.generate_sampler(
+            #     data_train_source, self.sampler
+            # )
+            # train_target_sampler = self.task_manager.generate_sampler(
+            #     data_train_target_labeled, self.sampler
+            # )
 
             logger.info(
                 f"Getting train and validation loader with batch size {self.batch_size}"
@@ -1495,7 +1495,7 @@ class MapsManager:
         early_stopping = EarlyStopping(
             "min", min_delta=self.tolerance, patience=self.patience
         )
-        metrics_valid = {"loss": None}
+
         metrics_valid_target = {"loss": None}
         metrics_valid_source = {"loss": None}
 
@@ -1523,7 +1523,11 @@ class MapsManager:
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
-                p = float(epoch * len(data_source)) / 100 / len(data_source)
+                p = (
+                    float(epoch * len(train_target_loader))
+                    / 100
+                    / len(train_target_loader)
+                )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
                 alpha = 0
                 print(alpha)
@@ -1802,8 +1806,6 @@ class MapsManager:
 
         criterion = self.task_manager.get_criterion(self.loss)
         logger.debug(f"Criterion for {self.network_task} is {criterion}")
-        # optimizer = self._init_optimizer(model, split=split, resume=resume)
-        # logger.debug(f"Optimizer used for training is optimizer")
         optimizer_g, optimizer_f = self._init_optimizer_ssda(
             model, split=split, resume=resume
         )
@@ -1846,7 +1848,7 @@ class MapsManager:
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
-                p = float(epoch * len(data_source)) / 100 / len(data_source)
+                p = float(epoch * len(train_target_loader)) / 100 / len(train_target_loader)
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
                 print(alpha)
 
@@ -1878,7 +1880,6 @@ class MapsManager:
                     optimizer_f = model.inv_lr_scheduler(
                         param_lr_f, optimizer_f, epoch, init_lr=0.01
                     )  # Try with 0.001, 0.01
-                    lr = optimizer_g.param_groups[0]["lr"]
 
                     del loss, loss_t
 
@@ -1898,9 +1899,7 @@ class MapsManager:
                         )
 
                         model.train()
-                        train_source_loader.dataset.train()
                         train_target_loader.dataset.train()
-                        train_target_unl_loader.dataset.train()
 
                         log_writer.step(
                             epoch,
@@ -1950,9 +1949,7 @@ class MapsManager:
             )
 
             model.train()
-            train_source_loader.dataset.train()
             train_target_loader.dataset.train()
-            train_target_unl_loader.dataset.train()
 
             log_writer.step(
                 epoch, i, metrics_train, metrics_valid, len(train_target_loader)
@@ -3119,9 +3116,7 @@ class MapsManager:
 
     def _find_selection_metrics(self, split):
         """Find which selection metrics are available in MAPS for a given split."""
-        print(self.maps_path)
         split_path = path.join(self.maps_path, f"{self.split_name}-{split}")
-        print(split_path)
         if not path.exists(split_path):
             raise MAPSError(
                 f"Training of split {split} was not performed."
