@@ -949,7 +949,7 @@ class MapsManager:
             # logger.info(
             #     f"data_train_target_unlabeled size : {len(train_target_unl_sampler)}"
             # )
-            logger.info(f"Sursample factor : {weights_target_oversampled}")
+            logger.info(f"Sursample factor : {len(weights_target_oversampled)}")
 
             train_source_loader = DataLoader(
                 data_train_source,
