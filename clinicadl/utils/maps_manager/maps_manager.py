@@ -912,26 +912,35 @@ class MapsManager:
                 f"Getting train and validation loader with batch size {self.batch_size}"
             )
 
-            from torch.utils.data import WeightedRandomSampler
+            from torch.utils.data.sampler import WeightedRandomSampler
+            import math
 
-            # Suréchantillonnage avec un facteur de 2
-            surample_factor = len(data_train_source) // len(data_train_target_labeled)
+            # Calculez les poids d'échantillonnage en fonction de la taille de chaque ensemble de données
+            weight_source = 1.0 / len(data_train_source)
+            weight_target = 1.0 / len(data_train_target_labeled)
+
+            # Déterminez le facteur de suréchantillonnage en arrondissant vers le haut
+            oversample_factor = int(
+                math.ceil(len(data_train_source) / len(data_train_target_labeled))
+            )
+
+            # Créez une liste de poids d'échantillonnage pour chaque élément dans l'ensemble de données cible
+            weights_target = [weight_target] * len(data_train_target_labeled)
+
+            # Suréchantillonnez les poids de l'ensemble de données cible
+            weights_target_oversampled = weights_target * oversample_factor
+
+            # Créez un WeightedRandomSampler avec les poids calculés pour l'ensemble de données cible
+            train_target_sampler = WeightedRandomSampler(
+                weights_target_oversampled, len(weights_target_oversampled)
+            )
+
             logger.info(f"data_train_source size : {len(data_train_source)}")
             logger.info(
                 f"data_train_target_labeled size : {len(data_train_target_labeled)}"
             )
 
-            logger.info(f"Sursample factor : {surample_factor}")
-            # Obtenez le nombre total d'échantillons dans le dataloader
-            total_samples = len(data_train_target_labeled)
-
-            # Calculez les poids pour chaque échantillon
-            weights = torch.ones(total_samples) * surample_factor
-
-            # Créez un échantillonneur pondéré en utilisant les poids
-            train_target_sampler = WeightedRandomSampler(
-                weights, num_samples=len(weights), replacement=True
-            )
+            logger.info(f"Sursample factor : {weights_target_oversampled}")
 
             train_source_loader = DataLoader(
                 data_train_source,
