@@ -924,19 +924,17 @@ class MapsManager:
             oversample_factor = int(
                 math.ceil(len(data_train_source) / len(data_train_target_labeled))
             )
-            # oversample_factor = int(
-            #     math.ceil(
-            #         max(len(data_train_source), len(data_target_unlabeled))
-            #         / len(data_train_target_labeled)
-            #     )
-            # )
 
             # Créez une liste de poids d'échantillonnage pour chaque élément dans l'ensemble de données cible
             weights_target = [weight_target] * len(data_train_target_labeled)
 
             # Suréchantillonnez les poids de l'ensemble de données cible
             weights_target_oversampled = weights_target * oversample_factor
-            logger.info(f"Size weight : {len(weights_target_oversampled)}")
+
+            logger.info(f"Size weight : {oversample_factor}")
+            logger.info(f"Size weight : {len(weights_target)}")
+            logger.info(f"Size weight : {len(weights_target)}")
+
             # Créez un WeightedRandomSampler avec les poids calculés pour l'ensemble de données cible
             train_target_sampler = WeightedRandomSampler(
                 weights_target_oversampled, len(weights_target_oversampled)
