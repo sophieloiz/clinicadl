@@ -960,6 +960,10 @@ class MapsManager:
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
             )
+
+            logger.info(
+                f"Train source loader size is {len(train_source_loader)*self.batch_size}"
+            )
             train_target_loader = DataLoader(
                 data_train_target_labeled,
                 batch_size=self.batch_size,
@@ -970,7 +974,9 @@ class MapsManager:
                 # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
                 drop_last=True,
             )
-
+            logger.info(
+                f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
+            )
             train_target_unl_loader = DataLoader(
                 data_target_unlabeled,
                 batch_size=self.batch_size,
@@ -981,12 +987,6 @@ class MapsManager:
                 drop_last=True,
             )
 
-            logger.info(
-                f"Train source loader size is {len(train_source_loader)*self.batch_size}"
-            )
-            logger.info(
-                f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
-            )
             logger.info(
                 f"Train target unlabeled loader size is {len(train_target_unl_loader)*self.batch_size}"
             )
