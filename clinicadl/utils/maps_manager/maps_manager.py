@@ -911,6 +911,23 @@ class MapsManager:
             logger.info(
                 f"Getting train and validation loader with batch size {self.batch_size}"
             )
+
+            from torch.utils.data import WeightedRandomSampler
+
+            # Suréchantillonnage avec un facteur de 2
+            surample_factor = len(data_train_source) // len(data_train_target_labeled)
+
+            # Obtenez le nombre total d'échantillons dans le dataloader
+            total_samples = len(data_train_target_labeled)
+
+            # Calculez les poids pour chaque échantillon
+            weights = torch.ones(total_samples) * surample_factor
+
+            # Créez un échantillonneur pondéré en utilisant les poids
+            train_target_sampler = WeightedRandomSampler(
+                weights, num_samples=len(weights), replacement=True
+            )
+
             train_source_loader = DataLoader(
                 data_train_source,
                 batch_size=self.batch_size,
@@ -924,10 +941,10 @@ class MapsManager:
                 data_train_target_labeled,
                 batch_size=self.batch_size,
                 # sampler=train_target_sampler,
-                # sampler=train_target_sampler,
+                sampler=train_target_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
-                shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
+                # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
                 drop_last=True,
             )
 
@@ -1511,18 +1528,6 @@ class MapsManager:
 
         retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
         import numpy as np
-        import itertools
-
-        # Determine the number of repetitions needed
-        num_repetitions = len(train_source_loader) // len(train_target_loader)
-
-        # Repeat the target and target unlabeled loaders
-        repeated_target_loader = itertools.islice(
-            itertools.cycle(train_target_loader), num_repetitions
-        )
-        repeated_target_unl_loader = itertools.islice(
-            itertools.cycle(train_target_unl_loader), num_repetitions
-        )
 
         while epoch < self.epochs and not early_stopping.step(
             metrics_valid_target["loss"]
@@ -1532,15 +1537,8 @@ class MapsManager:
             model.zero_grad()
             evaluation_flag, step_flag = True, True
 
-            # for i, (data_source, data_target, data_target_unl) in enumerate(
-            #     zip(train_source_loader, train_target_loader, train_target_unl_loader)
-            # ):
             for i, (data_source, data_target, data_target_unl) in enumerate(
-                zip(
-                    train_source_loader,
-                    repeated_target_loader,
-                    repeated_target_unl_loader,
-                )
+                zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
                 p = (
                     float(epoch * len(train_target_loader))
