@@ -70,7 +70,7 @@ class CapsDataset(Dataset):
             raise AttributeError("Child class of CapsDataset must set mode attribute.")
 
         self.df = data_df
-        mandatory_col = {"participant_id", "session_id"}#, "cohort"}
+        mandatory_col = {"participant_id", "session_id"}  # , "cohort"}
         if self.label_presence and self.label is not None:
             mandatory_col.add(self.label)
         print(mandatory_col)
@@ -155,7 +155,7 @@ class CapsDataset(Dataset):
                 [participant], [session], self.caps_dict[cohort], file_type
             )
             filepath = results[0]
-            
+
             image_filename = path.basename(filepath[0]).replace(".nii.gz", ".pt")
             folder, _ = compute_folder_and_file_type(self.preprocessing_dict)
             image_dir = path.join(
@@ -167,9 +167,9 @@ class CapsDataset(Dataset):
                 "image_based",
                 folder,
             )
-            
+
             image_path = path.join(image_dir, image_filename)
-            
+
         # Try to find .pt file
         except ClinicaCAPSError:
             file_type = self.preprocessing_dict["file_type"]
@@ -179,7 +179,6 @@ class CapsDataset(Dataset):
             )
             filepath = results[0]
             image_path = filepath[0]
-            
 
         return image_path
 
@@ -329,9 +328,8 @@ class CapsDatasetImage(CapsDataset):
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
 
-
         if self.augmentation_transformations and not self.eval_mode:
-            #if not(label):
+            # if not(label):
             image = self.augmentation_transformations(image)
         if self.transformations:
             image = self.transformations(image)
@@ -423,8 +421,8 @@ class CapsDatasetPatch(CapsDataset):
         if self.transformations:
             patch_tensor = self.transformations(patch_tensor)
 
-        if self.augmentation_transformations: # and not self.eval_mode:
-            if not(label):
+        if self.augmentation_transformations:  # and not self.eval_mode:
+            if not (label):
                 patch_tensor = self.augmentation_transformations(patch_tensor)
 
         sample = {
@@ -895,14 +893,17 @@ class MinMaxNormalization(object):
 
     def __call__(self, image):
         import torchio as tio
-        rescale = tio.transforms.RescaleIntensity(out_min_max=(0, 1),percentiles=(1, 100))
+
+        rescale = tio.transforms.RescaleIntensity(
+            out_min_max=(0, 1), percentiles=(1, 100)
+        )
         rescale2 = tio.transforms.ZNormalization()
-        #rescale2 = tio.transforms.RescaleIntensity(out_min_max=(0, 1),percentiles=(1, 100))
-        #rescale = tio.transforms.ZNormalization()
+        # rescale2 = tio.transforms.RescaleIntensity(out_min_max=(0, 1),percentiles=(1, 100))
+        # rescale = tio.transforms.ZNormalization()
         image = rescale(image)
         image = rescale2(image)
         return image
-        #return (image - image.min()) / (image.max() - image.min())
+        # return (image - image.min()) / (image.max() - image.min())
 
 
 class NanRemoval(object):
@@ -920,32 +921,43 @@ class NanRemoval(object):
         else:
             return image
 
+
 class RandomMotion(object):
     """Applies a Random Motion"""
-    def __init__(self, rotation=(2,4), translation=(2,4), num_transforms=4):
+
+    def __init__(self, rotation=(2, 4), translation=(2, 4), num_transforms=4):
         self.rotation = rotation
         self.translation = translation
         self.num_transforms = num_transforms
-        
+
     def __call__(self, image):
         import torchio as tio
+
         print("Motion")
-        motion = tio.RandomMotion(degrees=self.rotation, translation=self.translation, num_transforms=self.num_transforms)
+        motion = tio.RandomMotion(
+            degrees=self.rotation,
+            translation=self.translation,
+            num_transforms=self.num_transforms,
+        )
         image = motion(image)
-        #rescale2 = tio.RescaleIntensity((0, 1000), percentiles=(5,100))
-        #image = rescale2(image)
+        # rescale2 = tio.RescaleIntensity((0, 1000), percentiles=(5,100))
+        # image = rescale2(image)
         return image
+
 
 class RandomGamma(object):
     """Applies a Random Motion"""
-    def __init__(self, log_gamma=(0.5,0.5)):
+
+    def __init__(self, log_gamma=(0.5, 0.5)):
         self.log_gamma = log_gamma
-        
+
     def __call__(self, image):
         import torchio as tio
+
         contrast = tio.RandomGamma(self.log_gamma)
         mri_contrast = contrast(image)
         return mri_contrast
+
 
 def get_transforms(
     normalize: bool = True, data_augmentation: List[str] = None
@@ -973,7 +985,6 @@ def get_transforms(
             augmentation_dict[augmentation] for augmentation in data_augmentation
         ]
     else:
-        print("No Augmentation")
         augmentation_list = []
 
     if normalize:
