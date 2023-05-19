@@ -951,6 +951,46 @@ class MapsManager:
                 f"Train target unlabeled loader size is {len(train_target_unl_loader)*self.batch_size}"
             )
 
+            import itertools
+
+            # Determine the number of repetitions needed
+            num_repetitions = len(train_source_loader) // len(train_target_loader)
+
+            # Repeat the target and target unlabeled loaders
+            repeated_target_loader = itertools.islice(
+                itertools.cycle(train_target_loader), num_repetitions
+            )
+            repeated_target_unl_loader = itertools.islice(
+                itertools.cycle(train_target_unl_loader), num_repetitions
+            )
+
+            # Create new loaders with repeated data
+            repeated_target_loader = DataLoader(
+                repeated_target_loader,
+                batch_size=self.batch_size,
+                shuffle=True,
+                num_workers=self.n_proc,
+                worker_init_fn=pl_worker_init_function,
+                drop_last=True,
+            )
+
+            repeated_target_unl_loader = DataLoader(
+                repeated_target_unl_loader,
+                batch_size=self.batch_size,
+                shuffle=True,
+                num_workers=self.n_proc,
+                worker_init_fn=pl_worker_init_function,
+                drop_last=True,
+            )
+            logger.info(
+                f"Train source loader size is {len(train_source_loader)*self.batch_size}"
+            )
+            logger.info(
+                f"Train target labeled repeated loader size is {len(repeated_target_loader)*self.batch_size}"
+            )
+            logger.info(
+                f"Train target unlabeled repeated loader size is {len(repeated_target_unl_loader)*self.batch_size}"
+            )
             valid_loader = DataLoader(
                 data_valid_target_labeled,
                 batch_size=self.batch_size,
@@ -989,10 +1029,19 @@ class MapsManager:
                     resume=resume,
                 )
             elif self.ssda == "DANN2":
+                # self._train_dann2(
+                #     train_source_loader,
+                #     train_target_loader,
+                #     train_target_unl_loader,
+                #     valid_loader,
+                #     valid_loader_source,
+                #     split,
+                #     resume=resume,
+                # )
                 self._train_dann2(
                     train_source_loader,
-                    train_target_loader,
-                    train_target_unl_loader,
+                    repeated_target_loader,
+                    repeated_target_unl_loader,
                     valid_loader,
                     valid_loader_source,
                     split,
@@ -1511,24 +1560,6 @@ class MapsManager:
 
         retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
         import numpy as np
-        import itertools
-
-        # Determine the number of repetitions needed
-        num_repetitions = len(train_source_loader) // len(train_target_loader)
-
-        # Repeat the target and target unlabeled loaders
-        repeated_target_loader = itertools.islice(
-            itertools.cycle(train_target_loader), num_repetitions
-        )
-        repeated_target_unl_loader = itertools.islice(
-            itertools.cycle(train_target_unl_loader), num_repetitions
-        )
-        logger.info(
-            f"Size of repeated target labeled data : {len(repeated_target_loader)}"
-        )
-        logger.info(
-            f"Size of repeated target unlabeled data : {len(repeated_target_unl_loader)}"
-        )
 
         while epoch < self.epochs and not early_stopping.step(
             metrics_valid_target["loss"]
@@ -1538,15 +1569,8 @@ class MapsManager:
             model.zero_grad()
             evaluation_flag, step_flag = True, True
 
-            # for i, (data_source, data_target, data_target_unl) in enumerate(
-            #     zip(train_source_loader, train_target_loader, train_target_unl_loader)
-            # ):
             for i, (data_source, data_target, data_target_unl) in enumerate(
-                zip(
-                    train_source_loader,
-                    repeated_target_loader,
-                    repeated_target_unl_loader,
-                )
+                zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
                 p = (
                     float(epoch * len(train_target_loader))
