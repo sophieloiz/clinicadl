@@ -479,7 +479,7 @@ class CNN_DANN(Network):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
-
+        logger.info(labels)
         images_target, labels_target = input_dict_target["image"].to(
             self.device
         ), input_dict_target["label"].to(self.device)
