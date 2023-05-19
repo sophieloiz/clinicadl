@@ -675,7 +675,9 @@ class CNN_MME(Network):
 
         return train_output, {"loss_entropy": loss}
 
-    def compute_outputs_and_loss_test(self, input_dict, criterion):
+    def compute_outputs_and_loss_test(
+        self, input_dict, criterion, alpha=0, target=None
+    ):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
