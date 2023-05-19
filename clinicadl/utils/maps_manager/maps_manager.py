@@ -1985,7 +1985,7 @@ class MapsManager:
             )
             self._write_weights(
                 {
-                    "optimizer": optimizer.state_dict(),
+                    "optimizer": optimizer_f.state_dict(),
                     "epoch": epoch,
                     "name": self.optimizer,
                 },
