@@ -916,6 +916,11 @@ class MapsManager:
 
             # Suréchantillonnage avec un facteur de 2
             surample_factor = len(data_train_source) // len(data_train_target_labeled)
+            logger.info(f"data_train_source size : {len(data_train_source)}")
+            logger.info(
+                f"data_train_target_labeled size : {len(data_train_target_labeled)}"
+            )
+
             logger.info(f"Sursample factor : {surample_factor}")
             # Obtenez le nombre total d'échantillons dans le dataloader
             total_samples = len(data_train_target_labeled)
