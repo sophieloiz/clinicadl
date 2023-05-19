@@ -125,7 +125,8 @@ class MapsManager:
                     shutil.rmtree(split_path)
                 else:
                     existing_splits.append(split)
-
+        
+        print(self.ssda_network)    
         if len(existing_splits) > 0:
             raise MAPSError(
                 f"Splits {existing_splits} already exist. Please "
@@ -134,7 +135,8 @@ class MapsManager:
             )
         if self.multi_network:
             self._train_multi(split_list, resume=False)
-        elif self.ssda_network:
+        
+        elif self.ssda_network == "ssda_network":
             self._train_ssda(split_list, resume=False)
         else:
             self._train_single(split_list, resume=False)
