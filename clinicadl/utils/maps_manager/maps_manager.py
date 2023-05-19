@@ -1851,7 +1851,7 @@ class MapsManager:
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
-                print(i)
+                logger.info(f"Iteration : {i}/{len(train_source_loader)}")
                 p = (
                     float(epoch * len(train_target_loader))
                     / 100
