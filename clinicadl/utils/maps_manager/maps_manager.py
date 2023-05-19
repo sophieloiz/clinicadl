@@ -936,7 +936,7 @@ class MapsManager:
 
             # Suréchantillonnez les poids de l'ensemble de données cible
             weights_target_oversampled = weights_target * oversample_factor
-
+            logger.info(f"Size weight : {len(weights_target_oversampled)}")
             # Créez un WeightedRandomSampler avec les poids calculés pour l'ensemble de données cible
             train_target_sampler = WeightedRandomSampler(
                 weights_target_oversampled, len(weights_target_oversampled)
