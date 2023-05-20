@@ -960,15 +960,12 @@ class MapsManager:
             logger.info(
                 f"data_train_target_labeled size : {len(data_train_target_labeled)}"
             )
-            # logger.info(
-            #     f"data_train_target_unlabeled size : {len(train_target_unl_sampler)}"
-            # )
 
             train_source_loader = DataLoader(
                 data_train_source,
                 batch_size=self.batch_size,
-                sampler=source_sampler,
-                # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
+                # sampler=source_sampler,
+                shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
@@ -981,10 +978,10 @@ class MapsManager:
                 data_train_target_labeled,
                 batch_size=self.batch_size,
                 # sampler=train_target_sampler,
-                sampler=labeled_sampler,
+                # sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
-                # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
+                shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
                 drop_last=True,
             )
             logger.info(
@@ -994,9 +991,9 @@ class MapsManager:
                 data_target_unlabeled,
                 batch_size=self.batch_size,
                 num_workers=self.n_proc,
-                sampler=unlabeled_sampler,
+                # sampler=unlabeled_sampler,
                 worker_init_fn=pl_worker_init_function,
-                # shuffle=True,  # len(data_target_unlabeled) < len(data_train_target_labeled),
+                shuffle=True,  # len(data_target_unlabeled) < len(data_train_target_labeled),
                 drop_last=True,
             )
 
