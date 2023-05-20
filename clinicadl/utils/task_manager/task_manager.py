@@ -190,11 +190,12 @@ class TaskManager:
 
         results_df = pd.DataFrame(columns=self.columns)
         total_loss = 0
+        alpha = 0
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 print("Remove alpha from task manager if no ssda training")
                 outputs, loss_dict = model.compute_outputs_and_loss(
-                    data, criterion, use_labels=use_labels
+                    data, criterion, use_labels=use_labels, alpha=alpha
                 )
                 # import frequency_feature_map_visualization as fv
                 # feature_map_dict = fv.visualize_feature_maps_3d(model, data["image"], device=torch.device('cpu'))
