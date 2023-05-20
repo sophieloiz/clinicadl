@@ -921,13 +921,13 @@ class MapsManager:
             max_size = max(
                 len(data_train_source),
                 len(data_train_target_labeled),
-                len(data_target_unlabeled),
+                # len(data_target_unlabeled),
             )
 
             # Create index lists for each dataset
             source_indices = list(range(len(data_train_source)))
             labeled_indices = list(range(len(data_train_target_labeled)))
-            unlabeled_indices = list(range(len(data_target_unlabeled)))
+            # unlabeled_indices = list(range(len(data_target_unlabeled)))
 
             # Oversample the indices for each dataset to match the size of the largest dataset
             source_oversampled_indices = source_indices * (
@@ -936,9 +936,9 @@ class MapsManager:
             labeled_oversampled_indices = labeled_indices * (
                 max_size // len(labeled_indices)
             )
-            unlabeled_oversampled_indices = unlabeled_indices * (
-                max_size // len(unlabeled_indices)
-            )
+            # unlabeled_oversampled_indices = unlabeled_indices * (
+            #     max_size // len(unlabeled_indices)
+            # )
 
             # Append remaining indices to match the size of the largest dataset
             source_oversampled_indices += source_indices[
@@ -947,14 +947,14 @@ class MapsManager:
             labeled_oversampled_indices += labeled_indices[
                 : max_size % len(labeled_indices)
             ]
-            unlabeled_oversampled_indices += unlabeled_indices[
-                : max_size % len(unlabeled_indices)
-            ]
+            # unlabeled_oversampled_indices += unlabeled_indices[
+            #     : max_size % len(unlabeled_indices)
+            # ]
 
             # Create SubsetRandomSamplers using the oversampled indices
             source_sampler = SubsetRandomSampler(source_oversampled_indices)
             labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
-            unlabeled_sampler = SubsetRandomSampler(unlabeled_oversampled_indices)
+            # unlabeled_sampler = SubsetRandomSampler(unlabeled_oversampled_indices)
 
             logger.info(f"data_train_source size : {len(data_train_source)}")
             logger.info(
@@ -964,8 +964,8 @@ class MapsManager:
             train_source_loader = DataLoader(
                 data_train_source,
                 batch_size=self.batch_size,
-                # sampler=source_sampler,
-                shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
+                sampler=source_sampler,
+                # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
@@ -978,10 +978,10 @@ class MapsManager:
                 data_train_target_labeled,
                 batch_size=self.batch_size,
                 # sampler=train_target_sampler,
-                # sampler=labeled_sampler,
+                sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
-                shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
+                # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
                 drop_last=True,
             )
             logger.info(
