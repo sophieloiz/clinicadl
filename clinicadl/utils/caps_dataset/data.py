@@ -327,7 +327,8 @@ class CapsDatasetImage(CapsDataset):
         participant, session, cohort, _, label = self._get_meta_data(idx)
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
-        print(self.preprocessing_dict["preprocessing"])
+        print(self.preprocessing_dict["preprocessing"].split("-")[0])
+        domain = self.preprocessing_dict["preprocessing"].split("-")[0]
         if self.augmentation_transformations and not self.eval_mode:
             # if not(label):
             image = self.augmentation_transformations(image)
@@ -341,6 +342,7 @@ class CapsDatasetImage(CapsDataset):
             "session_id": session,
             "image_id": 0,
             "image_path": image_path,
+            "domain": domain,,
         }
 
         return sample
