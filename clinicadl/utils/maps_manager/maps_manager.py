@@ -878,12 +878,6 @@ class MapsManager:
 
             print(f"Data train combined : {len(combined_dataset)}")
 
-            combined_data_loader = DataLoader(
-                combined_dataset, batch_size=4, shuffle=True
-            )  # Create a combined data loader
-
-            print(len(combined_data_loader))
-
             import pandas as pd
 
             data_target_unlabeled = return_dataset(
@@ -981,8 +975,8 @@ class MapsManager:
             train_source_loader = DataLoader(
                 data_train_source,
                 batch_size=self.batch_size,
-                sampler=source_sampler,
-                # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
+                # sampler=source_sampler,
+                shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
@@ -995,15 +989,30 @@ class MapsManager:
                 data_train_target_labeled,
                 batch_size=self.batch_size,
                 # sampler=train_target_sampler,
-                sampler=labeled_sampler,
+                # sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
-                # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
+                shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
                 drop_last=True,
             )
             logger.info(
                 f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
             )
+
+            combined_data_loader = DataLoader(
+                combined_dataset,
+                batch_size=self.batch_size,
+                shuffle=True,
+                num_workers=self.n_proc,
+                worker_init_fn=pl_worker_init_function,
+                drop_last=True,
+            )
+
+            logger.info(
+                f"Train labeled loader size is {len(combined_data_loader)*self.batch_size}"
+            )
+            # Create a combined data loader
+
             train_target_unl_loader = DataLoader(
                 data_target_unlabeled,
                 batch_size=self.batch_size,
@@ -1062,6 +1071,7 @@ class MapsManager:
                     train_target_unl_loader,
                     valid_loader,
                     valid_loader_source,
+                    combined_data_loader,
                     split,
                     resume=resume,
                 )
@@ -1526,6 +1536,7 @@ class MapsManager:
         train_target_unl_loader,
         valid_loader,
         valid_source_loader,
+        combined_data_loader,
         split,
         network=None,
         resume=False,
@@ -1587,8 +1598,11 @@ class MapsManager:
             model.zero_grad()
             evaluation_flag, step_flag = True, True
 
-            for i, (data_source, data_target, data_target_unl) in enumerate(
-                zip(train_source_loader, train_target_loader, train_target_unl_loader)
+            # for i, (data_source, data_target, data_target_unl) in enumerate(
+            #     zip(train_source_loader, train_target_loader, train_target_unl_loader)
+            # ):
+            for i, (data_lab, data_target_unl) in enumerate(
+                zip(combined_data_loader, train_target_unl_loader)
             ):
                 p = (
                     float(epoch * len(train_target_loader))
@@ -1600,9 +1614,12 @@ class MapsManager:
                     f"Iteration {i} out of {len(train_source_loader)} with alpha = {alpha}"
                 )
 
-                _, _, loss_dict = model.compute_outputs_and_loss_new(
-                    data_source, data_target, data_target_unl, criterion, alpha
+                _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
+                    data_lab, data_target_unl, criterion, alpha
                 )
+                # _, _, loss_dict = model.compute_outputs_and_loss_new(
+                #     data_source, data_target, data_target_unl, criterion, alpha
+                # )
                 logger.debug(f"Train loss dictionnary {loss_dict}")
                 loss = loss_dict["loss"]
                 loss.backward()
