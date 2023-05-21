@@ -484,7 +484,7 @@ class CNN_DANN(Network):
 
         logger.info(f"Label : {labels}")
         logger.info(f"domain : {domain}")
-
+        print(labels.dtype)
         images_target_unl = data_target_unl["image"].to(self.device)
 
         train_output_class, train_output_domain = self.forward(images, alpha)
