@@ -497,7 +497,7 @@ class CNN_DANN(Network):
         # )
         output_array_domain = [0 if element == "t1" else 1 for element in domain]
 
-        output_tensor_domain = torch.tensor(output_array_domain)
+        output_tensor_domain = torch.tensor(output_array_domain).to(self.device)
 
         logger.info(f"domain : {output_array_domain}")
 
