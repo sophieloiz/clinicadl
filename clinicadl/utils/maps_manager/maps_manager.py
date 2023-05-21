@@ -874,7 +874,7 @@ class MapsManager:
 
             combined_dataset = ConcatDataset(
                 [data_train_source, data_train_target_labeled]
-            )  # Create a combined dataset
+            )
 
             print(f"Data train combined : {len(combined_dataset)}")
 
@@ -967,10 +967,10 @@ class MapsManager:
             labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
             # unlabeled_sampler = SubsetRandomSampler(unlabeled_oversampled_indices)
 
-            logger.info(f"data_train_source size : {len(data_train_source)}")
-            logger.info(
-                f"data_train_target_labeled size : {len(data_train_target_labeled)}"
-            )
+            # logger.info(f"data_train_source size : {len(data_train_source)}")
+            # logger.info(
+            #     f"data_train_target_labeled size : {len(data_train_target_labeled)}"
+            # )
 
             train_source_loader = DataLoader(
                 data_train_source,
@@ -1083,6 +1083,7 @@ class MapsManager:
                     train_target_unl_loader,
                     valid_loader,
                     valid_loader_source,
+                    combined_data_loader,
                     split,
                     resume=resume,
                 )
@@ -1611,7 +1612,7 @@ class MapsManager:
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
                 logger.info(
-                    f"Iteration {i} out of {len(train_source_loader)} with alpha = {alpha}"
+                    f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                 )
 
                 _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
@@ -1868,6 +1869,7 @@ class MapsManager:
         train_target_unl_loader,
         valid_loader,
         valid_source_loader,
+        concat_dataset,
         split,
         network=None,
         resume=False,
@@ -1934,8 +1936,11 @@ class MapsManager:
             print(len(train_target_loader))
             print(len(train_target_unl_loader))
 
-            for i, (data_source, data_target, data_target_unl) in enumerate(
-                zip(train_source_loader, train_target_loader, train_target_unl_loader)
+            # for i, (data_source, data_target, data_target_unl) in enumerate(
+            #     zip(train_source_loader, train_target_loader, train_target_unl_loader)
+            # ):
+            for i, (data_labeled, data_target_unl) in enumerate(
+                zip(concat_dataset, train_target_unl_loader)
             ):
                 logger.info(f"Iteration : {i}/{len(train_source_loader)}")
                 p = (
@@ -1946,14 +1951,14 @@ class MapsManager:
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
                 print(alpha)
 
-                _, loss_dict_source = model.compute_outputs_and_loss_bce(
-                    data_source, criterion
+                _, loss_dict_lab = model.compute_outputs_and_loss_bce(
+                    data_labeled, criterion
                 )
-                _, loss_dict_target = model.compute_outputs_and_loss_bce(
-                    data_target, criterion
-                )
+                # _, loss_dict_target = model.compute_outputs_and_loss_bce(
+                #     data_target, criterion
+                # )
 
-                loss = loss_dict_source["loss_bce"] + loss_dict_target["loss_bce"]
+                loss = loss_dict_lab["loss_bce"]  # + loss_dict_target["loss_bce"]
                 logger.debug(f"Train loss dictionnary {loss}")
                 loss.backward(retain_graph=True)
 
@@ -2036,6 +2041,32 @@ class MapsManager:
             logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
 
             _, metrics_train = self.task_manager.test_da(
+                model, train_source_loader, criterion, alpha
+            )
+            _, metrics_valid = self.task_manager.test_da(
+                model, valid_source_loader, criterion, alpha
+            )
+
+            model.train()
+            train_source_loader.dataset.train()
+
+            log_writer.step(
+                epoch,
+                i,
+                metrics_train,
+                metrics_valid,
+                len(train_target_loader),
+            )
+            logger.info(
+                f"{self.mode} level training loss is {metrics_train['loss']} "
+                f"at the end of iteration {i}"
+            )
+            logger.info(
+                f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                f"at the end of iteration {i}"
+            )
+
+            _, metrics_train = self.task_manager.test_da(
                 model, train_target_loader, criterion, alpha
             )
             _, metrics_valid = self.task_manager.test_da(
@@ -2046,7 +2077,12 @@ class MapsManager:
             train_target_loader.dataset.train()
 
             log_writer.step(
-                epoch, i, metrics_train, metrics_valid, len(train_target_loader)
+                epoch,
+                i,
+                metrics_train,
+                metrics_valid,
+                len(train_target_loader),
+                "training_target.tsv",
             )
             logger.info(
                 f"{self.mode} level training loss is {metrics_train['loss']} "

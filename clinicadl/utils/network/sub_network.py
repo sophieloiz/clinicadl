@@ -483,7 +483,7 @@ class CNN_DANN(Network):
         )
 
         logger.info(f"Label : {labels}")
-        print(labels.dtype)
+
         images_target_unl = data_target_unl["image"].to(self.device)
 
         train_output_class, train_output_domain = self.forward(images, alpha)
@@ -492,9 +492,6 @@ class CNN_DANN(Network):
 
         loss_classif = criterion(train_output_class, labels)
 
-        # labels_domain_s = (
-        #     torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
-        # )
         output_array_domain = [0 if element == "t1" else 1 for element in domain]
 
         output_tensor_domain = torch.tensor(output_array_domain).to(self.device)
