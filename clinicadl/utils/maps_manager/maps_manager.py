@@ -856,8 +856,8 @@ class MapsManager:
                 label=self.label,
                 label_code=self.label_code,
             )
-            print(data_train_source)
-            print(len(data_train_source))
+
+            print(f"Data train source : {len(data_train_source)}")
             data_train_target_labeled = return_dataset(
                 self.caps_target,
                 split_df_dict_ssda_lab["train"],
@@ -868,13 +868,16 @@ class MapsManager:
                 label=self.label,
                 label_code=self.label_code,
             )
-            print(len(data_train_target_labeled))
+            print(f"Data train target labeled : {len(data_train_target_labeled)}")
 
             from torch.utils.data import ConcatDataset, DataLoader
 
             combined_dataset = ConcatDataset(
                 [data_train_source, data_train_target_labeled]
             )  # Create a combined dataset
+
+            print(f"Data train combined : {len(combined_dataset)}")
+
             combined_data_loader = DataLoader(
                 combined_dataset, batch_size=4, shuffle=True
             )  # Create a combined data loader
