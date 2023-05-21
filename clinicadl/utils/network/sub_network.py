@@ -479,7 +479,7 @@ class CNN_DANN(Network):
         images, labels, domain = (
             data_lab["image"].to(self.device),
             data_lab["label"].to(self.device),
-            data_lab["domain"].to(self.device),
+            data_lab["domain"],  # .to(self.device),
         )
 
         logger.info(f"Label : {labels}")
