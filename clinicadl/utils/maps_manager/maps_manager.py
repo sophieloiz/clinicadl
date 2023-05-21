@@ -870,8 +870,16 @@ class MapsManager:
             )
             print(len(data_train_target_labeled))
 
-            data_train_source.update(data_train_target_labeled)
-            print(len(data_train_source))
+            from torch.utils.data import ConcatDataset, DataLoader
+
+            combined_dataset = ConcatDataset(
+                [data_train_source, data_train_target_labeled]
+            )  # Create a combined dataset
+            combined_data_loader = DataLoader(
+                combined_dataset, batch_size=4, shuffle=True
+            )  # Create a combined data loader
+
+            print(len(combined_data_loader))
 
             import pandas as pd
 
