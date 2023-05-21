@@ -342,7 +342,7 @@ class CapsDatasetImage(CapsDataset):
             "session_id": session,
             "image_id": 0,
             "image_path": image_path,
-            "domain": domain,,
+            "domain": domain,
         }
 
         return sample
