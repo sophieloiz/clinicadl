@@ -497,12 +497,12 @@ class CNN_DANN(Network):
         #     torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
         # )
         output_array_domain = [0 if element == "t1" else 1 for element in domain]
-
+        output_torch_domain = torch.FloatTensor(output_array_domain).to(self.device)
         labels_domain_t = (
             torch.ones(data_target_unl["image"].shape[0]).long().to(self.device)
         )
 
-        loss_domain_lab = criterion(train_output_domain, output_array_domain)
+        loss_domain_lab = criterion(train_output_domain, output_torch_domain)
         loss_domain_t_unl = criterion(train_output_domain_target_lab, labels_domain_t)
 
         loss_domain = loss_domain_lab + loss_domain_t_unl
