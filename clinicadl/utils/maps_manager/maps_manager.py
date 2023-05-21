@@ -856,7 +856,8 @@ class MapsManager:
                 label=self.label,
                 label_code=self.label_code,
             )
-
+            print(data_train_source)
+            print(len(data_train_source))
             data_train_target_labeled = return_dataset(
                 self.caps_target,
                 split_df_dict_ssda_lab["train"],
@@ -867,6 +868,11 @@ class MapsManager:
                 label=self.label,
                 label_code=self.label_code,
             )
+            print(len(data_train_target_labeled))
+
+            data_train_source.update(data_train_target_labeled)
+            print(len(data_train_source))
+
             import pandas as pd
 
             data_target_unlabeled = return_dataset(
