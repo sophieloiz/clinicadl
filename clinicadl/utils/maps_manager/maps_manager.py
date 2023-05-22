@@ -1607,7 +1607,7 @@ class MapsManager:
             ):
                 p = (
                     float(epoch * len(train_target_loader))
-                    / 100
+                    / 30
                     / len(train_target_loader)
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
