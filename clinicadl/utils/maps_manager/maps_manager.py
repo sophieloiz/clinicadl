@@ -1011,7 +1011,6 @@ class MapsManager:
             logger.info(
                 f"Train labeled loader size is {len(combined_data_loader)*self.batch_size}"
             )
-            # Create a combined data loader
 
             train_target_unl_loader = DataLoader(
                 data_target_unlabeled,
@@ -1019,7 +1018,7 @@ class MapsManager:
                 num_workers=self.n_proc,
                 # sampler=unlabeled_sampler,
                 worker_init_fn=pl_worker_init_function,
-                shuffle=True,  # len(data_target_unlabeled) < len(data_train_target_labeled),
+                shuffle=True,
                 drop_last=True,
             )
 
@@ -1606,9 +1605,9 @@ class MapsManager:
                 zip(combined_data_loader, train_target_unl_loader)
             ):
                 p = (
-                    float(epoch * len(train_target_loader))
+                    float(epoch * len(combined_data_loader))
                     / 100
-                    / len(train_target_loader)
+                    / len(combined_data_loader)
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
                 logger.info(
