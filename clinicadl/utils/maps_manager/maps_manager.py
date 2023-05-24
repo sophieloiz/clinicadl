@@ -1007,6 +1007,7 @@ class MapsManager:
             data_combined = pd.concat(
                 [data_train_source.df, data_valid_target_labeled.df]
             )
+            data_combined.reset_index(inplace=True)
             train_sampler = self.task_manager.generate_sampler_ssda(
                 data_train_source, data_combined, "weighted"
             )
