@@ -1000,7 +1000,7 @@ class MapsManager:
             logger.info(
                 f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
             )
-            print(data_train_source.df)
+
             data_valid_target_labeled.df = data_valid_target_labeled.df[
                 ["participant_id", "session_id", "diagnosis_train", "cohort"]
             ]
@@ -1008,6 +1008,8 @@ class MapsManager:
                 [data_train_source.df, data_valid_target_labeled.df]
             )
             data_combined.reset_index(inplace=True)
+
+            print(data_combined)
             train_sampler = self.task_manager.generate_sampler_ssda(
                 data_train_source, data_combined, "weighted"
             )
