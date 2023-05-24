@@ -1000,6 +1000,7 @@ class MapsManager:
             logger.info(
                 f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
             )
+            print(combined_dataset)
             train_sampler = self.task_manager.generate_sampler(
                 combined_dataset, "weighted"
             )
