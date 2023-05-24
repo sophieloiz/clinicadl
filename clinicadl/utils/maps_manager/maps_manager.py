@@ -1001,7 +1001,7 @@ class MapsManager:
                 f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
             )
             train_sampler = self.task_manager.generate_sampler(
-                combined_dataset, self.sampler
+                combined_dataset, "weighted"
             )
 
             combined_data_loader = DataLoader(
