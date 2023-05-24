@@ -695,6 +695,19 @@ class CNN_MME(Network):
 
         return train_output, {"loss_bce": loss}
 
+    def compute_outputs_and_loss(self, input_dict, criterion, use_labels=True):
+
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        _, train_output = self.forward(images)
+        if use_labels:
+            loss = criterion(train_output, labels)
+        else:
+            loss = torch.Tensor([0])
+
+        return train_output, {"loss": loss}
+
     def adentropy(self, train_output, lamda=0.1, eta=1.0):
         out_t1 = F.softmax(train_output)
         loss_adent = lamda * torch.mean(
