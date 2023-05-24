@@ -14,6 +14,15 @@ logger = getLogger("clinicadl")
 from clinicadl.utils.task_manager.task_manager import TaskManager
 
 
+def binarize_diagnosis(diagnosis):
+    if diagnosis == "tier_12":
+        return 0
+    elif diagnosis == "tier_3":
+        return 1
+    else:
+        return None
+
+
 class ClassificationManager(TaskManager):
     def __init__(
         self,
@@ -106,18 +115,20 @@ class ClassificationManager(TaskManager):
 
     @staticmethod
     def generate_sampler_ssda(dataset, df, sampler_option="random", n_bins=5):
-        n_labels = df["diagnosis_train"].nunique()
+        df["binarized_diagnosis"] = df["diagnosis_train"].apply(binarize_diagnosis)
+
+        n_labels = df["binarized_diagnosis"].nunique()
         count = np.zeros(n_labels)
 
         for idx in df.index:
-            label = df.loc[idx, df.diagnosis_train]
+            label = df.loc[idx, df.binarized_diagnosis]
             key = dataset.label_fn(label)
             count[key] += 1
 
         weight_per_class = 1 / np.array(count)
         weights = []
 
-        for idx, label in enumerate(df["diagnosis_train"].values):
+        for idx, label in enumerate(df["binarized_diagnosis"].values):
             key = dataset.label_fn(label)
             weights += [weight_per_class[key]] * dataset.elem_per_image
 
