@@ -1000,11 +1000,14 @@ class MapsManager:
             logger.info(
                 f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
             )
+            train_sampler = self.task_manager.generate_sampler(
+                combined_dataset, self.sampler
+            )
 
             combined_data_loader = DataLoader(
                 combined_dataset,
                 batch_size=self.batch_size,
-                shuffle=True,
+                sampler=train_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
