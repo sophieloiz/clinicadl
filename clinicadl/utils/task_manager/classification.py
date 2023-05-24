@@ -32,7 +32,7 @@ class ClassificationManager(TaskManager):
         return [
             "participant_id",
             "session_id",
-            #f"{self.mode}_id",
+            # f"{self.mode}_id",
             "true_label",
             "predicted_label",
         ] + [f"proba{i}" for i in range(self.n_classes)]
@@ -53,7 +53,7 @@ class ClassificationManager(TaskManager):
             [
                 data["participant_id"][idx],
                 data["session_id"][idx],
-                #data[f"{self.mode}_id"][idx].item(),
+                # data[f"{self.mode}_id"][idx].item(),
                 data["label"][idx].item(),
                 prediction,
             ]
@@ -80,6 +80,33 @@ class ClassificationManager(TaskManager):
     @staticmethod
     def generate_sampler(dataset, sampler_option="random", n_bins=5):
         df = dataset.df
+        n_labels = df[dataset.label].nunique()
+        count = np.zeros(n_labels)
+
+        for idx in df.index:
+            label = df.loc[idx, dataset.label]
+            key = dataset.label_fn(label)
+            count[key] += 1
+
+        weight_per_class = 1 / np.array(count)
+        weights = []
+
+        for idx, label in enumerate(df[dataset.label].values):
+            key = dataset.label_fn(label)
+            weights += [weight_per_class[key]] * dataset.elem_per_image
+
+        if sampler_option == "random":
+            return sampler.RandomSampler(weights)
+        elif sampler_option == "weighted":
+            return sampler.WeightedRandomSampler(weights, len(weights))
+        else:
+            raise NotImplementedError(
+                f"The option {sampler_option} for sampler on classification task is not implemented"
+            )
+
+    @staticmethod
+    def generate_sampler_ssda(dataset, sampler_option="random", n_bins=5):
+        df = dataset
         n_labels = df[dataset.label].nunique()
         count = np.zeros(n_labels)
 

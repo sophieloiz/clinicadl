@@ -1001,10 +1001,14 @@ class MapsManager:
                 f"Train target labeled loader size is {len(train_target_loader)*self.batch_size}"
             )
             print(data_train_source.df)
-            print(data_valid_target_labeled.df)
-
-            train_sampler = self.task_manager.generate_sampler(
-                combined_dataset, "weighted"
+            data_valid_target_labeled.df = data_valid_target_labeled.df[
+                ["participant_id", "session_id", "diagnosis_train", "cohort"]
+            ]
+            data_combined = pd.concat(
+                [data_train_source.df, data_valid_target_labeled.df]
+            )
+            train_sampler = self.task_manager.generate_sampler_ssda(
+                data_combined, "weighted"
             )
 
             combined_data_loader = DataLoader(
