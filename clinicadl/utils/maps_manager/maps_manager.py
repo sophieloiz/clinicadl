@@ -1008,7 +1008,7 @@ class MapsManager:
                 [data_train_source.df, data_valid_target_labeled.df]
             )
             train_sampler = self.task_manager.generate_sampler_ssda(
-                data_combined, "weighted"
+                data_train_source, data_combined, "weighted"
             )
 
             combined_data_loader = DataLoader(

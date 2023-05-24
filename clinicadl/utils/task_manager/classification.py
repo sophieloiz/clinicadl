@@ -105,20 +105,19 @@ class ClassificationManager(TaskManager):
             )
 
     @staticmethod
-    def generate_sampler_ssda(dataset, sampler_option="random", n_bins=5):
-        df = dataset
-        n_labels = df[dataset.diagnosis_train].nunique()
+    def generate_sampler_ssda(dataset, df, sampler_option="random", n_bins=5):
+        n_labels = df["diagnosis_train"].nunique()
         count = np.zeros(n_labels)
 
         for idx in df.index:
-            label = df.loc[idx, dataset.diagnosis_train]
+            label = df.loc[idx, df.diagnosis_train]
             key = dataset.label_fn(label)
             count[key] += 1
 
         weight_per_class = 1 / np.array(count)
         weights = []
 
-        for idx, label in enumerate(df[dataset.label].values):
+        for idx, label in enumerate(df["diagnosis_train"].values):
             key = dataset.label_fn(label)
             weights += [weight_per_class[key]] * dataset.elem_per_image
 
