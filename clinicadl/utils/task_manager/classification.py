@@ -107,11 +107,11 @@ class ClassificationManager(TaskManager):
     @staticmethod
     def generate_sampler_ssda(dataset, sampler_option="random", n_bins=5):
         df = dataset
-        n_labels = df[dataset.label].nunique()
+        n_labels = df[dataset.diagnosis_train].nunique()
         count = np.zeros(n_labels)
 
         for idx in df.index:
-            label = df.loc[idx, dataset.label]
+            label = df.loc[idx, dataset.diagnosis_train]
             key = dataset.label_fn(label)
             count[key] += 1
 
