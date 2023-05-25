@@ -3829,7 +3829,7 @@ class MapsManager:
             transfer_maps = MapsManager(transfer_path)
             transfer_state = transfer_maps.get_state_dict(
                 split,
-                selection_metric=transfer_selection,
+                selection_metric="BA",
                 network=network,
                 map_location=model.device,
             )
