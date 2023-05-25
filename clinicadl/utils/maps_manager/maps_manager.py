@@ -126,7 +126,6 @@ class MapsManager:
                 else:
                     existing_splits.append(split)
 
-        print(self.ssda_network)
         if len(existing_splits) > 0:
             raise MAPSError(
                 f"Splits {existing_splits} already exist. Please "
