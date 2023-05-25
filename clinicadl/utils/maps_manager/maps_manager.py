@@ -3844,7 +3844,7 @@ class MapsManager:
             for param, _ in zip(list_param, list_name):
                 param.requires_grad = False
 
-            for i in range(6 * 2):  # Freeze of the last FC layers
+            for i in range(3 * 2):  # Freeze of the last FC layers
                 param = list_param[len(list_param) - i - 1]
                 name = list_name[len(list_name) - i - 1]
                 param.requires_grad = True
