@@ -593,7 +593,7 @@ class CNN_DANN(Network):
             {"loss_domain": loss_domain},
         )
 
-    def compute_outputs_and_loss(self, input_dict, criterion, alpha, use_labels=True):
+    def compute_outputs_and_loss(self, input_dict, criterion, alpha=0, use_labels=True):
 
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
