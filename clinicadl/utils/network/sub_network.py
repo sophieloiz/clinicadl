@@ -870,8 +870,8 @@ class CNN_DANN2ouputs(Network):
         logger.info(f"Label t1 : {t1_label_tensor}")
         logger.info(f"Label flair : {flair_label_tensor}")
 
-        logger.info(f"Label t1 : {t1_label.size()}")
-        logger.info(f"Label flair : {flair_label.size()}")
+        # logger.info(f"Label t1 : {t1_label.size()}")
+        # logger.info(f"Label flair : {flair_label.size()}")
 
         images_target_unl = data_target_unl["image"].to(self.device)
 
