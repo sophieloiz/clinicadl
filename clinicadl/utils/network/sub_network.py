@@ -834,24 +834,39 @@ class CNN_DANN2ouputs(Network):
         )
 
         t1_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64).to(self.device)
+
+        t1_label = torch.empty((4), dtype=torch.int64).to(self.device)
+        flair_label = torch.empty((4), dtype=torch.int64).to(self.device)
+
         for i, element in enumerate(domain):
 
             if element == "flair":
-                if flair_tensor.nelement():
+                if flair_tensor.size() == [1, 169, 208, 179]:
                     flair_tensor = images[i]
+                    flair_label = labels[i]
                 else:
                     flair_tensor = torch.cat((flair_tensor, images[i]))
+                    flair_label = torch.cat((flair_label, labels[i]))
+
             else:
-                if t1_tensor.nelement():
+                if t1_tensor.size() == [1, 169, 208, 179]():
                     t1_tensor = images[i]
+                    t1_label = labels[i]
+
                 else:
                     t1_tensor = torch.cat((t1_tensor, images[i]))
+                    t1_label = torch.cat((t1_label, labels[i]))
 
         logger.info(f"flair tensor {flair_tensor.size()}")
         logger.info(f"t1 tensor {t1_tensor.size()}")
 
         logger.info(f"Label : {labels}")
         logger.info(f"Label : {labels.size()}")
+        logger.info(f"Label t1 : {t1_label}")
+        logger.info(f"Label flair : {flair_label}")
+
+        logger.info(f"Label t1 : {t1_label.size()}")
+        logger.info(f"Label flair : {flair_label.size()}")
 
         images_target_unl = data_target_unl["image"].to(self.device)
 
