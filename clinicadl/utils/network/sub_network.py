@@ -829,6 +829,8 @@ class CNN_DANN2ouputs(Network):
         target_domain_flag = domain == "flair"  # 1 if domain is "flair", 0 otherwise
 
         logger.info(f"Images shape {images.size()}")
+        logger.info(f"Images shape {source_domain_flag}")
+        logger.info(f"Images shape {target_domain_flag}")
 
         # Expand the dimensions of the domain flags to match the shape of the images tensor
         source_domain_flag = source_domain_flag.expand(
