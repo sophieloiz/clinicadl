@@ -849,7 +849,7 @@ class CNN_DANN2ouputs(Network):
                     flair_label = torch.cat((flair_label, labels[i]))
 
             else:
-                if t1_tensor.size() == [1, 169, 208, 179]():
+                if t1_tensor.size() == [1, 169, 208, 179]:
                     t1_tensor = images[i]
                     t1_label = labels[i]
 
