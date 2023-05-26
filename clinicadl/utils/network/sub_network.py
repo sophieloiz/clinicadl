@@ -1027,14 +1027,21 @@ class CNN_DANN2ouputs(Network):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
-        train_output, train_output_domain = self.forward(images, alpha)
 
-        loss_bce = criterion(train_output, labels)
         if target:
+
+            _, train_output, train_output_domain = self.forward(images, alpha)
+
+            loss_bce = criterion(train_output, labels)
             labels_domain_t = (
                 torch.ones(input_dict["image"].shape[0]).long().to(self.device)
             )
         else:
+
+            train_output, _, train_output_domain = self.forward(images, alpha)
+
+            loss_bce = criterion(train_output, labels)
+
             labels_domain_t = (
                 torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
             )
