@@ -862,6 +862,9 @@ class CNN_DANN2ouputs(Network):
                     t1_label.append(labels[i])
                     # t1_label = torch.cat((t1_label, labels[i]))
 
+        t1_tensor = t1_tensor[:, None, :, :, :]
+        flair_tensor = flair_tensor[:, None, :, :, :]
+
         t1_label_tensor = torch.tensor(t1_label).to(self.device)
         flair_label_tensor = torch.tensor(flair_label).to(self.device)
 
