@@ -832,57 +832,34 @@ class CNN_DANN2ouputs(Network):
         flair_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64).to(
             self.device
         )
+
+        t1_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64).to(self.device)
         for i, element in enumerate(domain):
-            if element == "t1":
-                flair_tensor = torch.cat((flair_tensor, images[i]))
 
-        logger.info(f"Flag flair {flair_tensor.size()}")
+            if element == "flair":
+                if flair_tensor.nelement():
+                    flair_tensor = images[i]
+                else:
+                    flair_tensor = torch.cat((flair_tensor, images[i]))
+            else:
+                if t1_tensor.nelement():
+                    t1_tensor = images[i]
+                else:
+                    t1_tensor = torch.cat((t1_tensor, images[i]))
 
-        # Create binary flags for the domain values
-
-        # Create binary flags for the domain values
-        source_domain_flag = (
-            domain == "t1"
-        ).float()  # 1 if domain is "t1", 0 otherwise
-        target_domain_flag = (domain == "flair").float()
-
-        logger.info(f"Images shape {images.size()}")
-        logger.info(f"Images shape {source_domain_flag}")
-        logger.info(f"Images shape {target_domain_flag}")
-
-        # Expand the dimensions of the domain flags to match the shape of the images tensor
-        source_domain_flag = source_domain_flag.expand(
-            -1, images.size(1), images.size(2)
-        )
-        target_domain_flag = target_domain_flag.expand(
-            -1, images.size(1), images.size(2)
-        )
-
-        # Create copies of the image tensor based on the domain flags
-        source_image_tensor = images * source_domain_flag
-        target_image_tensor = images * target_domain_flag
-
-        logger.info(f"Source images shape {source_image_tensor.size()}")
-        logger.info(f"Target images shape {target_image_tensor.size()}")
-
-        print(source_image_tensor)
-        print(target_image_tensor)
-
-        source_labels_tensor = labels * source_domain_flag
-        target_label_tensor = labels * target_domain_flag
-
-        logger.info(f"Source label shape {source_labels_tensor.size()}")
-        logger.info(f"Target label shape {target_label_tensor.size()}")
+        logger.info(f"flair tensor {flair_tensor.size()}")
+        logger.info(f"t1 tensor {t1_tensor.size()}")
 
         logger.info(f"Label : {labels}")
+        logger.info(f"Label : {labels.size()}")
 
         images_target_unl = data_target_unl["image"].to(self.device)
 
         train_output_class_source, _, train_output_domain = self.forward(
-            source_image_tensor, alpha
+            t1_tensor, alpha
         )
         _, train_output_class_target, train_output_domain = self.forward(
-            target_image_tensor, alpha
+            flair_tensor, alpha
         )
 
         _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
