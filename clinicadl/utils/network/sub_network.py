@@ -836,8 +836,8 @@ class CNN_DANN2ouputs(Network):
         source_image_tensor = images * source_domain_flag.unsqueeze(1).unsqueeze(2)
         target_image_tensor = images * target_domain_flag.unsqueeze(1).unsqueeze(2)
 
-        logger.info(f"Source images shape {source_image_tensor.shape()}")
-        logger.info(f"Target images shape {target_image_tensor.shape()}")
+        logger.info(f"Source images shape {source_image_tensor.size()}")
+        logger.info(f"Target images shape {target_image_tensor.size()}")
 
         print(source_image_tensor)
         print(target_image_tensor)
@@ -845,8 +845,8 @@ class CNN_DANN2ouputs(Network):
         source_labels_tensor = labels * source_domain_flag.unsqueeze(1).unsqueeze(2)
         target_label_tensor = labels * target_domain_flag.unsqueeze(1).unsqueeze(2)
 
-        logger.info(f"Source label shape {source_labels_tensor.shape()}")
-        logger.info(f"Target label shape {target_label_tensor.shape()}")
+        logger.info(f"Source label shape {source_labels_tensor.size()}")
+        logger.info(f"Target label shape {target_label_tensor.size()}")
 
         logger.info(f"Label : {labels}")
 
