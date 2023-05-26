@@ -826,11 +826,13 @@ class CNN_DANN2ouputs(Network):
 
         flag_flair = [0 if element == "t1" else 1 for element in domain]
 
-        flair_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64).to(
+        flair_tensor = torch.empty((1, 1, 169, 208, 179), dtype=torch.int64).to(
             self.device
         )
 
-        t1_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64).to(self.device)
+        t1_tensor = torch.empty((1, 1, 169, 208, 179), dtype=torch.int64).to(
+            self.device
+        )
 
         t1_label = []
         flair_label = []
@@ -908,7 +910,7 @@ class CNN_DANN2ouputs(Network):
         total_loss = loss_classif + loss_domain
 
         return (
-            train_output_class,
+            train_output_class_source,
             train_output_domain,
             {"loss": total_loss},
         )
