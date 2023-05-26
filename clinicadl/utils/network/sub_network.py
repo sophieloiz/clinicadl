@@ -884,17 +884,20 @@ class CNN_DANN2ouputs(Network):
         train_output_class_source, _, train_output_domain = self.forward(
             t1_tensor, alpha
         )
-        loss_classif_source = criterion(train_output_class_source, t1_label)
+        loss_classif_source = criterion(train_output_class_source, t1_label_tensor)
 
         if flag == False:
             _, train_output_class_target, train_output_domain = self.forward(
                 flair_tensor, alpha
             )
-            loss_classif_target = criterion(train_output_class_target, flair_label)
+            loss_classif_target = criterion(
+                train_output_class_target, flair_label_tensor
+            )
             loss_classif = loss_classif_source + loss_classif_target
 
         else:
             loss_classif = loss_classif_source
+
         _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
 
         output_array_domain = [0 if element == "t1" else 1 for element in domain]
