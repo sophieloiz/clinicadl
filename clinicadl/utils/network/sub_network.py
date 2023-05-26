@@ -824,7 +824,20 @@ class CNN_DANN2ouputs(Network):
             data_lab["domain"],  # .to(self.device),
         )
 
+        flag_flair = [0 if element == "t1" else 1 for element in domain]
+
+        logger.info(f"Flag flair {flag_flair}")
+        logger.info(f"Images {images}")
+
+        flair_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64)
+        for i, element in enumerate(domain):
+            if element == "t1":
+                flair_tensor = torch.cat((flair_tensor, images[i]))
+
+        logger.info(f"Flag flair {flair_tensor.size()}")
+
         # Create binary flags for the domain values
+
         # Create binary flags for the domain values
         source_domain_flag = (
             domain == "t1"
