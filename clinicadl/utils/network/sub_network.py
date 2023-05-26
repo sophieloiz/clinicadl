@@ -841,7 +841,7 @@ class CNN_DANN2ouputs(Network):
         for i, element in enumerate(domain):
 
             if element == "flair":
-                if flair_tensor.size() == [1, 169, 208, 179]:
+                if flair_tensor.size(dim=0) == 1:
                     flair_tensor = images[i]
                     flair_label = labels[i]
                 else:
@@ -850,7 +850,7 @@ class CNN_DANN2ouputs(Network):
                     flair_label.append(labels[i])
 
             else:
-                if t1_tensor.size() == [1, 169, 208, 179]:
+                if t1_tensor.size(dim=0) == 1:
                     t1_tensor = images[i]
                     t1_label = labels[i]
 
