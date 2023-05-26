@@ -852,7 +852,7 @@ class CNN_DANN2ouputs(Network):
             else:
                 if flag_t1 == True:
                     t1_tensor = images[i]
-                    t1_label = labels[i].numpy()
+                    t1_label = labels[i].cpu().numpy()
                     flag_t1 = False
 
                 else:
