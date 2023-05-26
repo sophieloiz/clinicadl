@@ -715,6 +715,7 @@ class CNN_MME(Network):
         )
         return loss_adent
 
+    # For ENT training (need to create a new class with loss with add entropy)
     def entropy(self, train_output, lamda=0.1, eta=1.0):
         out_t1 = F.softmax(train_output)
         loss_adent = -lamda * torch.mean(
