@@ -890,6 +890,8 @@ class CNN_DANN2ouputs(Network):
             _, train_output_class_target, train_output_domain = self.forward(
                 flair_tensor, alpha
             )
+            logger.info(f"Label flair : {train_output_class_target}")
+
             loss_classif_target = criterion(
                 train_output_class_target, flair_label_tensor
             )
