@@ -904,6 +904,7 @@ class CNN_DANN2ouputs(Network):
         else:
             loss_classif = loss_classif_source
 
+        _, _, train_output_domain = self.forward(images, alpha)
         _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
 
         output_array_domain = [0 if element == "t1" else 1 for element in domain]
