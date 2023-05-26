@@ -775,7 +775,12 @@ class CNN_DANN2ouputs(Network):
 
     @property
     def layers(self):
-        return nn.Sequential(self.convolutions, self.fc_class, self.fc_domain)  # ,
+        return nn.Sequential(
+            self.convolutions,
+            self.fc_class_source,
+            self.fc_class_target,
+            self.fc_domain,
+        )  # ,
 
     def transfer_weights(self, state_dict, transfer_class):
         if issubclass(transfer_class, CNN_DANN):
