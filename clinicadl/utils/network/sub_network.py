@@ -824,13 +824,17 @@ class CNN_DANN2ouputs(Network):
             data_lab["domain"],  # .to(self.device),
         )
 
+        # Create binary flags for the domain values
+        source_domain_flag = domain == "t1"  # 1 if domain is "t1", 0 otherwise
+        target_domain_flag = domain == "flair"  # 1 if domain is "flair", 0 otherwise
+
         logger.info(f"Images shape {images.size()}")
 
-        # Create binary flags for the domain values
-        source_domain_flag = (domain == "t1").float()  # 1 if domain is 0, 0 otherwise
-        target_domain_flag = (
-            domain == "flair"
-        ).float()  # 1 if domain is 1, 0 otherwise
+        # # Create binary flags for the domain values
+        # source_domain_flag = (domain == "t1").float()  # 1 if domain is 0, 0 otherwise
+        # target_domain_flag = (
+        #     domain == "flair"
+        # ).float()  # 1 if domain is 1, 0 otherwise
 
         # Create copies of the image tensor based on the domain flags
         source_image_tensor = images * source_domain_flag.unsqueeze(1).unsqueeze(2)
