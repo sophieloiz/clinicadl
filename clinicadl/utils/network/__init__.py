@@ -9,6 +9,7 @@ from .cnn.models import (
     SE_CNN,
     Gnet_Conv5_FC3,
     Conv5_FC3_DANN,
+    Conv5_FC3_DANN2,
     Conv5_FC3_MME,
 )
 from .cnn.random import RandomArchitecture

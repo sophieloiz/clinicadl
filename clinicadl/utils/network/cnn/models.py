@@ -11,7 +11,13 @@ from clinicadl.utils.network.cnn.SECNN import SECNNDesigner3D
 
 
 from clinicadl.utils.network.network_utils import PadMaxPool2d, PadMaxPool3d
-from clinicadl.utils.network.sub_network import CNN, GNet, CNN_DANN, CNN_MME
+from clinicadl.utils.network.sub_network import (
+    CNN,
+    GNet,
+    CNN_DANN,
+    CNN_MME,
+    CNN_DANN2ouputs,
+)
 
 
 def get_layers_fn(input_size):
@@ -480,6 +486,100 @@ class Conv5_FC3_DANN(CNN_DANN):
         super().__init__(
             convolutions=convolutions,
             fc_class=fc_class,
+            fc_domain=fc_domain,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+
+class Conv5_FC3_DANN2(CNN_DANN2ouputs):
+    """
+    Reduce the 2D or 3D input image to an array of size output_size.
+    """
+
+    def __init__(self, input_size, gpu=True, output_size=2, dropout=0.5):
+        conv, norm, pool = get_layers_fn(input_size)
+        # fmt: off
+        convolutions = nn.Sequential(
+            conv(input_size[0], 8, 3, padding=1),
+            norm(8),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(8, 16, 3, padding=1),
+            norm(16),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(16, 32, 3, padding=1),
+            norm(32),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(32, 64, 3, padding=1),
+            norm(64),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(64, 128, 3, padding=1),
+            norm(128),
+            nn.ReLU(),
+            pool(2, 2),
+
+            # conv(128, 256, 3, padding=1),
+            # norm(256),
+            # nn.ReLU(),
+            # pool(2, 2),
+        )
+
+        # Compute the size of the first FC layer
+        input_tensor = torch.zeros(input_size).unsqueeze(0)
+        output_convolutions = convolutions(input_tensor)
+
+        fc_class_source = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(p=dropout),
+
+            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
+            nn.ReLU(),
+
+            nn.Linear(1300, 50),
+            nn.ReLU(),
+
+            nn.Linear(50, output_size)
+        )
+
+
+        fc_class_target= nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(p=dropout),
+
+            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
+            nn.ReLU(),
+
+            nn.Linear(1300, 50),
+            nn.ReLU(),
+
+            nn.Linear(50, output_size)
+        )
+
+        fc_domain = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(p=dropout),
+
+            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
+            nn.ReLU(),
+
+            nn.Linear(1300, 50),
+            nn.ReLU(),
+
+            nn.Linear(50, output_size)
+        )
+        # fmt: on
+        super().__init__(
+            convolutions=convolutions,
+            fc_class_source=fc_class_source,
+            fc_class_target=fc_class_target,
             fc_domain=fc_domain,
             n_classes=output_size,
             gpu=gpu,
