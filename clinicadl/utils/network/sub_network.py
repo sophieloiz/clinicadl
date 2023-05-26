@@ -829,7 +829,9 @@ class CNN_DANN2ouputs(Network):
         logger.info(f"Flag flair {flag_flair}")
         logger.info(f"Images {images}")
 
-        flair_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64)
+        flair_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64).to(
+            self.device
+        )
         for i, element in enumerate(domain):
             if element == "t1":
                 flair_tensor = torch.cat((flair_tensor, images[i]))
