@@ -830,12 +830,12 @@ class CNN_DANN2ouputs(Network):
 
         logger.info(f"Images shape {images.size()}")
 
-        # Reshape the domain flags to match the shape of the images tensor
-        source_domain_flag = (
-            source_domain_flag.unsqueeze(1).unsqueeze(2).expand_as(images)
+        # Expand the dimensions of the domain flags to match the shape of the images tensor
+        source_domain_flag = source_domain_flag.expand(
+            -1, images.size(1), images.size(2)
         )
-        target_domain_flag = (
-            target_domain_flag.unsqueeze(1).unsqueeze(2).expand_as(images)
+        target_domain_flag = target_domain_flag.expand(
+            -1, images.size(1), images.size(2)
         )
 
         # Create copies of the image tensor based on the domain flags
@@ -848,8 +848,8 @@ class CNN_DANN2ouputs(Network):
         print(source_image_tensor)
         print(target_image_tensor)
 
-        source_labels_tensor = labels * source_domain_flag.unsqueeze(1).unsqueeze(2)
-        target_label_tensor = labels * target_domain_flag.unsqueeze(1).unsqueeze(2)
+        source_labels_tensor = labels * source_domain_flag
+        target_label_tensor = labels * target_domain_flag
 
         logger.info(f"Source label shape {source_labels_tensor.size()}")
         logger.info(f"Target label shape {target_label_tensor.size()}")
