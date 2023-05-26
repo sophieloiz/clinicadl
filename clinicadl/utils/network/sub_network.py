@@ -824,7 +824,7 @@ class CNN_DANN2ouputs(Network):
             data_lab["domain"],  # .to(self.device),
         )
 
-        logger.info(f"Images shape {images.shape()}")
+        logger.info(f"Images shape {images.size()}")
 
         # Create binary flags for the domain values
         source_domain_flag = (domain == "t1").float()  # 1 if domain is 0, 0 otherwise
