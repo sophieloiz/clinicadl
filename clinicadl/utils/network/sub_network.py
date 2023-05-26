@@ -844,7 +844,7 @@ class CNN_DANN2ouputs(Network):
             if element == "flair":
                 if flag == True:
                     flair_tensor = images[i]
-                    flair_label = labels[i]
+                    flair_label.append(labels[i])
                     flag = False
                 else:
                     flair_tensor = torch.cat((flair_tensor, images[i]))
