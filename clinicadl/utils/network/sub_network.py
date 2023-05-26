@@ -837,22 +837,26 @@ class CNN_DANN2ouputs(Network):
 
         t1_label = []
         flair_label = []
+        flag = True
+        flag_t1 = True
 
         for i, element in enumerate(domain):
 
             if element == "flair":
-                if flair_tensor.size(dim=0) == 1:
+                if flag == True:
                     flair_tensor = images[i]
                     flair_label = labels[i]
+                    flag = False
                 else:
                     flair_tensor = torch.cat((flair_tensor, images[i]))
                     flair_label = torch.cat((flair_label, labels[i]))
                     flair_label.append(labels[i])
 
             else:
-                if t1_tensor.size(dim=0) == 1:
+                if flag_t1 == True:
                     t1_tensor = images[i]
                     t1_label = labels[i]
+                    flag_t1 = False
 
                 else:
                     t1_tensor = torch.cat((t1_tensor, images[i]))
