@@ -826,8 +826,10 @@ class CNN_DANN2ouputs(Network):
 
         # Create binary flags for the domain values
         # Create binary flags for the domain values
-        source_domain_flag = domain == "t1"  # 1 if domain is "t1", 0 otherwise
-        target_domain_flag = domain == "flair"
+        source_domain_flag = (
+            domain == "t1"
+        ).float()  # 1 if domain is "t1", 0 otherwise
+        target_domain_flag = (domain == "flair").float()
 
         logger.info(f"Images shape {images.size()}")
         logger.info(f"Images shape {source_domain_flag}")
