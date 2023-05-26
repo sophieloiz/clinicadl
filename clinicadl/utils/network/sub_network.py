@@ -830,15 +830,17 @@ class CNN_DANN2ouputs(Network):
 
         logger.info(f"Images shape {images.size()}")
 
-        # # Create binary flags for the domain values
-        # source_domain_flag = (domain == "t1").float()  # 1 if domain is 0, 0 otherwise
-        # target_domain_flag = (
-        #     domain == "flair"
-        # ).float()  # 1 if domain is 1, 0 otherwise
+        # Reshape the domain flags to match the shape of the images tensor
+        source_domain_flag = (
+            source_domain_flag.unsqueeze(1).unsqueeze(2).expand_as(images)
+        )
+        target_domain_flag = (
+            target_domain_flag.unsqueeze(1).unsqueeze(2).expand_as(images)
+        )
 
         # Create copies of the image tensor based on the domain flags
-        source_image_tensor = images * source_domain_flag.unsqueeze(1).unsqueeze(2)
-        target_image_tensor = images * target_domain_flag.unsqueeze(1).unsqueeze(2)
+        source_image_tensor = images * source_domain_flag
+        target_image_tensor = images * target_domain_flag
 
         logger.info(f"Source images shape {source_image_tensor.size()}")
         logger.info(f"Target images shape {target_image_tensor.size()}")
