@@ -835,8 +835,8 @@ class CNN_DANN2ouputs(Network):
 
         t1_tensor = torch.empty((1, 169, 208, 179), dtype=torch.int64).to(self.device)
 
-        t1_label = torch.empty((4), dtype=torch.int64).to(self.device)
-        flair_label = torch.empty((4), dtype=torch.int64).to(self.device)
+        t1_label = []
+        flair_label = []
 
         for i, element in enumerate(domain):
 
@@ -847,6 +847,7 @@ class CNN_DANN2ouputs(Network):
                 else:
                     flair_tensor = torch.cat((flair_tensor, images[i]))
                     flair_label = torch.cat((flair_label, labels[i]))
+                    flair_label.append(labels[i])
 
             else:
                 if t1_tensor.size() == [1, 169, 208, 179]:
@@ -855,15 +856,19 @@ class CNN_DANN2ouputs(Network):
 
                 else:
                     t1_tensor = torch.cat((t1_tensor, images[i]))
-                    t1_label = torch.cat((t1_label, labels[i]))
+                    t1_label.append(labels[i])
+                    # t1_label = torch.cat((t1_label, labels[i]))
+
+        t1_label_tensor = torch.tensor(t1_label).to(self.device)
+        flair_label_tensor = torch.tensor(flair_label).to(self.device)
 
         logger.info(f"flair tensor {flair_tensor.size()}")
         logger.info(f"t1 tensor {t1_tensor.size()}")
 
         logger.info(f"Label : {labels}")
         logger.info(f"Label : {labels.size()}")
-        logger.info(f"Label t1 : {t1_label}")
-        logger.info(f"Label flair : {flair_label}")
+        logger.info(f"Label t1 : {t1_label_tensor}")
+        logger.info(f"Label flair : {flair_label_tensor}")
 
         logger.info(f"Label t1 : {t1_label.size()}")
         logger.info(f"Label flair : {flair_label.size()}")
@@ -879,8 +884,8 @@ class CNN_DANN2ouputs(Network):
 
         _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
 
-        loss_classif_source = criterion(train_output_class_source, source_labels_tensor)
-        loss_classif_target = criterion(train_output_class_target, target_label_tensor)
+        loss_classif_source = criterion(train_output_class_source, t1_label)
+        loss_classif_target = criterion(train_output_class_target, flair_label)
 
         loss_classif = loss_classif_source + loss_classif_target
 
