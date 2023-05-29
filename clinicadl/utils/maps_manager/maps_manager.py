@@ -2964,7 +2964,8 @@ class MapsManager:
             self.write_description_log(
                 log_dir,
                 data_group,
-                dataloader.dataset.caps_dict,
+                #dataloader.dataset.caps_dict,
+                "/export/home/cse180022/hdd/20221006/"
                 dataloader.dataset.df,
             )
 
