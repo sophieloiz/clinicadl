@@ -2969,21 +2969,21 @@ class MapsManager:
             )
 
             # load the best trained model during the training
-            model, _ = self._init_model(
+            # model, _ = self._init_model(
+            #     transfer_path=self.maps_path,
+            #     split=split,
+            #     transfer_selection=selection_metric,
+            #     gpu=gpu,
+            #     network=network,
+            # )
+            print("Predict label for QC (TO CHANGE IF NOT)")
+            model, _ = self._init_model_qc(
                 transfer_path=self.maps_path,
                 split=split,
                 transfer_selection=selection_metric,
                 gpu=gpu,
                 network=network,
             )
-            # print("Predict label for QC (TO CHANGE IF NOT)")
-            # model, _ = self._init_model_qc(
-            #  transfer_path=self.maps_path,
-            # split=split,
-            # transfer_selection=selection_metric,
-            # gpu=gpu,
-            # network=network,
-            # )
 
             prediction_df, metrics = self.task_manager.test(
                 model, dataloader, criterion, use_labels=use_labels
