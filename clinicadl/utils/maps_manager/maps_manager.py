@@ -1659,9 +1659,8 @@ class MapsManager:
                         _, metrics_train_source = self.task_manager.test_da(
                             model, train_source_loader, criterion, alpha
                         )
-
                         _, metrics_valid_source = self.task_manager.test_da(
-                            model, valid_source_loader, criterion, alpha
+                            model, valid_source_loader, criterion, alpha, target=True
                         )
 
                         model.train()
