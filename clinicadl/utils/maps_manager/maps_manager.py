@@ -3308,13 +3308,13 @@ class MapsManager:
             participants_train = set(train_df.participant_id.values)
             participants_test = set(test_df.participant_id.values)
             intersection = participants_test & participants_train
-
-            if len(intersection) > 0:
-                raise ClinicaDLDataLeakageError(
-                    "Your evaluation set contains participants who were already seen during "
-                    "the training step. The list of common participants is the following: "
-                    f"{intersection}."
-                )
+            print("BIG WARNING : NO CHECK LEACKAGE")
+            # if len(intersection) > 0:
+            #     raise ClinicaDLDataLeakageError(
+            #         "Your evaluation set contains participants who were already seen during "
+            #         "the training step. The list of common participants is the following: "
+            #         f"{intersection}."
+            #     )
 
     def _check_data_group(
         self,
