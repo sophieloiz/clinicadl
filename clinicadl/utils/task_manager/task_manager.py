@@ -191,7 +191,7 @@ class TaskManager:
         results_df = pd.DataFrame(columns=self.columns)
         total_loss = 0
         alpha = 0
-        print(dataloader))
+        print(dataloader)
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 print("Remove alpha from task manager if no ssda training")
