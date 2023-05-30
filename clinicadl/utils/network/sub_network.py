@@ -814,6 +814,56 @@ class CNN_DANN2ouputs(Network):
     def predict(self, x):
         return self.forward(x)
 
+    def compute_outputs_and_loss_two(
+        self, input_dict, input_dict_target, input_dict_target_unl, criterion, alpha
+    ):
+
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        logger.info(labels)
+        images_target, labels_target = input_dict_target["image"].to(
+            self.device
+        ), input_dict_target["label"].to(self.device)
+
+        images_target_unl = input_dict_target_unl["image"].to(self.device)
+
+        train_output_class_source, _, train_output_domain_source = self.forward(
+            images, alpha
+        )
+
+        _, train_output_class_target, train_output_domain_target = self.forward(
+            images_target, alpha
+        )
+        _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
+
+        loss_source = criterion(train_output_class_source, labels)
+        loss_target = criterion(train_output_class_target, labels_target)
+
+        loss_classif = loss_source + loss_target
+
+        labels_domain_s = (
+            torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
+        )
+
+        labels_domain_t = (
+            torch.ones(input_dict_target["image"].shape[0]).long().to(self.device)
+        )
+
+        loss_domain_s = criterion(train_output_domain_source, labels_domain_s)
+        loss_domain_t = criterion(train_output_domain_target, labels_domain_t)
+        loss_domain_t_unl = criterion(train_output_domain_target_lab, labels_domain_t)
+
+        loss_domain = loss_domain_s + loss_domain_t + loss_domain_t_unl
+
+        total_loss = loss_classif + loss_domain
+
+        return (
+            train_output_class_source,
+            train_output_class_target,
+            {"loss": total_loss},
+        )
+
     def compute_outputs_and_loss_new_lab(
         self, data_lab, data_target_unl, criterion, alpha
     ):
@@ -824,7 +874,7 @@ class CNN_DANN2ouputs(Network):
             data_lab["domain"],  # .to(self.device),
         )
 
-        flag_flair = [0 if element == "t1" else 1 for element in domain]
+        # flag_flair = [0 if element == "t1" else 1 for element in domain]
 
         flair_tensor = torch.empty((1, 1, 169, 208, 179), dtype=torch.int64).to(
             self.device
@@ -848,7 +898,6 @@ class CNN_DANN2ouputs(Network):
                     flag = False
                 else:
                     flair_tensor = torch.cat((flair_tensor, images[i]))
-                    # flair_label = torch.cat((flair_label, labels[i]))
                     flair_label.append(labels[i])
 
             else:
@@ -860,7 +909,6 @@ class CNN_DANN2ouputs(Network):
                 else:
                     t1_tensor = torch.cat((t1_tensor, images[i]))
                     t1_label.append(labels[i])
-                    # t1_label = torch.cat((t1_label, labels[i]))
 
         t1_tensor = t1_tensor[:, None, :, :, :]
         flair_tensor = flair_tensor[:, None, :, :, :]
@@ -875,9 +923,6 @@ class CNN_DANN2ouputs(Network):
         logger.info(f"Label : {labels.size()}")
         logger.info(f"Label t1 : {t1_label_tensor}")
         logger.info(f"Label flair : {flair_label_tensor}")
-
-        # logger.info(f"Label t1 : {t1_label.size()}")
-        # logger.info(f"Label flair : {flair_label.size()}")
 
         images_target_unl = data_target_unl["image"].to(self.device)
 
@@ -1032,7 +1077,6 @@ class CNN_DANN2ouputs(Network):
 
             _, train_output, train_output_domain = self.forward(images, alpha)
 
-            loss_bce = criterion(train_output, labels)
             labels_domain_t = (
                 torch.ones(input_dict["image"].shape[0]).long().to(self.device)
             )
@@ -1040,11 +1084,12 @@ class CNN_DANN2ouputs(Network):
 
             train_output, _, train_output_domain = self.forward(images, alpha)
 
-            loss_bce = criterion(train_output, labels)
-
             labels_domain_t = (
                 torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
             )
+
+        loss_bce = criterion(train_output, labels)
+
         loss_domain = criterion(train_output_domain, labels_domain_t)
 
         return train_output, {"loss": loss_bce + alpha * loss_domain}

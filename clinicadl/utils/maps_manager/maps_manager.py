@@ -135,11 +135,11 @@ class MapsManager:
         if self.multi_network:
             self._train_multi(split_list, resume=False)
 
-        # elif self.ssda_network:
-        #     self._train_ssda(split_list, resume=False)
+        elif self.ssda_network:
+            self._train_ssda(split_list, resume=False)
         else:
-            # self._train_single(split_list, resume=False)
-            self._train_single_qc(split_list, resume=False)
+            self._train_single(split_list, resume=False)
+            # self._train_single_qc(split_list, resume=False)
 
     def resume(self, split_list: List[int] = None):
         """
@@ -937,7 +937,7 @@ class MapsManager:
             )
 
             # Create index lists for each dataset
-            source_indices = list(range(len(data_train_source)))
+            source_indices = list(range(len(data_train_source) / 4))
             labeled_indices = list(range(len(data_train_target_labeled)))
             # unlabeled_indices = list(range(len(data_target_unlabeled)))
 
@@ -976,7 +976,7 @@ class MapsManager:
             train_source_loader = DataLoader(
                 data_train_source,
                 batch_size=self.batch_size,
-                # sampler=source_sampler,
+                sampler=source_sampler,
                 shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
@@ -988,9 +988,9 @@ class MapsManager:
             )
             train_target_loader = DataLoader(
                 data_train_target_labeled,
-                batch_size=self.batch_size,
+                batch_size=1,  # self.batch_size,
                 # sampler=train_target_sampler,
-                # sampler=labeled_sampler,
+                sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
@@ -1615,26 +1615,32 @@ class MapsManager:
             # for i, (data_source, data_target, data_target_unl) in enumerate(
             #     zip(train_source_loader, train_target_loader, train_target_unl_loader)
             # ):
-            for i, (data_lab, data_target_unl) in enumerate(
-                zip(combined_data_loader, train_target_unl_loader)
+            # for i, (data_lab, data_target_unl) in enumerate(
+            #     zip(combined_data_loader, train_target_unl_loader)
+            # ):
+            for i, (data_lab, data_target, data_target_unl) in enumerate(
+                zip(combined_data_loader, train_target_loader, train_target_unl_loader)
             ):
                 p = (
                     float(epoch * len(combined_data_loader))
                     / 100
                     / len(combined_data_loader)
                 )
-                # alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
-                alpha = 0.2
+                alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+                # alpha = 0.2
                 logger.info(
                     f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                 )
 
-                _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
-                    data_lab, data_target_unl, criterion, alpha
-                )
+                # _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
+                #     data_lab, data_target_unl, criterion, alpha
+                # )
                 # _, _, loss_dict = model.compute_outputs_and_loss_new(
                 #     data_source, data_target, data_target_unl, criterion, alpha
                 # )
+                _, _, loss_dict = model.compute_outputs_and_loss_two(
+                    data_lab, data_target, data_target_unl, criterion, alpha
+                )
                 logger.debug(f"Train loss dictionnary {loss_dict}")
                 loss = loss_dict["loss"]
                 loss.backward()
@@ -2961,29 +2967,29 @@ class MapsManager:
                 f"best-{selection_metric}",
                 data_group,
             )
-            # self.write_description_log(
-            #     log_dir,
-            #     data_group,
-            #     dataloader.dataset.caps_dict,
-            #     dataloader.dataset.df,
-            # )
+            self.write_description_log(
+                log_dir,
+                data_group,
+                dataloader.dataset.caps_dict,
+                dataloader.dataset.df,
+            )
 
             # load the best trained model during the training
-            # model, _ = self._init_model(
-            #     transfer_path=self.maps_path,
-            #     split=split,
-            #     transfer_selection=selection_metric,
-            #     gpu=gpu,
-            #     network=network,
-            # )
-            print("Predict label for QC (TO CHANGE IF NOT)")
-            model, _ = self._init_model_qc(
+            model, _ = self._init_model(
                 transfer_path=self.maps_path,
                 split=split,
                 transfer_selection=selection_metric,
                 gpu=gpu,
                 network=network,
             )
+            # print("Predict label for QC (TO CHANGE IF NOT)")
+            # model, _ = self._init_model_qc(
+            #     transfer_path=self.maps_path,
+            #     split=split,
+            #     transfer_selection=selection_metric,
+            #     gpu=gpu,
+            #     network=network,
+            # )
 
             prediction_df, metrics = self.task_manager.test(
                 model, dataloader, criterion, use_labels=use_labels
@@ -3308,13 +3314,12 @@ class MapsManager:
             participants_train = set(train_df.participant_id.values)
             participants_test = set(test_df.participant_id.values)
             intersection = participants_test & participants_train
-            print("BIG WARNING : NO CHECK LEACKAGE")
-            # if len(intersection) > 0:
-            #     raise ClinicaDLDataLeakageError(
-            #         "Your evaluation set contains participants who were already seen during "
-            #         "the training step. The list of common participants is the following: "
-            #         f"{intersection}."
-            #     )
+            if len(intersection) > 0:
+                raise ClinicaDLDataLeakageError(
+                    "Your evaluation set contains participants who were already seen during "
+                    "the training step. The list of common participants is the following: "
+                    f"{intersection}."
+                )
 
     def _check_data_group(
         self,
