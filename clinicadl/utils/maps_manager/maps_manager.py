@@ -937,7 +937,7 @@ class MapsManager:
             )
 
             # Create index lists for each dataset
-            source_indices = list(range(len(data_train_source) / 4))
+            source_indices = list(range(len(data_train_source) // 4))
             labeled_indices = list(range(len(data_train_target_labeled)))
             # unlabeled_indices = list(range(len(data_target_unlabeled)))
 
