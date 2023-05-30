@@ -850,9 +850,15 @@ class CNN_DANN2ouputs(Network):
             torch.ones(input_dict_target["image"].shape[0]).long().to(self.device)
         )
 
+        labels_domain_t_unl = (
+            torch.ones(input_dict_target_unl["image"].shape[0]).long().to(self.device)
+        )
+
         loss_domain_s = criterion(train_output_domain_source, labels_domain_s)
         loss_domain_t = criterion(train_output_domain_target, labels_domain_t)
-        loss_domain_t_unl = criterion(train_output_domain_target_lab, labels_domain_t)
+        loss_domain_t_unl = criterion(
+            train_output_domain_target_lab, labels_domain_t_unl
+        )
 
         loss_domain = loss_domain_s + loss_domain_t + loss_domain_t_unl
 
