@@ -935,7 +935,7 @@ class MapsManager:
                 len(data_train_target_labeled),
                 # len(data_target_unlabeled),
             )
-            max_size = 787
+            max_size = 732
             # Create index lists for each dataset
             source_indices = list(range(len(data_train_source)))
             labeled_indices = list(range(len(data_train_target_labeled)))
@@ -988,7 +988,7 @@ class MapsManager:
             )
             train_target_loader = DataLoader(
                 data_train_target_labeled,
-                batch_size=1,  # self.batch_size,
+                batch_size=self.batch_size,  # 1
                 # sampler=train_target_sampler,
                 sampler=labeled_sampler,
                 num_workers=self.n_proc,
