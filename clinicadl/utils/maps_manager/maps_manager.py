@@ -2967,12 +2967,12 @@ class MapsManager:
                 f"best-{selection_metric}",
                 data_group,
             )
-            self.write_description_log(
-                log_dir,
-                data_group,
-                dataloader.dataset.caps_dict,
-                dataloader.dataset.df,
-            )
+            # self.write_description_log(
+            #     log_dir,
+            #     data_group,
+            #     dataloader.dataset.caps_dict,
+            #     dataloader.dataset.df,
+            # )
 
             # load the best trained model during the training
             model, _ = self._init_model(
