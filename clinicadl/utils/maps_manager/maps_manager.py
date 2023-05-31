@@ -913,12 +913,12 @@ class MapsManager:
                 label_code=self.label_code,
             )
 
-            # train_source_sampler = self.task_manager.generate_sampler(
-            #     data_train_source, self.sampler
-            # )
-            # train_target_sampler = self.task_manager.generate_sampler(
-            #     data_train_target_labeled, self.sampler
-            # )
+            train_source_sampler = self.task_manager.generate_sampler(
+                data_train_source, self.sampler
+            )
+            train_target_sampler = self.task_manager.generate_sampler(
+                data_train_target_labeled, self.sampler
+            )
 
             logger.info(
                 f"Getting train and validation loader with batch size {self.batch_size}"
@@ -989,8 +989,8 @@ class MapsManager:
             train_target_loader = DataLoader(
                 data_train_target_labeled,
                 batch_size=self.batch_size,  # 1
-                # sampler=train_target_sampler,
-                sampler=labeled_sampler,
+                sampler=train_target_sampler,
+                # sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
