@@ -783,7 +783,7 @@ class CNN_DANN2ouputs(Network):
         )  # ,
 
     def transfer_weights(self, state_dict, transfer_class):
-        if issubclass(transfer_class, CNN_DANN):
+        if issubclass(transfer_class, CNN_DANN2ouputs):
             self.load_state_dict(state_dict)
 
         elif issubclass(transfer_class, AutoEncoder):
