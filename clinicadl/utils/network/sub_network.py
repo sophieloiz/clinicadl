@@ -814,53 +814,101 @@ class CNN_DANN2ouputs(Network):
     def predict(self, x):
         return self.forward(x)
 
+    # def compute_outputs_and_loss_two(
+    #     self, input_dict, input_dict_target, input_dict_target_unl, criterion, alpha
+    # ):
+
+    #     images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+    #         self.device
+    #     )
+
+    #     images_target, labels_target = input_dict_target["image"].to(
+    #         self.device
+    #     ), input_dict_target["label"].to(self.device)
+
+    #     images_target_unl = input_dict_target_unl["image"].to(self.device)
+
+    #     train_output_class_source, _, train_output_domain_source = self.forward(
+    #         images, alpha
+    #     )
+
+    #     _, train_output_class_target, train_output_domain_target = self.forward(
+    #         images_target, alpha
+    #     )
+    #     _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
+
+    #     loss_source = criterion(train_output_class_source, labels)
+    #     loss_target = criterion(train_output_class_target, labels_target)
+
+    #     loss_classif = loss_source + loss_target
+
+    #     labels_domain_s = (
+    #         torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
+    #     )
+
+    #     labels_domain_t = (
+    #         torch.ones(input_dict_target["image"].shape[0]).long().to(self.device)
+    #     )
+
+    #     labels_domain_t_unl = (
+    #         torch.ones(input_dict_target_unl["image"].shape[0]).long().to(self.device)
+    #     )
+
+    #     loss_domain_s = criterion(train_output_domain_source, labels_domain_s)
+    #     loss_domain_t = criterion(train_output_domain_target, labels_domain_t)
+    #     loss_domain_t_unl = criterion(
+    #         train_output_domain_target_lab, labels_domain_t_unl
+    #     )
+
+    #     loss_domain = loss_domain_s + loss_domain_t + loss_domain_t_unl
+
+    #     total_loss = loss_classif + loss_domain
+
+    #     return (
+    #         train_output_class_source,
+    #         train_output_class_target,
+    #         {"loss": total_loss},
+    #     )
     def compute_outputs_and_loss_two(
-        self, input_dict, input_dict_target, input_dict_target_unl, criterion, alpha
+        self, input_dict, input_dict_target_unl, criterion, alpha, target=False
     ):
 
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
 
-        images_target, labels_target = input_dict_target["image"].to(
-            self.device
-        ), input_dict_target["label"].to(self.device)
-
         images_target_unl = input_dict_target_unl["image"].to(self.device)
 
-        train_output_class_source, _, train_output_domain_source = self.forward(
-            images, alpha
-        )
+        (
+            train_output_class_source,
+            train_output_class_target,
+            train_output_domain,
+        ) = self.forward(images, alpha)
 
-        _, train_output_class_target, train_output_domain_target = self.forward(
-            images_target, alpha
-        )
         _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
 
-        loss_source = criterion(train_output_class_source, labels)
-        loss_target = criterion(train_output_class_target, labels_target)
+        if target:
+            loss_classif = criterion(train_output_class_target, labels)
+            labels_domain = (
+                torch.ones(input_dict["image"].shape[0]).long().to(self.device)
+            )
+        else:
+            loss_classif = criterion(train_output_class_source, labels)
 
-        loss_classif = loss_source + loss_target
-
-        labels_domain_s = (
-            torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
-        )
-
-        labels_domain_t = (
-            torch.ones(input_dict_target["image"].shape[0]).long().to(self.device)
-        )
+            labels_domain = (
+                torch.zeros(input_dict["image"].shape[0]).long().to(self.device)
+            )
 
         labels_domain_t_unl = (
             torch.ones(input_dict_target_unl["image"].shape[0]).long().to(self.device)
         )
 
-        loss_domain_s = criterion(train_output_domain_source, labels_domain_s)
-        loss_domain_t = criterion(train_output_domain_target, labels_domain_t)
+        loss_domain_lab = criterion(train_output_domain, labels_domain)
         loss_domain_t_unl = criterion(
             train_output_domain_target_lab, labels_domain_t_unl
         )
 
-        loss_domain = loss_domain_s + loss_domain_t + loss_domain_t_unl
+        loss_domain = loss_domain_lab + loss_domain_t_unl
 
         total_loss = loss_classif + loss_domain
 
