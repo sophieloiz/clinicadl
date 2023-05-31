@@ -1065,7 +1065,7 @@ class CNN_DANN2ouputs(Network):
             self.device
         )
 
-        train_output_class, _ = self.forward(images, alpha)
+        _, train_output_class, _ = self.forward(images, alpha)
 
         if use_labels:
             loss = criterion(train_output_class, labels)
