@@ -42,21 +42,7 @@ def predict(
     verbose_list = ["warning", "info", "debug"]
 
     maps_manager = MapsManager(maps_dir, verbose=verbose_list[0])
-    # maps_manager.predict(
-    #     data_group,
-    #     caps_directory=caps_directory,
-    #     tsv_path=tsv_path,
-    #     selection_metrics=selection_metrics,
-    #     multi_cohort=multi_cohort,
-    #     diagnoses=diagnoses,
-    #     label=label,
-    #     use_labels=use_labels,
-    #     batch_size=batch_size,
-    #     n_proc=n_proc,
-    #     gpu=gpu,
-    #     overwrite=overwrite,
-    # )
-    maps_manager.predict_qc(
+    maps_manager.predict(
         data_group,
         caps_directory=caps_directory,
         tsv_path=tsv_path,
@@ -70,3 +56,17 @@ def predict(
         gpu=gpu,
         overwrite=overwrite,
     )
+    # maps_manager.predict_qc(
+    #     data_group,
+    #     caps_directory=caps_directory,
+    #     tsv_path=tsv_path,
+    #     selection_metrics=selection_metrics,
+    #     multi_cohort=multi_cohort,
+    #     diagnoses=diagnoses,
+    #     label=label,
+    #     use_labels=use_labels,
+    #     batch_size=batch_size,
+    #     n_proc=n_proc,
+    #     gpu=gpu,
+    #     overwrite=overwrite,
+    # )
