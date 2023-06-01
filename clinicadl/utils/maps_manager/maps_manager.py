@@ -1576,7 +1576,14 @@ class MapsManager:
 
         criterion = self.task_manager.get_criterion(self.loss)
         logger.debug(f"Criterion for {self.network_task} is {criterion}")
-        optimizer = self._init_optimizer(model, split=split, resume=resume)
+        # optimizer = self._init_optimizer(model, split=split, resume=resume)
+        (
+            feature_extractor_optimizer,
+            domain_classifier_optimizer,
+            source_label_predictor_optimizer,
+            target_label_predictor_optimizer,
+        ) = self._init_optimizer_dann(model, split=split, resume=resume)
+
         logger.debug(f"Optimizer used for training is optimizer")
 
         model.train()
@@ -1642,9 +1649,11 @@ class MapsManager:
 
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
+                    # optimizer.step()
+                    # optimizer.zero_grad()
+                    target_label_predictor_optimizer.step()
+                    target_label_predictor_optimizer.zero_grad()
+                    # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
 
                     del loss
 
@@ -1725,9 +1734,15 @@ class MapsManager:
 
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
+                    # optimizer.step()
+                    source_label_predictor_optimizer.step()
+                    domain_classifier_optimizer.step()
+                    feature_extractor_optimizer.step()
+                    source_label_predictor_optimizer.zero_grad()
+                    domain_classifier_optimizer.zero_grad()
+                    feature_extractor_optimizer.zero_grad()
+                    # optimizer.zero_grad()
+                    # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
 
                     del loss
 
@@ -3975,6 +3990,32 @@ class MapsManager:
             optimizer_f.load_state_dict(checkpoint_state["optimizer"])
 
         return optimizer_g, optimizer_f
+
+    def _init_optimizer_dann(self, model, split=None, resume=False):
+        """Initialize the optimizer for DANN SSDA"""
+        import torch.optim as optim
+
+        conv = model.convolutions
+        fc_domain = model.fc_domain
+        fc_label_source = model.fc_class_source
+        fc_label_target = model.fc_class_target
+
+        # Define optimizers
+        feature_extractor_optimizer = optim.Adam(conv.parameters(), lr=1e-4)
+        domain_classifier_optimizer = optim.Adam(fc_domain.parameters(), lr=1e-4)
+        source_label_predictor_optimizer = optim.Adam(
+            fc_label_source.parameters(), lr=1e-4
+        )
+        target_label_predictor_optimizer = optim.Adam(
+            fc_label_target.parameters(), lr=1e-4
+        )
+
+        return (
+            feature_extractor_optimizer,
+            domain_classifier_optimizer,
+            source_label_predictor_optimizer,
+            target_label_predictor_optimizer,
+        )
 
     def _init_split_manager(self, split_list=None):
         from clinicadl.utils import split_manager
