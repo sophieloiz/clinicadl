@@ -1835,9 +1835,18 @@ class MapsManager:
 
             # Update weights one last time if gradients were computed without update
             if (i + 1) % self.accumulation_steps != 0:
-                optimizer.step()
-                optimizer.zero_grad()
-                optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
+                # optimizer.step()
+                # optimizer.zero_grad()
+                # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
+                source_label_predictor_optimizer.step()
+                domain_classifier_optimizer.step()
+                feature_extractor_optimizer.step()
+                target_label_predictor_optimizer.step()
+
+                source_label_predictor_optimizer.zero_grad()
+                domain_classifier_optimizer.zero_grad()
+                feature_extractor_optimizer.zero_grad()
+                target_label_predictor_optimizer.zero_grad()
 
             # Always test the results and save them once at the end of the epoch
             model.zero_grad()
