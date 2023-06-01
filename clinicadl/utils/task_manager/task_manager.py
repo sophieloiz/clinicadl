@@ -201,7 +201,7 @@ class TaskManager:
                     data, criterion, use_labels=use_labels
                 )  # , alpha=0
 
-                features_np = features.detach().numpy()
+                features_np = features.cpu().numpy()
                 from sklearn.manifold import TSNE
 
                 tsne = TSNE(n_components=2, random_state=42)
