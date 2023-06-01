@@ -239,6 +239,7 @@ class TaskManager:
         tsne = TSNE(n_components=2, random_state=42)
         embedded_batch = tsne.fit_transform(all_features_flat)
         print(embedded_batch)
+        np.save("/export/home/cse180022/embedded_batch.npy", embedded_batch)
 
         plt.scatter(embedded_batch[:, 0], embedded_batch[:, 1])
         plt.title("t-SNE Visualization")
