@@ -809,7 +809,7 @@ class CNN_DANN2ouputs(Network):
         x_class_target = self.fc_class_target(x)
         x_reverse = ReverseLayerF.apply(x, alpha)
         x_domain = self.fc_domain(x_reverse)
-        return x_class_source, x_class_target, x_domain
+        return x_class_source, x_class_target, x_domain, x
 
     def predict(self, x):
         return self.forward(x)
@@ -1113,14 +1113,14 @@ class CNN_DANN2ouputs(Network):
             self.device
         )
 
-        _, train_output_class, _ = self.forward(images, alpha)
+        _, train_output_class, _, features = self.forward(images, alpha)
 
         if use_labels:
             loss = criterion(train_output_class, labels)
         else:
             loss = torch.Tensor([0])
 
-        return train_output_class, {"loss": loss}
+        return train_output_class, {"loss": loss}, features
 
     def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(

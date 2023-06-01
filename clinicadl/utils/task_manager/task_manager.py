@@ -185,19 +185,23 @@ class TaskManager:
         Returns:
             the results and metrics on the image level.
         """
+        import numpy as np
+
         model.eval()
         # dataloader.dataset.eval()
 
         results_df = pd.DataFrame(columns=self.columns)
         total_loss = 0
-        alpha = 0
+        features_list = []
         print(dataloader)
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 print("Remove alpha from task manager if no ssda training")
-                outputs, loss_dict = model.compute_outputs_and_loss(
+                outputs, loss_dict, features = model.compute_outputs_and_loss(
                     data, criterion, use_labels=use_labels
-                )  # , alpha=alpha
+                )  # , alpha=0
+
+                features_list.append(features.numpy())
                 # )
                 # import frequency_feature_map_visualization as fv
                 # feature_map_dict = fv.visualize_feature_maps_3d(model, data["image"], device=torch.device('cpu'))
@@ -214,6 +218,20 @@ class TaskManager:
 
                 del outputs, loss_dict
             results_df.reset_index(inplace=True, drop=True)
+
+        all_features = np.concatenate(features_list, axis=0)
+        from sklearn.manifold import TSNE
+
+        tsne = TSNE(n_components=2, random_state=42)
+        embedded_features = tsne.fit_transform(all_features)
+
+        import matplotlib.pyplot as plt
+
+        # Assuming each row in `results_df` corresponds to a point in the scatter plot
+        plt.figure()
+        plt.scatter(embedded_features[:, 0], embedded_features[:, 1])
+        plt.title("t-SNE Visualization")
+        plt.savefig("/export/home/cse180022/test_tsne.pdf", dpi=150)
 
         if not use_labels:
             metrics_dict = None
