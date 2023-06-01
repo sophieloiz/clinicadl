@@ -214,16 +214,8 @@ class TaskManager:
                 tsne = TSNE(n_components=2, random_state=42)
                 embedded_batch = tsne.fit_transform(features_flat)
                 # Assuming each row in `results_df` corresponds to a point in the scatter plot
-                plt.scatter(embedded_features[:, 0], embedded_features[:, 1])
+                plt.scatter(embedded_batch[:, 0], embedded_batch[:, 1])
                 plt.title("t-SNE Visualization")
-
-                # Plot the embedded batch on the same figure
-                if embedded_features is None:
-                    embedded_features = embedded_batch
-                else:
-                    embedded_features = np.concatenate(
-                        (embedded_features, embedded_batch), axis=0
-                    )
 
                 # )
                 # import frequency_feature_map_visualization as fv
