@@ -232,9 +232,12 @@ class TaskManager:
         plt.figure()
         from sklearn.manifold import TSNE
 
+        all_features = np.concatenate(features_list, axis=0)
+        all_features_flat = all_features.reshape(all_features.shape[0], -1)
+
         print(features_list)
         tsne = TSNE(n_components=2, random_state=42)
-        embedded_batch = tsne.fit_transform(features_list)
+        embedded_batch = tsne.fit_transform(all_features_flat)
         print(embedded_batch)
 
         plt.scatter(embedded_batch[:, 0], embedded_batch[:, 1])
