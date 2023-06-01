@@ -211,7 +211,7 @@ class TaskManager:
                 )  # Flatten the features
                 # features_flat = features_np.flatten()
                 features_list.append(features_flat)
-
+                print(i, data["participant_id"])
                 # )
                 # import frequency_feature_map_visualization as fv
                 # feature_map_dict = fv.visualize_feature_maps_3d(model, data["image"], device=torch.device('cpu'))
