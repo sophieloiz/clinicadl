@@ -194,6 +194,9 @@ class TaskManager:
         total_loss = 0
         embedded_features = None
         print(dataloader)
+        import matplotlib.pyplot as plt
+
+        plt.figure()
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 print("Remove alpha from task manager if no ssda training")
@@ -210,6 +213,9 @@ class TaskManager:
 
                 tsne = TSNE(n_components=2, random_state=42)
                 embedded_batch = tsne.fit_transform(features_flat)
+                # Assuming each row in `results_df` corresponds to a point in the scatter plot
+                plt.scatter(embedded_features[:, 0], embedded_features[:, 1])
+                plt.title("t-SNE Visualization")
 
                 # Plot the embedded batch on the same figure
                 if embedded_features is None:
@@ -236,12 +242,6 @@ class TaskManager:
                 del outputs, loss_dict
             results_df.reset_index(inplace=True, drop=True)
 
-        import matplotlib.pyplot as plt
-
-        # Assuming each row in `results_df` corresponds to a point in the scatter plot
-        plt.figure()
-        plt.scatter(embedded_features[:, 0], embedded_features[:, 1])
-        plt.title("t-SNE Visualization")
         plt.savefig("/export/home/cse180022/test_tsne.pdf", dpi=150)
 
         if not use_labels:
