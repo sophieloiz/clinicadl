@@ -206,10 +206,10 @@ class TaskManager:
 
                 features_np = features.cpu().numpy()
                 print(features_np.shape)
-                # features_flat = features_np.reshape(
-                #     features_np.shape[0], -1
-                # )  # Flatten the features
-                features_flat = features_np.flatten()
+                features_flat = features_np.reshape(
+                    features_np.shape[0], -1
+                )  # Flatten the features
+                # features_flat = features_np.flatten()
                 print(features_flat.shape)
 
                 from sklearn.manifold import TSNE
