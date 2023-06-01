@@ -192,7 +192,7 @@ class TaskManager:
 
         results_df = pd.DataFrame(columns=self.columns)
         total_loss = 0
-        features_list = []
+        embedded_features = None
         print(dataloader)
         with torch.no_grad():
             for i, data in enumerate(dataloader):
@@ -201,7 +201,20 @@ class TaskManager:
                     data, criterion, use_labels=use_labels
                 )  # , alpha=0
 
-                features_list.append(features.numpy())
+                features_np = features.numpy()
+                from sklearn.manifold import TSNE
+
+                tsne = TSNE(n_components=2, random_state=42)
+                embedded_batch = tsne.fit_transform(features_np)
+
+                # Plot the embedded batch on the same figure
+                if embedded_features is None:
+                    embedded_features = embedded_batch
+                else:
+                    embedded_features = np.concatenate(
+                        (embedded_features, embedded_batch), axis=0
+                    )
+
                 # )
                 # import frequency_feature_map_visualization as fv
                 # feature_map_dict = fv.visualize_feature_maps_3d(model, data["image"], device=torch.device('cpu'))
@@ -218,12 +231,6 @@ class TaskManager:
 
                 del outputs, loss_dict
             results_df.reset_index(inplace=True, drop=True)
-
-        all_features = np.concatenate(features_list, axis=0)
-        from sklearn.manifold import TSNE
-
-        tsne = TSNE(n_components=2, random_state=42)
-        embedded_features = tsne.fit_transform(all_features)
 
         import matplotlib.pyplot as plt
 
