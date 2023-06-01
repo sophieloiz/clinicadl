@@ -213,7 +213,8 @@ class TaskManager:
 
                 tsne = TSNE(n_components=2, random_state=42)
                 embedded_batch = tsne.fit_transform(features_flat)
-                # Assuming each row in `results_df` corresponds to a point in the scatter plot
+                print(embedded_batch)
+
                 plt.scatter(embedded_batch[:, 0], embedded_batch[:, 1])
                 plt.title("t-SNE Visualization")
 
