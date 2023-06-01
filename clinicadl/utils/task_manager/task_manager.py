@@ -232,8 +232,8 @@ class TaskManager:
         plt.figure()
         from sklearn.manifold import TSNE
 
-        features_flat_all = features_flat.reshape(
-            features_flat.shape[0], -1
+        features_flat_all = features_list.reshape(
+            features_list.shape[0], -1
         )  # Flatten the f
         tsne = TSNE(n_components=2, random_state=42)
         embedded_batch = tsne.fit_transform(features_flat_all)
