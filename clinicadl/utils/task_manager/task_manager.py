@@ -202,10 +202,14 @@ class TaskManager:
                 )  # , alpha=0
 
                 features_np = features.cpu().numpy()
+                features_flat = features_np.reshape(
+                    features_np.shape[0], -1
+                )  # Flatten the features
+
                 from sklearn.manifold import TSNE
 
                 tsne = TSNE(n_components=2, random_state=42)
-                embedded_batch = tsne.fit_transform(features_np)
+                embedded_batch = tsne.fit_transform(features_flat)
 
                 # Plot the embedded batch on the same figure
                 if embedded_features is None:
