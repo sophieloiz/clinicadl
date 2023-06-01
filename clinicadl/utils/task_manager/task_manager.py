@@ -196,7 +196,7 @@ class TaskManager:
         print(dataloader)
         import matplotlib.pyplot as plt
 
-        plt.figure()
+        features_list = []
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 print("Remove alpha from task manager if no ssda training")
@@ -210,16 +210,7 @@ class TaskManager:
                     features_np.shape[0], -1
                 )  # Flatten the features
                 # features_flat = features_np.flatten()
-                print(features_flat.shape)
-
-                from sklearn.manifold import TSNE
-
-                tsne = TSNE(n_components=2, random_state=42)
-                embedded_batch = tsne.fit_transform(features_flat)
-                print(embedded_batch)
-
-                plt.scatter(embedded_batch[:, 0], embedded_batch[:, 1])
-                plt.title("t-SNE Visualization")
+                features_list.append(features_flat)
 
                 # )
                 # import frequency_feature_map_visualization as fv
@@ -238,6 +229,15 @@ class TaskManager:
                 del outputs, loss_dict
             results_df.reset_index(inplace=True, drop=True)
 
+        plt.figure()
+        from sklearn.manifold import TSNE
+
+        tsne = TSNE(n_components=2, random_state=42)
+        embedded_batch = tsne.fit_transform(features_list)
+        print(embedded_batch)
+
+        plt.scatter(embedded_batch[:, 0], embedded_batch[:, 1])
+        plt.title("t-SNE Visualization")
         plt.savefig("/export/home/cse180022/test_tsne.pdf", dpi=150)
 
         if not use_labels:
