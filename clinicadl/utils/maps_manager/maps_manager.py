@@ -318,9 +318,9 @@ class MapsManager:
 
                 test_loader = DataLoader(
                     data_test,
-                    batch_size=batch_size
-                    if batch_size is not None
-                    else self.batch_size,
+                    batch_size=6,  # batch_size
+                    # if batch_size is not None
+                    # else self.batch_size,
                     shuffle=False,
                     num_workers=n_proc if n_proc is not None else self.n_proc,
                 )
