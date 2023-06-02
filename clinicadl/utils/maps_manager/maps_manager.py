@@ -1713,6 +1713,34 @@ class MapsManager:
                             f"at the end of iteration {i}"
                         )
 
+                        # Evaluate on source data
+                        logger.info("Evaluation on source data")
+                        _, metrics_train_source = self.task_manager.test_da(
+                            model, train_source_loader, criterion, alpha
+                        )
+                        _, metrics_valid_source = self.task_manager.test_da(
+                            model, valid_source_loader, criterion, alpha
+                        )
+
+                        model.train()
+                        train_source_loader.dataset.train()
+
+                        log_writer.step(
+                            epoch,
+                            i,
+                            metrics_train_source,
+                            metrics_valid_source,
+                            len(train_source_loader),
+                        )
+                        logger.info(
+                            f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+                        logger.info(
+                            f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+
             # for i, (data_source, data_target_unl) in enumerate(
             #     zip(train_source_loader, train_target_unl_loader)
             # ):
