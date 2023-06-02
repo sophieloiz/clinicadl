@@ -1625,11 +1625,8 @@ class MapsManager:
             # for i, (data_lab, data_target_unl) in enumerate(
             #     zip(combined_data_loader, train_target_unl_loader)
             # ):
-            # for i, (data_lab, data_target, data_target_unl) in enumerate(
-            #     zip(combined_data_loader, train_target_loader, train_target_unl_loader)
-            # ):
-            for i, (data_target, data_target_unl) in enumerate(
-                zip(train_target_loader, train_target_unl_loader)
+            for i, (data_lab, data_target, data_target_unl) in enumerate(
+                zip(combined_data_loader, train_target_loader, train_target_unl_loader)
             ):
                 p = (
                     float(epoch * len(combined_data_loader))
@@ -1640,9 +1637,15 @@ class MapsManager:
                 logger.info(
                     f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                 )
-                _, _, loss_dict = model.compute_outputs_and_loss_two(
-                    data_target, data_target_unl, criterion, alpha
-                )
+                if i < 54:
+                    _, _, loss_dict = model.compute_outputs_and_loss_new_lab_target(
+                        data_lab, data_target, data_target_unl, criterion, alpha
+                    )
+                else:
+                    _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
+                        data_lab, data_target_unl, criterion, alpha
+                    )
+
                 logger.debug(f"Train loss dictionnary {loss_dict}")
                 loss = loss_dict["loss"]
                 loss.backward()
@@ -1651,8 +1654,16 @@ class MapsManager:
                     step_flag = False
                     # optimizer.step()
                     # optimizer.zero_grad()
-                    target_label_predictor_optimizer.step()
-                    target_label_predictor_optimizer.zero_grad()
+                    source_label_predictor_optimizer.step()
+                    domain_classifier_optimizer.step()
+                    feature_extractor_optimizer.step()
+
+                    source_label_predictor_optimizer.zero_grad()
+                    domain_classifier_optimizer.zero_grad()
+                    feature_extractor_optimizer.zero_grad()
+                    if i < 54:
+                        target_label_predictor_optimizer.step()
+                        target_label_predictor_optimizer.zero_grad()
                     # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
 
                     del loss
@@ -1702,122 +1713,122 @@ class MapsManager:
                             f"at the end of iteration {i}"
                         )
 
-            for i, (data_source, data_target_unl) in enumerate(
-                zip(train_source_loader, train_target_unl_loader)
-            ):
-                p = (
-                    float(epoch * len(combined_data_loader))
-                    / 100
-                    / len(combined_data_loader)
-                )
-                alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
-                # alpha = 0.2
-                logger.info(
-                    f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
-                )
+            # for i, (data_source, data_target_unl) in enumerate(
+            #     zip(train_source_loader, train_target_unl_loader)
+            # ):
+            #     p = (
+            #         float(epoch * len(combined_data_loader))
+            #         / 100
+            #         / len(combined_data_loader)
+            #     )
+            #     alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+            #     # alpha = 0.2
+            #     logger.info(
+            #         f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
+            #     )
 
-                # _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
-                #     data_lab, data_target_unl, criterion, alpha
-                # )
-                # _, _, loss_dict = model.compute_outputs_and_loss_new(
-                #     data_source, data_target, data_target_unl, criterion, alpha
-                # )
-                # _, _, loss_dict = model.compute_outputs_and_loss_two(
-                #     data_lab, data_target, data_target_unl, criterion, alpha
-                # )
-                _, _, loss_dict = model.compute_outputs_and_loss_two(
-                    data_source, data_target_unl, criterion, alpha
-                )
-                logger.debug(f"Train loss dictionnary {loss_dict}")
-                loss = loss_dict["loss"]
-                loss.backward()
+            #     # _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
+            #     #     data_lab, data_target_unl, criterion, alpha
+            #     # )
+            #     # _, _, loss_dict = model.compute_outputs_and_loss_new(
+            #     #     data_source, data_target, data_target_unl, criterion, alpha
+            #     # )
+            #     # _, _, loss_dict = model.compute_outputs_and_loss_two(
+            #     #     data_lab, data_target, data_target_unl, criterion, alpha
+            #     # )
+            #     _, _, loss_dict = model.compute_outputs_and_loss_two(
+            #         data_source, data_target_unl, criterion, alpha
+            #     )
+            #     logger.debug(f"Train loss dictionnary {loss_dict}")
+            #     loss = loss_dict["loss"]
+            #     loss.backward()
 
-                if (i + 1) % self.accumulation_steps == 0:
-                    step_flag = False
-                    # optimizer.step()
-                    source_label_predictor_optimizer.step()
-                    domain_classifier_optimizer.step()
-                    feature_extractor_optimizer.step()
-                    source_label_predictor_optimizer.zero_grad()
-                    domain_classifier_optimizer.zero_grad()
-                    feature_extractor_optimizer.zero_grad()
-                    # optimizer.zero_grad()
-                    # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
+            #     if (i + 1) % self.accumulation_steps == 0:
+            #         step_flag = False
+            #         # optimizer.step()
+            #         source_label_predictor_optimizer.step()
+            #         domain_classifier_optimizer.step()
+            #         feature_extractor_optimizer.step()
+            #         source_label_predictor_optimizer.zero_grad()
+            #         domain_classifier_optimizer.zero_grad()
+            #         feature_extractor_optimizer.zero_grad()
+            #         # optimizer.zero_grad()
+            #         # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
 
-                    del loss
+            #         del loss
 
-                    # Evaluate the model only when no gradients are accumulated
-                    if (
-                        self.evaluation_steps != 0
-                        and (i + 1) % self.evaluation_steps == 0
-                    ):
-                        evaluation_flag = False
+            #         # Evaluate the model only when no gradients are accumulated
+            #         if (
+            #             self.evaluation_steps != 0
+            #             and (i + 1) % self.evaluation_steps == 0
+            #         ):
+            #             evaluation_flag = False
 
-                        # Evaluate on source data
-                        logger.info("Evaluation on source data")
-                        _, metrics_train_source = self.task_manager.test_da(
-                            model, train_source_loader, criterion, alpha
-                        )
-                        _, metrics_valid_source = self.task_manager.test_da(
-                            model, valid_source_loader, criterion, alpha
-                        )
+            #             # Evaluate on source data
+            #             logger.info("Evaluation on source data")
+            #             _, metrics_train_source = self.task_manager.test_da(
+            #                 model, train_source_loader, criterion, alpha
+            #             )
+            #             _, metrics_valid_source = self.task_manager.test_da(
+            #                 model, valid_source_loader, criterion, alpha
+            #             )
 
-                        model.train()
-                        train_source_loader.dataset.train()
+            #             model.train()
+            #             train_source_loader.dataset.train()
 
-                        log_writer.step(
-                            epoch,
-                            i,
-                            metrics_train_source,
-                            metrics_valid_source,
-                            len(train_source_loader),
-                        )
-                        logger.info(
-                            f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
-                            f"at the end of iteration {i}"
-                        )
-                        logger.info(
-                            f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
-                            f"at the end of iteration {i}"
-                        )
+            #             log_writer.step(
+            #                 epoch,
+            #                 i,
+            #                 metrics_train_source,
+            #                 metrics_valid_source,
+            #                 len(train_source_loader),
+            #             )
+            #             logger.info(
+            #                 f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
+            #                 f"at the end of iteration {i}"
+            #             )
+            #             logger.info(
+            #                 f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
+            #                 f"at the end of iteration {i}"
+            #             )
 
-                        # Evaluate on taget data
-                        # logger.info("Evaluation on target data")
-                        # _, metrics_train_target = self.task_manager.test_da(
-                        #     model,
-                        #     train_target_loader,
-                        #     criterion,
-                        #     alpha,
-                        #     target=True,
-                        # )
+            # Evaluate on taget data
+            logger.info("Evaluation on target data")
+            _, metrics_train_target = self.task_manager.test_da(
+                model,
+                train_target_loader,
+                criterion,
+                alpha,
+                target=True,
+            )
 
-                        # _, metrics_valid_target = self.task_manager.test_da(
-                        #     model,
-                        #     valid_loader,
-                        #     criterion,
-                        #     alpha,
-                        #     target=True,
-                        # )
+            _, metrics_valid_target = self.task_manager.test_da(
+                model,
+                valid_loader,
+                criterion,
+                alpha,
+                target=True,
+            )
 
-                        # model.train()
-                        # train_target_loader.dataset.train()
+            model.train()
+            train_target_loader.dataset.train()
 
-                        # log_writer.step(
-                        #     epoch,
-                        #     i,
-                        #     metrics_train_target,
-                        #     metrics_valid_target,
-                        #     len(train_target_loader),
-                        #     "training_target.tsv",
-                        # )
-                        # logger.info(
-                        #     f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
-                        #     f"at the end of iteration {i}"
-                        # )
-                        # logger.info(
-                        #     f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
-                        #     f"at the end of iteration {i}"
-                        # )
+            log_writer.step(
+                epoch,
+                i,
+                metrics_train_target,
+                metrics_valid_target,
+                len(train_target_loader),
+                "training_target.tsv",
+            )
+            logger.info(
+                f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
+                f"at the end of iteration {i}"
+            )
+            logger.info(
+                f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
+                f"at the end of iteration {i}"
+            )
 
             # If no step has been performed, raise Exception
             if step_flag:

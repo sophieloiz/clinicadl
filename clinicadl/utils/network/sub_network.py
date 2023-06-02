@@ -467,7 +467,7 @@ class CNN_DANN(Network):
         x_class = self.fc_class(x)
         x_reverse = ReverseLayerF.apply(x, alpha)
         x_domain = self.fc_domain(x_reverse)
-        return x_class, x_domain, x  # to modify for training
+        return x_class, x_domain  # , x #to modify for training
 
     def predict(self, x):
         return self.forward(x)
@@ -599,14 +599,14 @@ class CNN_DANN(Network):
             self.device
         )
 
-        train_output_class, _, features = self.forward(images, alpha)
+        train_output_class, _ = self.forward(images, alpha)
 
         if use_labels:
             loss = criterion(train_output_class, labels)
         else:
             loss = torch.Tensor([0])
 
-        return train_output_class, {"loss": loss}, features
+        return train_output_class, {"loss": loss}
 
     def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
@@ -809,10 +809,118 @@ class CNN_DANN2ouputs(Network):
         x_class_target = self.fc_class_target(x)
         x_reverse = ReverseLayerF.apply(x, alpha)
         x_domain = self.fc_domain(x_reverse)
-        return x_class_source, x_class_target, x_domain, x
+        return x_class_source, x_class_target, x_domain
 
     def predict(self, x):
         return self.forward(x)
+
+    def compute_outputs_and_loss_new_lab(
+        self, data_lab, data_target_unl, criterion, alpha
+    ):
+
+        images, labels, domain = (
+            data_lab["image"].to(self.device),
+            data_lab["label"].to(self.device),
+            data_lab["domain"],  # .to(self.device),
+        )
+
+        logger.info(f"Label : {labels}")
+
+        images_target_unl = data_target_unl["image"].to(self.device)
+
+        (
+            train_output_class_source,
+            _,
+            train_output_domain,
+        ) = self.forward(images, alpha)
+
+        _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
+
+        loss_classif = criterion(train_output_class_source, labels)
+
+        output_array_domain = [0 if element == "t1" else 1 for element in domain]
+
+        output_tensor_domain = torch.tensor(output_array_domain).to(self.device)
+
+        logger.info(f"domain : {output_array_domain}")
+
+        labels_domain_t = (
+            torch.ones(data_target_unl["image"].shape[0]).long().to(self.device)
+        )
+
+        loss_domain_lab = criterion(train_output_domain, output_tensor_domain)
+        loss_domain_t_unl = criterion(train_output_domain_target_lab, labels_domain_t)
+
+        loss_domain = loss_domain_lab + loss_domain_t_unl
+
+        total_loss = loss_classif + loss_domain
+
+        return (
+            train_output_class_source,
+            train_output_domain,
+            {"loss": total_loss},
+        )
+
+    def compute_outputs_and_loss_new_lab_target(
+        self, data_lab, data_lab_target, data_target_unl, criterion, alpha
+    ):
+
+        images, labels, domain = (
+            data_lab["image"].to(self.device),
+            data_lab["label"].to(self.device),
+            data_lab["domain"],  # .to(self.device),
+        )
+
+        images_target, labels_target, domain = (
+            data_lab_target["image"].to(self.device),
+            data_lab_target["label"].to(self.device),
+            data_lab_target["domain"],  # .to(self.device),
+        )
+        logger.info(f"Label : {labels}")
+
+        images_target_unl = data_target_unl["image"].to(self.device)
+
+        (
+            train_output_class_source,
+            _,
+            train_output_domain,
+        ) = self.forward(images, alpha)
+
+        (
+            _,
+            train_output_class_target,
+            train_output_domain,
+        ) = self.forward(images_target, alpha)
+
+        _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
+
+        loss_classif_source = criterion(train_output_class_source, labels)
+        loss_classif_target = criterion(train_output_class_target, labels_target)
+
+        loss_classif = loss_classif_source + loss_classif_target
+
+        output_array_domain = [0 if element == "t1" else 1 for element in domain]
+
+        output_tensor_domain = torch.tensor(output_array_domain).to(self.device)
+
+        logger.info(f"domain : {output_array_domain}")
+
+        labels_domain_t = (
+            torch.ones(data_target_unl["image"].shape[0]).long().to(self.device)
+        )
+
+        loss_domain_lab = criterion(train_output_domain, output_tensor_domain)
+        loss_domain_t_unl = criterion(train_output_domain_target_lab, labels_domain_t)
+
+        loss_domain = loss_domain_lab + loss_domain_t_unl
+
+        total_loss = loss_classif + loss_domain
+
+        return (
+            train_output_class_source,
+            train_output_domain,
+            {"loss": total_loss},
+        )
 
     # def compute_outputs_and_loss_two(
     #     self, input_dict, input_dict_target, input_dict_target_unl, criterion, alpha
