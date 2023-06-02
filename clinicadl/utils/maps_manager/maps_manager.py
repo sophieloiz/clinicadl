@@ -1634,7 +1634,7 @@ class MapsManager:
                     / len(combined_data_loader)
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
-                alpha = 0.2
+                # alpha = 0.2
                 logger.info(
                     f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                 )
@@ -1662,9 +1662,32 @@ class MapsManager:
                     source_label_predictor_optimizer.zero_grad()
                     domain_classifier_optimizer.zero_grad()
                     feature_extractor_optimizer.zero_grad()
+                    source_label_predictor_optimizer = model.lr_scheduler(
+                        self.learning_rate, source_label_predictor_optimizer, p
+                    )
+                    domain_classifier_optimizer = model.lr_scheduler(
+                        self.learning_rate, domain_classifier_optimizer, p
+                    )
+                    feature_extractor_optimizer = model.lr_scheduler(
+                        self.learning_rate, feature_extractor_optimizer, p
+                    )
+
                     if i < 54:
                         target_label_predictor_optimizer.step()
                         target_label_predictor_optimizer.zero_grad()
+
+                        source_label_predictor_optimizer = model.lr_scheduler(
+                            self.learning_rate, source_label_predictor_optimizer, p
+                        )
+                        domain_classifier_optimizer = model.lr_scheduler(
+                            self.learning_rate, domain_classifier_optimizer, p
+                        )
+                        feature_extractor_optimizer = model.lr_scheduler(
+                            self.learning_rate, feature_extractor_optimizer, p
+                        )
+                        target_label_predictor_optimizer = model.lr_scheduler(
+                            self.learning_rate, target_label_predictor_optimizer, p
+                        )
                     # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
 
                     del loss
