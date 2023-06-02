@@ -1026,116 +1026,116 @@ class CNN_DANN2ouputs(Network):
             {"loss": total_loss},
         )
 
-    def compute_outputs_and_loss_new_lab(
-        self, data_lab, data_target_unl, criterion, alpha
-    ):
+    # def compute_outputs_and_loss_new_lab(
+    #     self, data_lab, data_target_unl, criterion, alpha
+    # ):
 
-        images, labels, domain = (
-            data_lab["image"].to(self.device),
-            data_lab["label"].to(self.device),
-            data_lab["domain"],  # .to(self.device),
-        )
+    #     images, labels, domain = (
+    #         data_lab["image"].to(self.device),
+    #         data_lab["label"].to(self.device),
+    #         data_lab["domain"],  # .to(self.device),
+    #     )
 
-        # flag_flair = [0 if element == "t1" else 1 for element in domain]
+    #     # flag_flair = [0 if element == "t1" else 1 for element in domain]
 
-        flair_tensor = torch.empty((1, 1, 169, 208, 179), dtype=torch.int64).to(
-            self.device
-        )
+    #     flair_tensor = torch.empty((1, 1, 169, 208, 179), dtype=torch.int64).to(
+    #         self.device
+    #     )
 
-        t1_tensor = torch.empty((1, 1, 169, 208, 179), dtype=torch.int64).to(
-            self.device
-        )
+    #     t1_tensor = torch.empty((1, 1, 169, 208, 179), dtype=torch.int64).to(
+    #         self.device
+    #     )
 
-        t1_label = []
-        flair_label = []
-        flag = True
-        flag_t1 = True
+    #     t1_label = []
+    #     flair_label = []
+    #     flag = True
+    #     flag_t1 = True
 
-        for i, element in enumerate(domain):
+    #     for i, element in enumerate(domain):
 
-            if element == "flair":
-                if flag == True:
-                    flair_tensor = images[i]
-                    flair_label.append(labels[i])
-                    flag = False
-                else:
-                    flair_tensor = torch.cat((flair_tensor, images[i]))
-                    flair_label.append(labels[i])
+    #         if element == "flair":
+    #             if flag == True:
+    #                 flair_tensor = images[i]
+    #                 flair_label.append(labels[i])
+    #                 flag = False
+    #             else:
+    #                 flair_tensor = torch.cat((flair_tensor, images[i]))
+    #                 flair_label.append(labels[i])
 
-            else:
-                if flag_t1 == True:
-                    t1_tensor = images[i]
-                    t1_label.append(labels[i])
-                    flag_t1 = False
+    #         else:
+    #             if flag_t1 == True:
+    #                 t1_tensor = images[i]
+    #                 t1_label.append(labels[i])
+    #                 flag_t1 = False
 
-                else:
-                    t1_tensor = torch.cat((t1_tensor, images[i]))
-                    t1_label.append(labels[i])
+    #             else:
+    #                 t1_tensor = torch.cat((t1_tensor, images[i]))
+    #                 t1_label.append(labels[i])
 
-        t1_tensor = t1_tensor[:, None, :, :, :]
-        flair_tensor = flair_tensor[:, None, :, :, :]
+    #     t1_tensor = t1_tensor[:, None, :, :, :]
+    #     flair_tensor = flair_tensor[:, None, :, :, :]
 
-        t1_label_tensor = torch.tensor(t1_label).to(self.device)
-        flair_label_tensor = torch.tensor(flair_label).to(self.device)
+    #     t1_label_tensor = torch.tensor(t1_label).to(self.device)
+    #     flair_label_tensor = torch.tensor(flair_label).to(self.device)
 
-        logger.info(f"flair tensor {flair_tensor.size()}")
-        logger.info(f"t1 tensor {t1_tensor.size()}")
+    #     logger.info(f"flair tensor {flair_tensor.size()}")
+    #     logger.info(f"t1 tensor {t1_tensor.size()}")
 
-        logger.info(f"Label : {labels}")
-        logger.info(f"Label : {labels.size()}")
-        logger.info(f"Label t1 : {t1_label_tensor}")
-        logger.info(f"Label flair : {flair_label_tensor}")
+    #     logger.info(f"Label : {labels}")
+    #     logger.info(f"Label : {labels.size()}")
+    #     logger.info(f"Label t1 : {t1_label_tensor}")
+    #     logger.info(f"Label flair : {flair_label_tensor}")
 
-        images_target_unl = data_target_unl["image"].to(self.device)
+    #     images_target_unl = data_target_unl["image"].to(self.device)
 
-        train_output_class_source, _, train_output_domain = self.forward(
-            t1_tensor, alpha
-        )
-        loss_classif_source = criterion(train_output_class_source, t1_label_tensor)
+    #     train_output_class_source, _, train_output_domain = self.forward(
+    #         t1_tensor, alpha
+    #     )
+    #     loss_classif_source = criterion(train_output_class_source, t1_label_tensor)
 
-        logger.info(f"Label flair : {train_output_class_source}")
-        logger.info(f"Label flair : {t1_label_tensor}")
+    #     logger.info(f"Label flair : {train_output_class_source}")
+    #     logger.info(f"Label flair : {t1_label_tensor}")
 
-        if flag == False:
-            _, train_output_class_target, train_output_domain = self.forward(
-                flair_tensor, alpha
-            )
-            logger.info(f"Label flair : {train_output_class_target}")
-            logger.info(f"Label flair : {flair_label_tensor}")
+    #     if flag == False:
+    #         _, train_output_class_target, train_output_domain = self.forward(
+    #             flair_tensor, alpha
+    #         )
+    #         logger.info(f"Label flair : {train_output_class_target}")
+    #         logger.info(f"Label flair : {flair_label_tensor}")
 
-            loss_classif_target = criterion(
-                train_output_class_target, flair_label_tensor
-            )
-            loss_classif = loss_classif_source + loss_classif_target
+    #         loss_classif_target = criterion(
+    #             train_output_class_target, flair_label_tensor
+    #         )
+    #         loss_classif = loss_classif_source + loss_classif_target
 
-        else:
-            loss_classif = loss_classif_source
+    #     else:
+    #         loss_classif = loss_classif_source
 
-        _, _, train_output_domain = self.forward(images, alpha)
-        _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
+    #     _, _, train_output_domain = self.forward(images, alpha)
+    #     _, _, train_output_domain_target_lab = self.forward(images_target_unl, alpha)
 
-        output_array_domain = [0 if element == "t1" else 1 for element in domain]
+    #     output_array_domain = [0 if element == "t1" else 1 for element in domain]
 
-        output_tensor_domain = torch.tensor(output_array_domain).to(self.device)
+    #     output_tensor_domain = torch.tensor(output_array_domain).to(self.device)
 
-        logger.info(f"domain : {output_array_domain}")
+    #     logger.info(f"domain : {output_array_domain}")
 
-        labels_domain_t = (
-            torch.ones(data_target_unl["image"].shape[0]).long().to(self.device)
-        )
+    #     labels_domain_t = (
+    #         torch.ones(data_target_unl["image"].shape[0]).long().to(self.device)
+    #     )
 
-        loss_domain_lab = criterion(train_output_domain, output_tensor_domain)
-        loss_domain_t_unl = criterion(train_output_domain_target_lab, labels_domain_t)
+    #     loss_domain_lab = criterion(train_output_domain, output_tensor_domain)
+    #     loss_domain_t_unl = criterion(train_output_domain_target_lab, labels_domain_t)
 
-        loss_domain = loss_domain_lab + loss_domain_t_unl
+    #     loss_domain = loss_domain_lab + loss_domain_t_unl
 
-        total_loss = loss_classif + loss_domain
+    #     total_loss = loss_classif + loss_domain
 
-        return (
-            train_output_class_source,
-            train_output_domain,
-            {"loss": total_loss},
-        )
+    #     return (
+    #         train_output_class_source,
+    #         train_output_domain,
+    #         {"loss": total_loss},
+    #     )
 
     def compute_outputs_and_loss_new(
         self, input_dict, input_dict_target, input_dict_target_unl, criterion, alpha
