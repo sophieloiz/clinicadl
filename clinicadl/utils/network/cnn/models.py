@@ -17,6 +17,7 @@ from clinicadl.utils.network.sub_network import (
     CNN_DANN,
     CNN_MME,
     CNN_DANN2ouputs,
+    CNN_APE,
 )
 
 
@@ -587,6 +588,81 @@ class Conv5_FC3_DANN2(CNN_DANN2ouputs):
 
 
 class Conv5_FC3_MME(CNN_MME):
+    """
+    It is a convolutional neural network with 5 convolution and 3 fully-connected layer.
+    It reduces the 2D or 3D input image to an array of size output_size.
+    """
+
+    def __init__(self, input_size, gpu=True, output_size=2, dropout=0.5):
+        conv, norm, pool = get_layers_fn(input_size)
+        # fmt: off
+        convolutions = nn.Sequential(
+            conv(input_size[0], 8, 3, padding=1),
+            norm(8),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(8, 16, 3, padding=1),
+            norm(16),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(16, 32, 3, padding=1),
+            norm(32),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(32, 64, 3, padding=1),
+            norm(64),
+            nn.ReLU(),
+            pool(2, 2),
+
+            conv(64, 128, 3, padding=1),
+            norm(128),
+            nn.ReLU(),
+            pool(2, 2),
+        )
+
+        # Compute the size of the first FC layer
+        input_tensor = torch.zeros(input_size).unsqueeze(0)
+        output_convolutions = convolutions(input_tensor)
+
+        fc = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(p=dropout),
+
+            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
+        )
+
+        fc_c = nn.Sequential(
+            nn.Linear(1300, 50),
+            nn.ReLU(),
+
+            nn.Linear(50, output_size)
+        )
+        # fmt: on
+        super().__init__(
+            convolutions=convolutions,
+            fc=fc,
+            fc_c=fc_c,
+            n_classes=output_size,
+            gpu=gpu,
+        )
+
+    @staticmethod
+    def get_input_size():
+        return "1@128x128"
+
+    @staticmethod
+    def get_dimension():
+        return "2D or 3D"
+
+    @staticmethod
+    def get_task():
+        return ["classification", "regression"]
+
+
+class Conv5_FC3_APE(CNN_APE):
     """
     It is a convolutional neural network with 5 convolution and 3 fully-connected layer.
     It reduces the 2D or 3D input image to an array of size output_size.

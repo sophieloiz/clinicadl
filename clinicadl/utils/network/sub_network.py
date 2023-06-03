@@ -853,7 +853,7 @@ class CNN_DANN2ouputs(Network):
 
         loss_domain = loss_domain_lab + loss_domain_t_unl
 
-        total_loss = loss_classif + loss_domain
+        total_loss = loss_classif  # + loss_domain
 
         return (
             train_output_class_source,
@@ -914,7 +914,7 @@ class CNN_DANN2ouputs(Network):
 
         loss_domain = loss_domain_lab + loss_domain_t_unl
 
-        total_loss = loss_classif + loss_domain
+        total_loss = loss_classif  # + loss_domain
 
         return (
             train_output_class_source,
@@ -1262,3 +1262,259 @@ class CNN_DANN2ouputs(Network):
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
         return optimizer
+
+
+class AbstractConsistencyLoss(nn.Module):
+    def __init__(self, reduction="mean"):
+        super().__init__()
+        self.reduction = reduction
+
+    def forward(self, logits1, logits2):
+        raise NotImplementedError
+
+
+class KLDivLossWithLogits(AbstractConsistencyLoss):
+    def __init__(self, reduction="mean"):
+        super().__init__(reduction)
+        self.kl_div_loss = nn.KLDivLoss(reduction=reduction)
+
+    def forward(self, logits1, logits2):
+        return self.kl_div_loss(
+            F.log_softmax(logits1, dim=1), F.softmax(logits2, dim=1)
+        )
+
+
+class KLDivLossWithLogits(AbstractConsistencyLoss):
+    def __init__(self, reduction="mean"):
+        super().__init__(reduction)
+        self.kl_div_loss = nn.KLDivLoss(reduction=reduction)
+
+    def forward(self, logits1, logits2):
+        return self.kl_div_loss(
+            F.log_softmax(logits1, dim=1), F.softmax(logits2, dim=1)
+        )
+
+
+class PerturbationGenerator(nn.Module):
+    def __init__(self, feature_extractor, classifier, xi=1e-6, eps=3.5, ip=1):
+        super().__init__()
+        self.feature_extractor = feature_extractor
+        self.classifier = classifier
+        self.xi = xi
+        self.eps = eps
+        self.ip = ip
+        self.kl_div = KLDivLossWithLogits()
+
+    def set_requires_grad(self, model, requires_grad):
+        for param in model.parameters():
+            param.requires_grad = requires_grad
+
+    def disable_tracking_bn_stats(self, model):
+        def switch_attr(m):
+            if hasattr(m, "track_running_stats"):
+                m.track_running_stats ^= True
+
+        model.apply(switch_attr)
+        yield
+        model.apply(switch_attr)
+
+    def l2_normalize(self, d):
+        d_reshaped = d.view(d.size(0), -1, *(1 for _ in range(d.dim() - 2)))
+        d /= torch.norm(d_reshaped, dim=1, keepdim=True) + 1e-8
+        return d
+
+    def forward(self, inputs):
+        with self.disable_tracking_bn_stats(self.feature_extractor):
+            with self.disable_tracking_bn_stats(self.classifier):
+                features = self.feature_extractor(inputs)
+                logits = self.classifier(features)[1].detach()
+
+                # prepare random unit tensor
+                d = self.l2_normalize(torch.randn_like(inputs).to(inputs.device))
+
+                # calc adversarial direction
+                x_hat = inputs
+                x_hat = x_hat + self.xi * d
+                x_hat.requires_grad = True
+                features_hat = self.feature_extractor(x_hat)
+                logits_hat = self.classifier(features_hat, reverse=True, eta=1)[1]
+                prob_hat = F.softmax(logits_hat, 1)
+                adv_distance = (prob_hat * torch.log(1e-4 + prob_hat)).sum(1).mean()
+                adv_distance.backward()
+                d = self.l2_normalize(x_hat.grad)
+                self.feature_extractor.zero_grad()
+                self.classifier.zero_grad()
+                r_adv = d * self.eps
+                return r_adv.detach(), features
+
+
+class CNN_APE(Network):
+    def __init__(self, convolutions, fc, fc_c, n_classes, gpu=False):
+        super().__init__(gpu=gpu)
+        self.convolutions = convolutions.to(self.device)
+        self.fc = fc.to(self.device)
+        self.fc_c = fc_c.to(self.device)
+        self.n_classes = n_classes
+        self.sigma = [1, 2, 5, 10]
+        self.thr = 0.3
+
+    @property
+    def layers(self):
+        return nn.Sequential(self.convolutions, self.fc, self.fc_c)
+
+    def grad_reverse(self, x, lambd=1.0):
+        return GradReverse(lambd)(x)
+
+    def transfer_weights(self, state_dict, transfer_class):
+        if issubclass(transfer_class, CNN):
+            self.load_state_dict(state_dict)
+        elif issubclass(transfer_class, CNN_MME):
+            self.load_state_dict(state_dict)
+        elif issubclass(transfer_class, AutoEncoder):
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("encoder.", ""), v)
+                    for k, v in state_dict.items()
+                    if "encoder" in k
+                ]
+            )
+            self.convolutions.load_state_dict(convolutions_dict)
+        else:
+            raise ClinicaDLNetworksError(
+                f"Cannot transfer weights from {transfer_class} to CNN."
+            )
+
+    def forward(self, x, reverse=False, eta=0.1, temp=0.05):
+        x = self.convolutions(x)
+        out_g = self.fc(x)
+        if reverse:
+            out_g = ReverseLayerF.apply(out_g, eta)
+
+        out_c = F.normalize(out_g)
+        out_c = self.fc_c(out_c) / temp
+        return out_g, out_c
+
+    def predict(self, x):
+        return self.forward(x)
+
+    def compute_outputs_and_loss_attraction_explore(
+        self, input_dict, input_dict_unl, criterion, use_labels=True
+    ):
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        images_unl = input_dict_unl["image"].to(self.device)
+
+        criterion_reduce = nn.CrossEntropyLoss(reduce=False).cuda()
+        latent_F1, out1 = self.forward(images)
+        latent_F1_tu, out_F1_tu = self.forward(images_unl)
+
+        # supervision loss
+        loss_cls = criterion(out1, labels)
+        # Attraction
+        loss_attract = 10 * self.mix_rbf_mmd2(latent_F1, latent_F1_tu, self.sigma)
+        # Explore
+        pred = out_F1_tu.data.max(1)[1].detach()
+        ent = -torch.sum(
+            F.softmax(out_F1_tu, 1) * (torch.log(F.softmax(out_F1_tu, 1) + 1e-5)), 1
+        )
+        mask_reliable = (ent < self.thr).float().detach()
+        loss_explore = (mask_reliable * criterion_reduce(out_F1_tu, pred)).sum(0) / (
+            1e-5 + mask_reliable.sum()
+        )
+
+        loss = loss_cls + loss_attract + loss_explore
+
+        return out1, {"loss": loss}
+
+    def compute_outputs_and_loss_perturb(self, input_dict, criterion, use_labels=True):
+        import numpy as np
+
+        images, domain = input_dict["image"].to(self.device), input_dict["domain"]
+        target_consistency_criterion = KLDivLossWithLogits(reduction="mean").cuda()
+        P = PerturbationGenerator(self.convolutions, self.fc)
+        perturb, clean_vat_logits = P(images)
+        perturb_inputs = images + perturb
+        output_array_domain = [1 if element == "t1" else 0 for element in domain]
+        # bs = gt_labels_s.size(0)
+        bs = np.sum(output_array_domain)
+        perturb_inputs = torch.cat(perturb_inputs.split(bs), 0)
+        _, perturb_logits = self.forward(images)
+        perturb_logits = perturb_logits[0]
+        target_vat_loss2 = 10 * target_consistency_criterion(
+            perturb_logits, clean_vat_logits
+        )
+
+        return perturb_logits, {"loss": target_vat_loss2}
+
+    def compute_outputs_and_loss(self, input_dict, criterion, use_labels=True):
+
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        _, train_output = self.forward(images)
+        if use_labels:
+            loss = criterion(train_output, labels)
+        else:
+            loss = torch.Tensor([0])
+
+        return train_output, {"loss": loss}
+
+    def _mix_rbf_kernel(self, X, Y, sigma_list):
+        assert X.size(0) == Y.size(0)
+        m = X.size(0)
+
+        Z = torch.cat((X, Y), 0)
+        ZZT = torch.mm(Z, Z.t())
+        diag_ZZT = torch.diag(ZZT).unsqueeze(1)
+        Z_norm_sqr = diag_ZZT.expand_as(ZZT)
+        exponent = Z_norm_sqr - 2 * ZZT + Z_norm_sqr.t()
+
+        K = 0.0
+        for sigma in sigma_list:
+            gamma = 1.0 / (2 * sigma**2)
+            K += torch.exp(-gamma * exponent)
+
+        return K[:m, :m], K[:m, m:], K[m:, m:], len(sigma_list)
+
+    def mix_rbf_mmd2(self, X, Y, sigma_list, biased=True):
+        K_XX, K_XY, K_YY, d = self._mix_rbf_kernel(X, Y, sigma_list)
+        # return _mmd2(K_XX, K_XY, K_YY, const_diagonal=d, biased=biased)
+        return self._mmd2(K_XX, K_XY, K_YY, const_diagonal=False, biased=biased)
+
+    def _mmd2(self, K_XX, K_XY, K_YY, const_diagonal=False, biased=False):
+        m = K_XX.size(0)  # assume X, Y are same shape
+
+        # Get the various sums of kernels that we'll use
+        # Kts drop the diagonal, but we don't need to compute them explicitly
+        if const_diagonal is not False:
+            diag_X = diag_Y = const_diagonal
+            sum_diag_X = sum_diag_Y = m * const_diagonal
+        else:
+            diag_X = torch.diag(K_XX)  # (m,)
+            diag_Y = torch.diag(K_YY)  # (m,)
+            sum_diag_X = torch.sum(diag_X)
+            sum_diag_Y = torch.sum(diag_Y)
+
+        Kt_XX_sums = K_XX.sum(dim=1) - diag_X  # \tilde{K}_XX * e = K_XX * e - diag_X
+        Kt_YY_sums = K_YY.sum(dim=1) - diag_Y  # \tilde{K}_YY * e = K_YY * e - diag_Y
+        K_XY_sums_0 = K_XY.sum(dim=0)  # K_{XY}^T * e
+
+        Kt_XX_sum = Kt_XX_sums.sum()  # e^T * \tilde{K}_XX * e
+        Kt_YY_sum = Kt_YY_sums.sum()  # e^T * \tilde{K}_YY * e
+        K_XY_sum = K_XY_sums_0.sum()  # e^T * K_{XY} * e
+
+        if biased:
+            mmd2 = (
+                (Kt_XX_sum + sum_diag_X) / (m * m)
+                + (Kt_YY_sum + sum_diag_Y) / (m * m)
+                - 2.0 * K_XY_sum / (m * m)
+            )
+        else:
+            mmd2 = (
+                Kt_XX_sum / (m * (m - 1))
+                + Kt_YY_sum / (m * (m - 1))
+                - 2.0 * K_XY_sum / (m * m)
+            )
+
+        return mmd2
