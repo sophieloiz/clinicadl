@@ -1228,7 +1228,7 @@ class CNN_DANN2ouputs(Network):
         else:
             loss = torch.Tensor([0])
 
-        return train_output_class, {"loss": loss}, features
+        return train_output_class, {"loss": loss}  # , features
 
     def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
