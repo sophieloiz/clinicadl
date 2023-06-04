@@ -204,14 +204,14 @@ class TaskManager:
                     data, criterion, use_labels=use_labels
                 )  # , alpha=0
 
-                features_np = features.cpu().numpy()
-                print(features_np.shape)
-                features_flat = features_np.reshape(
-                    features_np.shape[0], -1
-                )  # Flatten the features
-                # features_flat = features_np.flatten()
-                features_list.append(features_flat)
-                print(i, data["participant_id"])
+                # features_np = features.cpu().numpy()
+                # print(features_np.shape)
+                # features_flat = features_np.reshape(
+                #     features_np.shape[0], -1
+                # )  # Flatten the features
+                # # features_flat = features_np.flatten()
+                # features_list.append(features_flat)
+                # print(i, data["participant_id"])
                 # )
                 # import frequency_feature_map_visualization as fv
                 # feature_map_dict = fv.visualize_feature_maps_3d(model, data["image"], device=torch.device('cpu'))
@@ -229,21 +229,21 @@ class TaskManager:
                 del outputs, loss_dict
             results_df.reset_index(inplace=True, drop=True)
 
-        plt.figure()
-        from sklearn.manifold import TSNE
+        # plt.figure()
+        # from sklearn.manifold import TSNE
 
-        all_features = np.concatenate(features_list, axis=0)
-        all_features_flat = all_features.reshape(all_features.shape[0], -1)
+        # all_features = np.concatenate(features_list, axis=0)
+        # all_features_flat = all_features.reshape(all_features.shape[0], -1)
 
-        print(features_list)
-        tsne = TSNE(n_components=2, random_state=42)
-        embedded_batch = tsne.fit_transform(all_features_flat)
-        print(embedded_batch)
-        np.save("/export/home/cse180022/embedded_batch.npy", embedded_batch)
+        # print(features_list)
+        # tsne = TSNE(n_components=2, random_state=42)
+        # embedded_batch = tsne.fit_transform(all_features_flat)
+        # print(embedded_batch)
+        # np.save("/export/home/cse180022/embedded_batch.npy", embedded_batch)
 
-        plt.scatter(embedded_batch[:, 0], embedded_batch[:, 1])
-        plt.title("t-SNE Visualization")
-        plt.savefig("/export/home/cse180022/test_tsne.pdf", dpi=150)
+        # plt.scatter(embedded_batch[:, 0], embedded_batch[:, 1])
+        # plt.title("t-SNE Visualization")
+        # plt.savefig("/export/home/cse180022/test_tsne.pdf", dpi=150)
 
         if not use_labels:
             metrics_dict = None
