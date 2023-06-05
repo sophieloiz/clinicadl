@@ -1633,7 +1633,8 @@ class MapsManager:
                     / 100
                     / len(combined_data_loader)
                 )
-                alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+                # alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+                alpha = 0.1
                 logger.info(
                     f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                 )
