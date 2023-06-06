@@ -1295,6 +1295,27 @@ class KLDivLossWithLogits(AbstractConsistencyLoss):
         )
 
 
+def set_requires_grad(model, requires_grad):
+    for param in model.parameters():
+        param.requires_grad = requires_grad
+
+
+def disable_tracking_bn_stats(model):
+    def switch_attr(m):
+        if hasattr(m, "track_running_stats"):
+            m.track_running_stats ^= True
+
+    model.apply(switch_attr)
+    yield
+    model.apply(switch_attr)
+
+
+def l2_normalize(d):
+    d_reshaped = d.view(d.size(0), -1, *(1 for _ in range(d.dim() - 2)))
+    d /= torch.norm(d_reshaped, dim=1, keepdim=True) + 1e-8
+    return d
+
+
 class PerturbationGenerator(nn.Module):
     def __init__(self, feature_extractor, classifier, xi=1e-6, eps=3.5, ip=1):
         super().__init__()
@@ -1305,32 +1326,14 @@ class PerturbationGenerator(nn.Module):
         self.ip = ip
         self.kl_div = KLDivLossWithLogits()
 
-    def set_requires_grad(self, model, requires_grad):
-        for param in model.parameters():
-            param.requires_grad = requires_grad
-
-    def disable_tracking_bn_stats(self, model):
-        def switch_attr(m):
-            if hasattr(m, "track_running_stats"):
-                m.track_running_stats ^= True
-
-        model.apply(switch_attr)
-        yield
-        model.apply(switch_attr)
-
-    def l2_normalize(self, d):
-        d_reshaped = d.view(d.size(0), -1, *(1 for _ in range(d.dim() - 2)))
-        d /= torch.norm(d_reshaped, dim=1, keepdim=True) + 1e-8
-        return d
-
     def forward(self, inputs):
-        with self.disable_tracking_bn_stats(self.feature_extractor):
-            with self.disable_tracking_bn_stats(self.classifier):
+        with disable_tracking_bn_stats(self.feature_extractor):
+            with disable_tracking_bn_stats(self.classifier):
                 features = self.feature_extractor(inputs)
                 logits = self.classifier(features)[1].detach()
 
                 # prepare random unit tensor
-                d = self.l2_normalize(torch.randn_like(inputs).to(inputs.device))
+                d = l2_normalize(torch.randn_like(inputs).to(inputs.device))
 
                 # calc adversarial direction
                 x_hat = inputs
@@ -1341,7 +1344,7 @@ class PerturbationGenerator(nn.Module):
                 prob_hat = F.softmax(logits_hat, 1)
                 adv_distance = (prob_hat * torch.log(1e-4 + prob_hat)).sum(1).mean()
                 adv_distance.backward()
-                d = self.l2_normalize(x_hat.grad)
+                d = l2_normalize(x_hat.grad)
                 self.feature_extractor.zero_grad()
                 self.classifier.zero_grad()
                 r_adv = d * self.eps
