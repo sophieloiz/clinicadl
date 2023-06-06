@@ -1629,6 +1629,8 @@ class MapsManager:
             # for i, (data_lab, data_target, data_target_unl) in enumerate(
             #     zip(combined_data_loader, train_target_loader, train_target_unl_loader)
             # ):
+            alpha = 0.1
+
             for i, (data_lab, data_target_unl) in enumerate(
                 zip(combined_data_loader, train_target_unl_loader)
             ):
@@ -1675,7 +1677,6 @@ class MapsManager:
                         (i + 1) / self.accumulation_steps - 1
                     ]
                     logger.info(f"Data target {(i + 1) / self.accumulation_steps -1} ")
-                    alpha = 0.1
                     logger.info(
                         f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                     )
