@@ -935,7 +935,8 @@ class MapsManager:
                 len(data_train_target_labeled),
                 # len(data_target_unlabeled),
             )
-            max_size = len(data_train_source)
+            max_size = len(data_train_source) // self.batch_size
+            logger.info(f"max size : {max_size}")
             # Create index lists for each dataset
             source_indices = list(range(len(data_train_source)))
             labeled_indices = list(range(len(data_train_target_labeled)))
@@ -1625,36 +1626,69 @@ class MapsManager:
             # for i, (data_lab, data_target_unl) in enumerate(
             #     zip(combined_data_loader, train_target_unl_loader)
             # ):
-            for i, (data_lab, data_target, data_target_unl) in enumerate(
-                zip(combined_data_loader, train_target_loader, train_target_unl_loader)
+            # for i, (data_lab, data_target, data_target_unl) in enumerate(
+            #     zip(combined_data_loader, train_target_loader, train_target_unl_loader)
+            # ):
+            for i, (data_lab, data_target_unl) in enumerate(
+                zip(combined_data_loader, train_target_unl_loader)
             ):
+                # p = (
+                #     float(epoch * len(combined_data_loader))
+                #     / 100
+                #     / len(combined_data_loader)
+                # )
+                # # alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+                # alpha = 0.1
+                # logger.info(
+                #     f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
+                # )
+                # if i > 1400:
+                #     _, _, loss_dict = model.compute_outputs_and_loss_new_lab_target(
+                #         data_lab, data_target, data_target_unl, criterion, alpha
+                #     )
+                # else:
+                #     _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
+                #         data_lab, data_target_unl, criterion, alpha
+                #     )
+
+                # logger.debug(f"Train loss dictionnary {loss_dict}")
+                # loss = loss_dict["loss"]
+                # loss.backward()
                 p = (
                     float(epoch * len(combined_data_loader))
                     / 100
                     / len(combined_data_loader)
                 )
-                # alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
-                alpha = 0.1
-                logger.info(
-                    f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
-                )
-                if i > 1400:
-                    _, _, loss_dict = model.compute_outputs_and_loss_new_lab_target(
-                        data_lab, data_target, data_target_unl, criterion, alpha
+                if (i + 1) % self.accumulation_steps != 0:
+                    logger.info(
+                        f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                     )
-                else:
                     _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
                         data_lab, data_target_unl, criterion, alpha
                     )
-
-                logger.debug(f"Train loss dictionnary {loss_dict}")
-                loss = loss_dict["loss"]
-                loss.backward()
+                    logger.debug(f"Train loss dictionnary {loss_dict}")
+                    loss = loss_dict["loss"]
+                    loss.backward()
 
                 if (i + 1) % self.accumulation_steps == 0:
+                    data_target = train_target_loader[
+                        (i + 1) / self.accumulation_steps - 1
+                    ]
+                    logger.info(f"Data target {(i + 1) / self.accumulation_steps -1} ")
+                    alpha = 0.1
+                    logger.info(
+                        f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
+                    )
+
+                    _, _, loss_dict = model.compute_outputs_and_loss_new_lab_target(
+                        data_lab, data_target, data_target_unl, criterion, alpha
+                    )
+
+                    logger.debug(f"Train loss dictionnary {loss_dict}")
+                    loss = loss_dict["loss"]
+                    loss.backward()
                     step_flag = False
-                    # optimizer.step()
-                    # optimizer.zero_grad()
+
                     source_label_predictor_optimizer.step()
                     domain_classifier_optimizer.step()
                     feature_extractor_optimizer.step()
@@ -1673,13 +1707,12 @@ class MapsManager:
                         self.learning_rate, feature_extractor_optimizer, p
                     )
 
-                    if i > 1400:
-                        target_label_predictor_optimizer.step()
-                        target_label_predictor_optimizer.zero_grad()
+                    target_label_predictor_optimizer.step()
+                    target_label_predictor_optimizer.zero_grad()
 
-                        target_label_predictor_optimizer = model.lr_scheduler(
-                            self.learning_rate, target_label_predictor_optimizer, p
-                        )
+                    target_label_predictor_optimizer = model.lr_scheduler(
+                        self.learning_rate, target_label_predictor_optimizer, p
+                    )
 
                     del loss
 
