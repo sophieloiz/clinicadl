@@ -1673,10 +1673,13 @@ class MapsManager:
                     loss.backward()
 
                 if (i + 1) % self.accumulation_steps == 0:
-                    for j, (data_t) in enumerate(train_target_loader):
-                        if j ==  (i + 1) / self.accumulation_steps - 1:
-                            data_target = data_t
-                            logger.info("j")
+                    # for j, (data_t) in enumerate(train_target_loader):
+                    #     if j ==  (i + 1) / self.accumulation_steps - 1:
+                    #         data_target = data_t
+                    #         logger.info("j")
+                    data_target = train_target_loader.__getitem__(
+                        (i + 1) / self.accumulation_steps - 1
+                    )
                     logger.info(f"Data target {(i + 1) / self.accumulation_steps -1} ")
                     logger.info(
                         f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
