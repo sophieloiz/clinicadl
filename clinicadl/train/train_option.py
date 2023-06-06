@@ -208,14 +208,7 @@ preprocessing_json_target = cli_param.option_group.data_group.option(
 )
 ssda = cli_param.option_group.data_group.option(
     "--ssda",
-    type=click.Choice(
-        [
-            "DANN",
-            "MME",
-            "DANN2",
-            "MME2",
-        ]
-    ),
+    type=click.Choice(["DANN", "MME", "DANN2", "MME2", "APE"]),
     help="SSDA network used to train the network.",
 )
 # Cross validation
