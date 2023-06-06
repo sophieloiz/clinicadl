@@ -989,7 +989,7 @@ class MapsManager:
             )
             train_target_loader = DataLoader(
                 data_train_target_labeled,
-                batch_size=self.batch_size,  # 1
+                batch_size=1,  # self.batch_size,  # 1
                 # sampler=train_target_sampler,
                 sampler=labeled_sampler,
                 num_workers=self.n_proc,
