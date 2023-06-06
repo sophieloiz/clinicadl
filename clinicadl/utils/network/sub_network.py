@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from logging import getLogger
-
+import contextlib
 import torch
 from torch import nn
 
@@ -1300,6 +1300,7 @@ def set_requires_grad(model, requires_grad):
         param.requires_grad = requires_grad
 
 
+@contextlib.contextmanager
 def disable_tracking_bn_stats(model):
     def switch_attr(m):
         if hasattr(m, "track_running_stats"):
