@@ -1640,7 +1640,7 @@ class MapsManager:
             # for i, (data_lab, data_target, data_target_unl) in enumerate(
             #     zip(combined_data_loader, train_target_loader, train_target_unl_loader)
             # ):
-            alpha = 0.1
+
             data_iter_t = iter(train_target_loader)
             for i, (data_lab, data_target_unl) in enumerate(
                 zip(combined_data_loader, train_target_unl_loader)
@@ -1669,9 +1669,10 @@ class MapsManager:
                 # loss.backward()
                 p = (
                     float(epoch * len(combined_data_loader))
-                    / 100
+                    / 10
                     / len(combined_data_loader)
                 )
+                alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
                 if (i + 1) % self.accumulation_steps != 0:
                     logger.info(
                         f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
