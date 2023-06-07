@@ -1331,7 +1331,7 @@ class PerturbationGenerator(nn.Module):
         with disable_tracking_bn_stats(self.feature_extractor):
             with disable_tracking_bn_stats(self.classifier):
                 features = self.feature_extractor(inputs)
-                logits = self.classifier(features)[1].detach()
+                # logits = self.classifier(features)[1].detach()
 
                 # prepare random unit tensor
                 d = l2_normalize(torch.randn_like(inputs).to(inputs.device))
@@ -1341,7 +1341,10 @@ class PerturbationGenerator(nn.Module):
                 x_hat = x_hat + self.xi * d
                 x_hat.requires_grad = True
                 features_hat = self.feature_extractor(x_hat)
-                logits_hat = self.classifier(features_hat, reverse=True, eta=1)[1]
+                # logits_hat = self.classifier(features_hat, reverse=True, eta=1)[
+                #     1
+                # ]  # To modify
+                logits_hat = self.classifier(features_hat)[1]  # To modify
                 prob_hat = F.softmax(logits_hat, 1)
                 adv_distance = (prob_hat * torch.log(1e-4 + prob_hat)).sum(1).mean()
                 adv_distance.backward()

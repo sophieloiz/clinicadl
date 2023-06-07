@@ -2049,7 +2049,7 @@ class MapsManager:
                     / 100
                     / len(train_target_loader)
                 )
-                alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+                alpha = 0.1
                 print(alpha)
 
                 _, loss_dict_lab = model.compute_outputs_and_loss_bce(
