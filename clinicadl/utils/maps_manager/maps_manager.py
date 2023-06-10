@@ -2198,7 +2198,7 @@ class MapsManager:
         logger.debug(f"Optimizer used for training is optimizer")
 
         model.train()
-        train_combined.dataset.train()
+        # train_combined.dataset.train()
 
         early_stopping = EarlyStopping(
             "min", min_delta=self.tolerance, patience=self.patience
