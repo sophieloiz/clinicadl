@@ -2409,8 +2409,8 @@ class MapsManager:
             )
 
             model.train()
-            train_combined.dataset.train()
-            train_combined.dataset.train()
+            # train_combined.dataset.train()
+            # train_combined.dataset.train()
 
             log_writer.step(
                 epoch,
