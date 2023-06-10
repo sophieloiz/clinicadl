@@ -2168,7 +2168,6 @@ class MapsManager:
         train_combined,
         valid_loader,
         valid_source_loader,
-        combined_data_loader,
         split,
         network=None,
         resume=False,
