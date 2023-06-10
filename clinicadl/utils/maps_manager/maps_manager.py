@@ -137,7 +137,7 @@ class MapsManager:
 
         elif self.ssda_network:
             # self._train_ssda(split_list, resume=False)
-            self._train_ssda_baseline(split_list, resume=False)
+            self.train_ssda_baseline(split_list, resume=False)
 
         else:
             self._train_single(split_list, resume=False)
@@ -1128,7 +1128,7 @@ class MapsManager:
 
             self._erase_tmp(split)
 
-    def _train_ssda_baseline(self, split_list=None, resume=False):
+    def train_ssda_baseline(self, split_list=None, resume=False):
         """
         Trains a single CNN for all inputs with SSDA.
 
