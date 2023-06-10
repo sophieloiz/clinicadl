@@ -276,7 +276,7 @@ class TaskManager:
             the results and metrics on the image level.
         """
         model.eval()
-        dataloader.dataset.eval()
+        # dataloader.dataset.eval()
 
         results_df = pd.DataFrame(columns=self.columns)
         total_loss = 0
