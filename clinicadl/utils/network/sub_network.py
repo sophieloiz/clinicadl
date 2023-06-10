@@ -515,12 +515,9 @@ class CNN_DANN(Network):
             {"loss": total_loss},
         )
 
+    def compute_outputs_and_loss_baseline(self, data_lab, criterion):
 
-    def compute_outputs_and_loss_baseline(
-        self, data_lab, criterion
-    ):
-
-        images, labels, domain = (
+        images, labels = (
             data_lab["image"].to(self.device),
             data_lab["label"].to(self.device),
         )
@@ -536,7 +533,7 @@ class CNN_DANN(Network):
             train_output_domain,
             {"loss": loss_classif},
         )
-    
+
     def compute_outputs_and_loss_new(
         self, input_dict, input_dict_target, input_dict_target_unl, criterion, alpha
     ):
