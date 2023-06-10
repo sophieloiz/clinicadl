@@ -2242,7 +2242,7 @@ class MapsManager:
                     step_flag = False
                     optimizer.step()
                     optimizer.zero_grad()
-                    optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
+                    # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
 
                     del loss
 
