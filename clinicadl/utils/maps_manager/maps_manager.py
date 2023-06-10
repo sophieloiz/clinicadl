@@ -1266,6 +1266,13 @@ class MapsManager:
                     split,
                     resume=resume,
                 )
+            if self.ssda == "S+T":
+                self._train(
+                    combined_data_loader,
+                    valid_loader_source,
+                    split,
+                    resume=resume,
+                )
             # elif self.ssda == "MME":
             #     self._train_mme(
             #         train_source_loader,
@@ -2354,7 +2361,7 @@ class MapsManager:
 
             if evaluate_source:
                 logger.info(
-                    f"Evaluate source data at the end of the epoch {epoch} with alpha: {alpha}."
+                    f"Evaluate source data at the end of the epoch {epoch} with alpha: {0}."
                 )
                 _, metrics_train_source = self.task_manager.test_da(
                     model,
