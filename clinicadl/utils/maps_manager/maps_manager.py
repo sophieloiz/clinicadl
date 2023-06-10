@@ -1322,7 +1322,7 @@ class MapsManager:
                 self.selection_metrics,
             )
 
-            self._erase_tmp(split)
+            # self._erase_tmp(split)
 
     def _train_single_qc(self, split_list=None, resume=False):
         """
