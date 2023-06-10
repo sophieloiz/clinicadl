@@ -1258,7 +1258,7 @@ class MapsManager:
             logger.info(
                 f"Validation loader size is {len(valid_loader)*self.batch_size}"
             )
-            if self.ssda == "DANN":
+            if self.ssda == "DANN2":
                 self._train_dann_baseline(
                     combined_data_loader,
                     valid_loader,
@@ -2195,12 +2195,6 @@ class MapsManager:
         criterion = self.task_manager.get_criterion(self.loss)
         logger.debug(f"Criterion for {self.network_task} is {criterion}")
         optimizer = self._init_optimizer(model, split=split, resume=resume)
-        # (
-        #     feature_extractor_optimizer,
-        #     domain_classifier_optimizer,
-        #     source_label_predictor_optimizer,
-        #     target_label_predictor_optimizer,
-        # ) = self._init_optimizer_dann(model, split=split, resume=resume)
 
         logger.debug(f"Optimizer used for training is optimizer")
 
