@@ -1621,7 +1621,7 @@ class MapsManager:
             ):
                 p = (
                     float(epoch * len(combined_data_loader))
-                    / 100
+                    / 10
                     / len(combined_data_loader)
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
