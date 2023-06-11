@@ -4038,7 +4038,9 @@ class MapsManager:
         Returns:
             (Dict): dictionary of results (weights, epoch number, metrics values)
         """
-        selection_metric = self._check_selection_metric(split, selection_metric)
+        # selection_metric = self._check_selection_metric(split, selection_metric)
+        selection_metric = self._check_selection_metric(split, "BA")
+
         if self.multi_network:
             if network is None:
                 raise ClinicaDLArgumentError(
