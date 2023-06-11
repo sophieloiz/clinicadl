@@ -74,7 +74,7 @@ class CapsDataset(Dataset):
         print(mandatory_col)
         if self.label_presence and self.label is not None:
             mandatory_col.add(self.label)
-        print(mandatory_col)
+        print(self.df.columns.values)
         if not mandatory_col.issubset(set(self.df.columns.values)):
             raise Exception(
                 f"the data file is not in the correct format."
