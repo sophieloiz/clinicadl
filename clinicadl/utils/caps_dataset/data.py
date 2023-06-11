@@ -70,6 +70,7 @@ class CapsDataset(Dataset):
             raise AttributeError("Child class of CapsDataset must set mode attribute.")
 
         self.df = data_df
+        print(self.df)
         mandatory_col = {"participant_id", "session_id"}  # , "cohort"}
         print(mandatory_col)
         if self.label_presence and self.label is not None:
