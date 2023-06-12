@@ -1276,6 +1276,7 @@ class MapsManager:
             if self.ssda == "MME2":
                 self._train_mme_baseline(
                     combined_data_loader,
+                    valid_loader,
                     valid_loader_source,
                     split,
                     resume=resume,
