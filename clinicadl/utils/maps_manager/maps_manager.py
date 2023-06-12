@@ -1626,7 +1626,7 @@ class MapsManager:
                     f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                 )
 
-                _, _, loss_dict = model.compute_outputs_and_loss_new_lab_opti(
+                _, _, loss_dict = model.compute_outputs_and_loss_new_lab(
                     data_lab, data_target_unl, criterion, alpha
                 )
                 logger.debug(f"Train loss dictionnary {loss_dict}")
