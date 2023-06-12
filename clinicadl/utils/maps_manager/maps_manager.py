@@ -2182,7 +2182,6 @@ class MapsManager:
         train_combined,
         valid_loader,
         valid_source_loader,
-        concat_dataset,
         split,
         network=None,
         resume=False,
@@ -2345,9 +2344,9 @@ class MapsManager:
                 f"at the end of iteration {i}"
             )
 
-            _, metrics_train = self.task_manager.test_da(
-                model, train_combined, criterion, 0
-            )
+            # _, metrics_train = self.task_manager.test_da(
+            #     model, train_combined, criterion, 0
+            # )
             _, metrics_valid = self.task_manager.test_da(
                 model, valid_loader, criterion, 0
             )
