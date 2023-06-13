@@ -833,6 +833,45 @@ class CNN_DANN2ouputs(Network):
     def predict(self, x):
         return self.forward(x)
 
+    def compute_outputs_and_loss_baseline(self, data_lab, data_target, criterion):
+
+        images, labels = (
+            data_lab["image"].to(self.device),
+            data_lab["label"].to(self.device),
+            # data_lab["domain"],  # .to(self.device),
+        )
+
+        images_t, labels_t = (
+            data_target["image"].to(self.device),
+            data_target["label"].to(self.device),
+            # data_target["domain"],  # .to(self.device),
+        )
+
+        logger.info(f"Label : {labels}")
+
+        (
+            train_output_class_source,
+            _,
+            train_output_domain,
+        ) = self.forward(images, 0)
+
+        (
+            _,
+            train_output_class_target,
+            train_output_domain,
+        ) = self.forward(images_t, 0)
+
+        loss_classif = criterion(train_output_class_source, labels)
+        loss_classif_t = criterion(train_output_class_target, labels_t)
+
+        total_loss = loss_classif + loss_classif_t
+
+        return (
+            train_output_class_source,
+            train_output_domain,
+            {"loss": total_loss},
+        )
+
     def compute_outputs_and_loss_new_lab(
         self, data_lab, data_target_unl, criterion, alpha
     ):
