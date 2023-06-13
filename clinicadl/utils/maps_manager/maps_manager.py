@@ -1240,7 +1240,6 @@ class MapsManager:
             train_target_loader = DataLoader(
                 data_train_target_labeled,
                 batch_size=self.batch_size,
-                sampler=train_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
