@@ -153,7 +153,6 @@ class CapsDataset(Dataset):
         # Try to find .nii.gz file
         try:
             file_type = self.preprocessing_dict["file_type"]
-            print(file_type)
             results = clinica_file_reader(
                 [participant], [session], self.caps_dict[cohort], file_type
             )
