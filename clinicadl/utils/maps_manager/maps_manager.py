@@ -136,8 +136,8 @@ class MapsManager:
             self._train_multi(split_list, resume=False)
 
         elif self.ssda_network:
-            self._train_ssda(split_list, resume=False)
-            # self.train_ssda_baseline(split_list, resume=False)
+            # self._train_ssda(split_list, resume=False)
+            self.train_ssda_baseline(split_list, resume=False)
 
         else:
             self._train_single(split_list, resume=False)
@@ -1266,14 +1266,14 @@ class MapsManager:
                     split,
                     resume=resume,
                 )
-            if self.ssda == "S+T":
+            elif self.ssda == "S+T":
                 self._train(
                     combined_data_loader,
                     valid_loader_source,
                     split,
                     resume=resume,
                 )
-            if self.ssda == "MME2":
+            elif self.ssda == "MME2":
                 self._train_mme_baseline(
                     combined_data_loader,
                     valid_loader,
