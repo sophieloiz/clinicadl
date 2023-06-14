@@ -136,8 +136,8 @@ class MapsManager:
             self._train_multi(split_list, resume=False)
 
         elif self.ssda_network:
-            # self._train_ssda(split_list, resume=False)
-            self.train_ssda_baseline(split_list, resume=False)
+            self._train_ssda(split_list, resume=False)
+            # self.train_ssda_baseline(split_list, resume=False)
 
         else:
             self._train_single(split_list, resume=False)
@@ -1902,7 +1902,7 @@ class MapsManager:
                     / len(combined_data_loader)
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
-                alpha = 0.6
+                # alpha = 0.6
                 if (i + 1) % self.accumulation_steps != 0:
                     logger.info(
                         f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
