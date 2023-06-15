@@ -1081,7 +1081,17 @@ class MapsManager:
                     resume=resume,
                 )
             elif self.ssda == "DANN2":
-                self._train_dann2(
+                # self._train_dann2(
+                #     train_source_loader,
+                #     train_target_loader,
+                #     train_target_unl_loader,
+                #     valid_loader,
+                #     valid_loader_source,
+                #     combined_data_loader,
+                #     split,
+                #     resume=resume,
+                # )
+                self._train_dann_method(
                     train_source_loader,
                     train_target_loader,
                     train_target_unl_loader,
@@ -1091,6 +1101,8 @@ class MapsManager:
                     split,
                     resume=resume,
                 )
+
+                
 
             elif self.ssda == "MME2":
                 self._train_mme2(
