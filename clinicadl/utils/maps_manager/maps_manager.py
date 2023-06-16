@@ -2280,12 +2280,6 @@ class MapsManager:
             model.zero_grad()
             evaluation_flag, step_flag = True, True
 
-            # for i, (data_source, data_target, data_target_unl) in enumerate(
-            #     zip(train_source_loader, train_target_loader, train_target_unl_loader)
-            # ):
-            # for i, (data_lab, data_target_unl) in enumerate(
-            #     zip(combined_data_loader, train_target_unl_loader)
-            # ):
             for i, (data_lab, data_target, data_target_unl) in enumerate(
                 zip(combined_data_loader, train_target_loader, train_target_unl_loader)
             ):
@@ -2320,7 +2314,8 @@ class MapsManager:
                     source_label_predictor_optimizer.step()
                     domain_classifier_optimizer.step()
                     feature_extractor_optimizer.step()
-
+                    target_label_predictor_optimizer.step()
+                    target_label_predictor_optimizer.zero_grad()
                     source_label_predictor_optimizer.zero_grad()
                     domain_classifier_optimizer.zero_grad()
                     feature_extractor_optimizer.zero_grad()
@@ -2334,9 +2329,6 @@ class MapsManager:
                     feature_extractor_optimizer = model.lr_scheduler(
                         self.learning_rate, feature_extractor_optimizer, p
                     )
-
-                    target_label_predictor_optimizer.step()
-                    target_label_predictor_optimizer.zero_grad()
 
                     target_label_predictor_optimizer = model.lr_scheduler(
                         self.learning_rate, target_label_predictor_optimizer, p
@@ -2386,34 +2378,6 @@ class MapsManager:
                         )
                         logger.info(
                             f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
-                            f"at the end of iteration {i}"
-                        )
-
-                        # Evaluate on source data
-                        logger.info("Evaluation on source data")
-                        _, metrics_train_source = self.task_manager.test_da(
-                            model, train_source_loader, criterion, alpha
-                        )
-                        _, metrics_valid_source = self.task_manager.test_da(
-                            model, valid_source_loader, criterion, alpha
-                        )
-
-                        model.train()
-                        train_source_loader.dataset.train()
-
-                        log_writer.step(
-                            epoch,
-                            i,
-                            metrics_train_source,
-                            metrics_valid_source,
-                            len(train_source_loader),
-                        )
-                        logger.info(
-                            f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
-                            f"at the end of iteration {i}"
-                        )
-                        logger.info(
-                            f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
                             f"at the end of iteration {i}"
                         )
 
