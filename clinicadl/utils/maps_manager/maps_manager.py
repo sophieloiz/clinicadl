@@ -2287,8 +2287,8 @@ class MapsManager:
             model.zero_grad()
             evaluation_flag, step_flag = True, True
 
-            for i, (data_lab, data_target, data_target_unl) in enumerate(
-                zip(combined_data_loader, train_target_loader, train_target_unl_loader)
+            for i, (data_lab, data_target_unl) in enumerate(
+                zip(combined_data_loader, train_target_unl_loader)
             ):
 
                 p = (
@@ -2302,6 +2302,7 @@ class MapsManager:
                     f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                 )
                 if i > 515:
+                    data_target = iter(train_target_loader)
                     _, _, loss_dict = model.compute_outputs_and_loss_new_lab_target(
                         data_lab, data_target, data_target_unl, criterion, 0
                     )
