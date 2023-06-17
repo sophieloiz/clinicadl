@@ -2228,6 +2228,8 @@ class MapsManager:
             resume (bool): If True the job is resumed from the checkpoint.
         """
 
+        logger.info(f"Training our proposed approach.")
+
         model, beginning_epoch = self._init_model(
             split=split,
             resume=resume,
@@ -2251,6 +2253,7 @@ class MapsManager:
         train_source_loader.dataset.train()
         train_target_loader.dataset.train()
         train_target_unl_loader.dataset.train()
+        combined_data_loader.dataset.train()
 
         early_stopping = EarlyStopping(
             "min", min_delta=self.tolerance, patience=self.patience
@@ -2320,19 +2323,19 @@ class MapsManager:
                     domain_classifier_optimizer.zero_grad()
                     feature_extractor_optimizer.zero_grad()
 
-                    source_label_predictor_optimizer = model.lr_scheduler(
-                        self.learning_rate, source_label_predictor_optimizer, p
-                    )
-                    domain_classifier_optimizer = model.lr_scheduler(
-                        self.learning_rate, domain_classifier_optimizer, p
-                    )
-                    feature_extractor_optimizer = model.lr_scheduler(
-                        self.learning_rate, feature_extractor_optimizer, p
-                    )
+                    # source_label_predictor_optimizer = model.lr_scheduler(
+                    #     self.learning_rate, source_label_predictor_optimizer, p
+                    # )
+                    # domain_classifier_optimizer = model.lr_scheduler(
+                    #     self.learning_rate, domain_classifier_optimizer, p
+                    # )
+                    # feature_extractor_optimizer = model.lr_scheduler(
+                    #     self.learning_rate, feature_extractor_optimizer, p
+                    # )
 
-                    target_label_predictor_optimizer = model.lr_scheduler(
-                        self.learning_rate, target_label_predictor_optimizer, p
-                    )
+                    # target_label_predictor_optimizer = model.lr_scheduler(
+                    #     self.learning_rate, target_label_predictor_optimizer, p
+                    # )
 
                     del loss
 
@@ -2414,39 +2417,39 @@ class MapsManager:
             model.zero_grad()
             logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
 
-            if evaluate_source:
-                logger.info(
-                    f"Evaluate source data at the end of the epoch {epoch} with alpha: {alpha}."
-                )
-                _, metrics_train_source = self.task_manager.test_da(
-                    model,
-                    train_source_loader,
-                    criterion,
-                    alpha,
-                )
-                _, metrics_valid_source = self.task_manager.test_da(
-                    model,
-                    valid_source_loader,
-                    criterion,
-                    alpha,
-                )
+            # if evaluate_source:
+            #     logger.info(
+            #         f"Evaluate source data at the end of the epoch {epoch} with alpha: {alpha}."
+            #     )
+            #     _, metrics_train_source = self.task_manager.test_da(
+            #         model,
+            #         train_source_loader,
+            #         criterion,
+            #         alpha,
+            #     )
+            #     _, metrics_valid_source = self.task_manager.test_da(
+            #         model,
+            #         valid_source_loader,
+            #         criterion,
+            #         alpha,
+            #     )
 
-                log_writer.step(
-                    epoch,
-                    i,
-                    metrics_train_source,
-                    metrics_valid_source,
-                    len(train_source_loader),
-                )
+            #     log_writer.step(
+            #         epoch,
+            #         i,
+            #         metrics_train_source,
+            #         metrics_valid_source,
+            #         len(train_source_loader),
+            #     )
 
-                logger.info(
-                    f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
-                    f"at the end of iteration {i}"
-                )
-                logger.info(
-                    f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
-                    f"at the end of iteration {i}"
-                )
+            #     logger.info(
+            #         f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
+            #         f"at the end of iteration {i}"
+            #     )
+            #     logger.info(
+            #         f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
+            #         f"at the end of iteration {i}"
+            #     )
 
             _, metrics_train_target = self.task_manager.test_da(
                 model,
@@ -2466,6 +2469,7 @@ class MapsManager:
             model.train()
             train_source_loader.dataset.train()
             train_target_loader.dataset.train()
+            combined_data_loader.dataset.train()
 
             log_writer.step(
                 epoch,
