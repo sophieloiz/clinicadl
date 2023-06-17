@@ -930,8 +930,8 @@ class CNN_DANN2ouputs(Network):
         )
 
         images_target, labels_target, domain = (
-            data_lab_target["image"].to(self.device),
-            data_lab_target["label"].to(self.device),
+            data_lab_target["image"]#.to(self.device),
+            data_lab_target["label"]#.to(self.device),
             data_lab_target["domain"],  # .to(self.device),
         )
         logger.info(f"Label : {labels}")
