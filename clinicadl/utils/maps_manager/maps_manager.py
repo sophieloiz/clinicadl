@@ -2275,6 +2275,10 @@ class MapsManager:
         retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
         import numpy as np
 
+        logger.info(f"Combined DATA LOADER : {len(combined_data_loader)}")
+        logger.info(f"TARGET LABELED DATA LOADER : {len(train_target_loader)}")
+        logger.info(f"TARGET UNLABELED DATA LOADER : {len(train_target_unl_loader)}")
+
         while epoch < self.epochs and not early_stopping.step(
             metrics_valid_target["loss"]
         ):
