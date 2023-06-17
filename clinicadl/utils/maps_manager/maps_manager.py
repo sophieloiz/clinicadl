@@ -2239,13 +2239,13 @@ class MapsManager:
 
         criterion = self.task_manager.get_criterion(self.loss)
         logger.debug(f"Criterion for {self.network_task} is {criterion}")
-        # optimizer = self._init_optimizer(model, split=split, resume=resume)
-        (
-            feature_extractor_optimizer,
-            domain_classifier_optimizer,
-            source_label_predictor_optimizer,
-            target_label_predictor_optimizer,
-        ) = self._init_optimizer_dann(model, split=split, resume=resume)
+        optimizer = self._init_optimizer(model, split=split, resume=resume)
+        # (
+        #     feature_extractor_optimizer,
+        #     domain_classifier_optimizer,
+        #     source_label_predictor_optimizer,
+        #     target_label_predictor_optimizer,
+        # ) = self._init_optimizer_dann(model, split=split, resume=resume)
 
         logger.debug(f"Optimizer used for training is optimizer")
 
@@ -2320,23 +2320,25 @@ class MapsManager:
 
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
+                    optimizer.step()
+                    optimizer.zero_grad()
 
-                    source_label_predictor_optimizer.step()
-                    domain_classifier_optimizer.step()
-                    target_label_predictor_optimizer.step()
-                    target_label_predictor_optimizer.zero_grad()
-                    source_label_predictor_optimizer.zero_grad()
-                    domain_classifier_optimizer.zero_grad()
+                    # source_label_predictor_optimizer.step()
+                    # domain_classifier_optimizer.step()
+                    # target_label_predictor_optimizer.step()
+                    # target_label_predictor_optimizer.zero_grad()
+                    # source_label_predictor_optimizer.zero_grad()
+                    # domain_classifier_optimizer.zero_grad()
 
-                    if i > 1488 - (218 * 2):
-                        source_label_predictor_optimizer.step()
-                        domain_classifier_optimizer.step()
-                        feature_extractor_optimizer.step()
-                        target_label_predictor_optimizer.step()
-                        target_label_predictor_optimizer.zero_grad()
-                        source_label_predictor_optimizer.zero_grad()
-                        domain_classifier_optimizer.zero_grad()
-                        feature_extractor_optimizer.zero_grad()
+                    # if i > 1488 - (218 * 2):
+                    #     source_label_predictor_optimizer.step()
+                    #     domain_classifier_optimizer.step()
+                    #     feature_extractor_optimizer.step()
+                    #     target_label_predictor_optimizer.step()
+                    #     target_label_predictor_optimizer.zero_grad()
+                    #     source_label_predictor_optimizer.zero_grad()
+                    #     domain_classifier_optimizer.zero_grad()
+                    #     feature_extractor_optimizer.zero_grad()
 
                     # source_label_predictor_optimizer = model.lr_scheduler(
                     #     self.learning_rate, source_label_predictor_optimizer, p
@@ -2415,18 +2417,18 @@ class MapsManager:
 
             # Update weights one last time if gradients were computed without update
             if (i + 1) % self.accumulation_steps != 0:
-                # optimizer.step()
-                # optimizer.zero_grad()
+                optimizer.step()
+                optimizer.zero_grad()
                 # optimizer = model.lr_scheduler(self.learning_rate, optimizer, p)
-                source_label_predictor_optimizer.step()
-                domain_classifier_optimizer.step()
-                feature_extractor_optimizer.step()
-                target_label_predictor_optimizer.step()
+                # source_label_predictor_optimizer.step()
+                # domain_classifier_optimizer.step()
+                # feature_extractor_optimizer.step()
+                # target_label_predictor_optimizer.step()
 
-                source_label_predictor_optimizer.zero_grad()
-                domain_classifier_optimizer.zero_grad()
-                feature_extractor_optimizer.zero_grad()
-                target_label_predictor_optimizer.zero_grad()
+                # source_label_predictor_optimizer.zero_grad()
+                # domain_classifier_optimizer.zero_grad()
+                # feature_extractor_optimizer.zero_grad()
+                # target_label_predictor_optimizer.zero_grad()
 
             # Always test the results and save them once at the end of the epoch
             model.zero_grad()
@@ -2518,7 +2520,7 @@ class MapsManager:
             )
             self._write_weights(
                 {
-                    "optimizer": feature_extractor_optimizer.state_dict(),
+                    "optimizer": optimizer.state_dict(),
                     "epoch": epoch,
                     "name": self.optimizer,
                 },
