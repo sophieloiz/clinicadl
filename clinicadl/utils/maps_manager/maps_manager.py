@@ -2301,8 +2301,9 @@ class MapsManager:
                 logger.info(
                     f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
                 )
-                if i > 515:
+                if i < 515:
                     data_target = iter(train_target_loader)
+                    print(data_target)
                     _, _, loss_dict = model.compute_outputs_and_loss_new_lab_target(
                         data_lab, data_target, data_target_unl, criterion, alpha
                     )
