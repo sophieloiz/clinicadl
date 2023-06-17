@@ -2323,12 +2323,20 @@ class MapsManager:
 
                     source_label_predictor_optimizer.step()
                     domain_classifier_optimizer.step()
-                    feature_extractor_optimizer.step()
                     target_label_predictor_optimizer.step()
                     target_label_predictor_optimizer.zero_grad()
                     source_label_predictor_optimizer.zero_grad()
                     domain_classifier_optimizer.zero_grad()
-                    feature_extractor_optimizer.zero_grad()
+
+                    if i > 1488 - (218 * 2):
+                        source_label_predictor_optimizer.step()
+                        domain_classifier_optimizer.step()
+                        feature_extractor_optimizer.step()
+                        target_label_predictor_optimizer.step()
+                        target_label_predictor_optimizer.zero_grad()
+                        source_label_predictor_optimizer.zero_grad()
+                        domain_classifier_optimizer.zero_grad()
+                        feature_extractor_optimizer.zero_grad()
 
                     # source_label_predictor_optimizer = model.lr_scheduler(
                     #     self.learning_rate, source_label_predictor_optimizer, p
