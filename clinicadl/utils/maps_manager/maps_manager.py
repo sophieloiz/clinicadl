@@ -2296,7 +2296,7 @@ class MapsManager:
                 )
                 if i > 515:
                     _, _, loss_dict = model.compute_outputs_and_loss_new_lab_target(
-                        data_lab, data_target, data_target_unl, criterion, alpha
+                        data_lab, data_target, data_target_unl, criterion, 0
                     )
 
                 else:
