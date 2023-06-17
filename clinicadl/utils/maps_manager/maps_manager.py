@@ -2253,7 +2253,7 @@ class MapsManager:
         train_source_loader.dataset.train()
         train_target_loader.dataset.train()
         train_target_unl_loader.dataset.train()
-        combined_data_loader.dataset.train()
+        # combined_data_loader.dataset.train()
 
         early_stopping = EarlyStopping(
             "min", min_delta=self.tolerance, patience=self.patience
@@ -2469,7 +2469,7 @@ class MapsManager:
             model.train()
             train_source_loader.dataset.train()
             train_target_loader.dataset.train()
-            combined_data_loader.dataset.train()
+            # combined_data_loader.dataset.train()
 
             log_writer.step(
                 epoch,
