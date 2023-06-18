@@ -2289,21 +2289,24 @@ class MapsManager:
 
             data_target_ = iter(train_target_loader)
 
+            # for i, (data_lab, data_target_unl) in enumerate(
+            #     zip(combined_data_loader, train_target_unl_loader)
+            # ):
             for i, (data_lab, data_target_unl) in enumerate(
-                zip(combined_data_loader, train_target_unl_loader)
+                zip(train_source_loader, train_target_unl_loader)
             ):
 
                 p = (
-                    float(epoch * len(combined_data_loader))
+                    float(epoch * len(train_source_loader))
                     / 10
-                    / len(combined_data_loader)
+                    / len(train_source_loader)
                 )
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
                 # alpha = 0.1
                 logger.info(
-                    f"Iteration {i} out of {len(combined_data_loader)} with alpha = {alpha}"
+                    f"Iteration {i} out of {len(train_source_loader)} with alpha = {alpha}"
                 )
-                if i > 1488 - (218 * 2):
+                if i > 1488 - (218):  # * 2):
                     data_target = next(data_target_)
                     _, _, loss_dict = model.compute_outputs_and_loss_new_lab_target(
                         data_lab, data_target, data_target_unl, criterion, 0
@@ -2321,13 +2324,6 @@ class MapsManager:
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
 
-                    source_label_predictor_optimizer.step()
-                    domain_classifier_optimizer.step()
-                    target_label_predictor_optimizer.step()
-                    target_label_predictor_optimizer.zero_grad()
-                    source_label_predictor_optimizer.zero_grad()
-                    domain_classifier_optimizer.zero_grad()
-
                     if i > 1488 - (218 * 2):
                         source_label_predictor_optimizer.step()
                         domain_classifier_optimizer.step()
@@ -2337,6 +2333,13 @@ class MapsManager:
                         source_label_predictor_optimizer.zero_grad()
                         domain_classifier_optimizer.zero_grad()
                         feature_extractor_optimizer.zero_grad()
+                    else:
+                        source_label_predictor_optimizer.step()
+                        domain_classifier_optimizer.step()
+                        target_label_predictor_optimizer.step()
+                        target_label_predictor_optimizer.zero_grad()
+                        source_label_predictor_optimizer.zero_grad()
+                        domain_classifier_optimizer.zero_grad()
 
                     # source_label_predictor_optimizer = model.lr_scheduler(
                     #     self.learning_rate, source_label_predictor_optimizer, p
