@@ -746,8 +746,8 @@ class CNN_MME(Network):
 
         images = input_dict["image"].to(self.device).to(self.device)
         _, train_output = self.forward(images, reverse=True)
-        loss = self.adentropy(train_output)
-        # loss = self.entropy(train_output)
+        # loss = self.adentropy(train_output)
+        loss = self.entropy(train_output)
 
         return train_output, {"loss_entropy": loss}
 
