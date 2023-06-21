@@ -5,7 +5,7 @@ import click
 from clinicadl.utils import cli_param
 
 
-@click.command(name="trivial_motion", no_args_is_help=True)
+@click.command(name="trivial_artefact", no_args_is_help=True)
 @cli_param.argument.caps_directory
 @cli_param.argument.generated_caps
 @cli_param.option.n_proc
