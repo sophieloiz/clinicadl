@@ -54,16 +54,13 @@ def cli(
     from .generate import generate_artefacted_dataset
 
     generate_artefacted_dataset(
-        caps_directory=caps_directory,
+        caps_directory=str(caps_directory),
         tsv_path=participants_tsv,
         preprocessing=preprocessing,
         output_dir=generated_caps_directory,
         uncropped_image=use_uncropped_image,
         tracer=tracer,
         suvr_reference_region=suvr_reference_region,
-        translation=translation,
-        rotation=rotation,
-        num_transforms=num_transforms,
         n_proc=n_proc,
     )
 

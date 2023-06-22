@@ -130,6 +130,7 @@ class CapsDataset(Dataset):
                     check_caps_folder(caps_path)
                     caps_dict[cohort] = caps_path
         else:
+            # print("No CHeck CAPS")
             check_caps_folder(caps_directory)
             caps_dict = {"single": caps_directory}
 

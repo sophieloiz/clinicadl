@@ -928,6 +928,8 @@ def generate_artefacted_dataset(
     )
 
     # Transform caps_directory in dict
+    print(caps_directory)
+
     caps_dict = CapsDataset.create_caps_dict(caps_directory, multi_cohort=multi_cohort)
     # Read DataFrame
     data_df = load_and_check_tsv(tsv_path, caps_dict, output_dir)
@@ -961,20 +963,20 @@ def generate_artefacted_dataset(
         artefacted_image_nii_dir = (
             output_dir
             / "subjects"
-            / f"{participant_id}-RM{data_idx}"
+            / f"{participant_id}{data_idx}"
             / session_id
             / preprocessing
         )
         artefacted_image_nii_filename = (
-            f"{participant_id}-RM{data_idx}_{session_id}_{filename_pattern}"
+            f"{participant_id}{data_idx}_{session_id}_{filename_pattern}"
         )
 
         artefacted_image_nii_dir.mkdir(parents=True, exist_ok=True)
 
         artefacted = tio.Compose(
             [
-                tio.RandomMotion(degrees=(2, 4), translation=(2, 4), p=0.5),
-                tio.RandomNoise(std=(5, 30), p=0.5),
+                tio.RandomMotion(degrees=(2, 4), translation=(2, 4), p=0.7),
+                tio.RandomNoise(std=(5, 30), p=0.7),
             ]
         )
 
@@ -984,18 +986,19 @@ def generate_artefacted_dataset(
             artefacted_image_nii_dir / artefacted_image_nii_filename
         )
         reproduce_transform = artefacted_image.get_composed_history()
+        print(reproduce_transform)
         for transform in reproduce_transform.transforms:
             transform_type = type(transform).__name__
             if transform_type == "Motion":
                 # degrees = transform.degrees['one_image']
                 # translation = transform.translation['one_image']
                 motion = 1
-            elif transform_type == "RandomNoise":
+            if transform_type == "Noise":
                 # std = transform.std['one_image']
                 noise = 1
 
         # Append row to output tsv
-        row = [f"{participant_id}_RN{data_idx}", session_id, motion, noise]
+        row = [f"{participant_id}_{data_idx}", session_id, motion, noise]
         row_df = pd.DataFrame([row], columns=columns)
         output_df = pd.concat([output_df, row_df])
 

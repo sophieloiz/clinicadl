@@ -17,7 +17,7 @@ def DeepLearningPrepareData(caps_directory: Path, tsv_file: Path, n_proc, parame
     logger = getLogger("clinicadl.prepare_data")
 
     # Get subject and session list
-    check_caps_folder(caps_directory)
+    check_caps_folder(str(caps_directory))
     logger.debug(f"CAPS directory: {caps_directory}.")
     is_bids_dir = False
     sessions, subjects = get_subject_session_list(

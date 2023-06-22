@@ -5,7 +5,7 @@ from .generate_random_cli import cli as generate_random_cli
 from .generate_shepplogan_cli import cli as generate_shepplogan_cli
 from .generate_trivial_cli import cli as generate_trivial_cli
 from .generate_trivial_motion_cli import cli as generate_trivial_motion_cli
-from .generate_trivial_artefact_cli import cli as generate_trivial_artefacts_cli
+from .generate_trivial_artefacts_cli import cli as generate_trivial_artefacts_cli
 
 
 class RegistrationOrderGroup(click.Group):
