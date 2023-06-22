@@ -76,6 +76,7 @@ class MapsManager:
             test_parameters = self.get_parameters()
             self.parameters = change_str_to_path(test_parameters)
             self.task_manager = self._init_task_manager(n_classes=self.output_size)
+            print(self.parameters)
             self.split_name = (
                 self._check_split_wording()
             )  # Used only for retro-compatibility
@@ -146,7 +147,9 @@ class MapsManager:
         if self.multi_network:
             self._train_multi(split_list, resume=False)
         else:
-            self._train_single(split_list, resume=False)
+            #self._train_single(split_list, resume=False)
+            self._train_mt(split_list, resume=False)
+
 
     def resume(self, split_list: List[int] = None):
         """
@@ -686,6 +689,95 @@ class MapsManager:
 
             self._erase_tmp(split)
 
+    def _train_mt(self, split_list=None, resume=False):
+            """
+            Trains a single CNN for all inputs.
+
+            Args:
+                split_list (list[int]): list of splits that are trained.
+                resume (bool): If True the job is resumed from checkpoint.
+            """
+            from torch.utils.data import DataLoader
+
+            train_transforms, all_transforms = get_transforms(
+                normalize=self.normalize,
+                data_augmentation=self.data_augmentation,
+                size_reduction=self.size_reduction,
+                size_reduction_factor=self.size_reduction_factor,
+            )
+            split_manager = self._init_split_manager(split_list)
+            for split in split_manager.split_iterator():
+                logger.info(f"Training split {split}")
+                seed_everything(self.seed, self.deterministic, self.compensation)
+
+                split_df_dict = split_manager[split]
+
+                logger.debug("Loading training data...")
+                data_train = return_dataset(
+                    self.caps_directory,
+                    split_df_dict["train"],
+                    self.preprocessing_dict,
+                    train_transformations=train_transforms,
+                    all_transformations=all_transforms,
+                    multi_cohort=self.multi_cohort,
+                    label=self.label,
+                    label_code=self.label_code,
+                    label2=self.label2,
+                    label_code2=self.label_code2,
+                )
+                logger.debug("Loading validation data...")
+                data_valid = return_dataset(
+                    self.caps_directory,
+                    split_df_dict["validation"],
+                    self.preprocessing_dict,
+                    train_transformations=train_transforms,
+                    all_transformations=all_transforms,
+                    multi_cohort=self.multi_cohort,
+                    label=self.label,
+                    label_code=self.label_code,
+                    label2=self.label2,
+                    label_code2=self.label_code2,
+                )
+                train_sampler = self.task_manager.generate_sampler(data_train, self.sampler)
+                logger.debug(
+                    f"Getting train and validation loader with batch size {self.batch_size}"
+                )
+                train_loader = DataLoader(
+                    data_train,
+                    batch_size=self.batch_size,
+                    sampler=train_sampler,
+                    num_workers=self.n_proc,
+                    worker_init_fn=pl_worker_init_function,
+                )
+                logger.debug(f"Train loader size is {len(train_loader)}")
+                valid_loader = DataLoader(
+                    data_valid,
+                    batch_size=self.batch_size,
+                    shuffle=False,
+                    num_workers=self.n_proc,
+                )
+                logger.debug(f"Validation loader size is {len(valid_loader)}")
+
+                self._train_multitask(
+                    train_loader,
+                    valid_loader,
+                    split,
+                    resume=resume,
+                )
+
+                self._ensemble_prediction(
+                    "train",
+                    split,
+                    self.selection_metrics,
+                )
+                self._ensemble_prediction(
+                    "validation",
+                    split,
+                    self.selection_metrics,
+                )
+
+                self._erase_tmp(split)
+
     def _train_multi(self, split_list: List[int] = None, resume: bool = False):
         """
         Trains a single CNN per element in the image.
@@ -792,6 +884,218 @@ class MapsManager:
             )
 
             self._erase_tmp(split)
+
+    def _train_multitask(self,
+            train_loader,
+            valid_loader,
+            split,
+            network=None,
+            resume=False,):
+        """
+        Function used to train a CNN.
+        The best model and checkpoint will be found in the 'best_model_dir' of options.output_dir.
+
+        Args:
+            model: (Module) CNN to be trained
+            train_loader: (DataLoader) wrapper of the training dataset
+            valid_loader: (DataLoader) wrapper of the validation dataset
+            criterion: (loss) function to calculate the loss
+            optimizer: (torch.optim) optimizer linked to model parameters
+            resume: (bool) if True, a begun job is resumed
+            log_dir: (str) path to the folder containing the logs
+            model_dir: (str) path to the folder containing the models weights and biases
+            options: (Namespace) ensemble of other options given to the main script.
+        """
+        print('multitask training ')
+
+        
+
+        model, beginning_epoch = self._init_model(
+            split=split,
+            resume=resume,
+            transfer_path=self.transfer_path,
+            transfer_selection=self.transfer_selection_metric,
+        )
+        criterion = self.task_manager.get_criterion(self.loss)
+        logger.info(f"Criterion for {self.network_task} is {criterion}")
+        optimizer = self._init_optimizer(model, split=split, resume=resume)
+        logger.debug(f"Optimizer used for training is optimizer")
+
+        model.train()
+        train_loader.dataset.train()
+
+        early_stopping = EarlyStopping(
+            "min", min_delta=self.tolerance, patience=self.patience
+        )
+        metrics_valid = {"loss": None}
+
+        log_writer = LogWriter(
+            self.maps_path,
+            self.task_manager.evaluation_metrics + ["loss"],
+            split,
+            resume=resume,
+            beginning_epoch=beginning_epoch,
+            network=network,
+        )
+        epoch = log_writer.beginning_epoch
+
+        retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
+
+        profiler = self._init_profiler()
+
+        while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
+            logger.info(f"Beginning epoch {epoch}.")
+
+            model.zero_grad()
+            evaluation_flag, step_flag = True, True
+
+            with profiler:
+                for i, data in enumerate(train_loader):
+                    _,_, loss_dict = model.compute_outputs_and_loss_multi(data, criterion)
+                    logger.debug(f"Train loss dictionnary {loss_dict}")
+                    loss = loss_dict["loss"]
+                    loss.backward()
+
+                    if (i + 1) % self.accumulation_steps == 0:
+                        step_flag = False
+                        optimizer.step()
+                        optimizer.zero_grad()
+
+                        del loss
+
+                        # Evaluate the model only when no gradients are accumulated
+                        if (
+                            self.evaluation_steps != 0
+                            and (i + 1) % self.evaluation_steps == 0
+                        ):
+                            evaluation_flag = False
+
+                            _, metrics_train = self.task_manager.test_mt(
+                                model, train_loader, criterion
+                            )
+                            _, metrics_valid = self.task_manager.test_mt(
+                                model, valid_loader, criterion
+                            )
+
+                            model.train()
+                            train_loader.dataset.train()
+
+                            log_writer.step(
+                                epoch,
+                                i,
+                                metrics_train,
+                                metrics_valid,
+                                len(train_loader),
+                            )
+                            logger.info(
+                                f"{self.mode} level training loss is {metrics_train['loss']} "
+                                f"at the end of iteration {i}"
+                            )
+                            logger.info(
+                                f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                                f"at the end of iteration {i}"
+                            )
+
+                    profiler.step()
+
+            # If no step has been performed, raise Exception
+            if step_flag:
+                raise Exception(
+                    "The model has not been updated once in the epoch. The accumulation step may be too large."
+                )
+
+            # If no evaluation has been performed, warn the user
+            elif evaluation_flag and self.evaluation_steps != 0:
+                logger.warning(
+                    f"Your evaluation steps {self.evaluation_steps} are too big "
+                    f"compared to the size of the dataset. "
+                    f"The model is evaluated only once at the end epochs."
+                )
+
+            # Update weights one last time if gradients were computed without update
+            if (i + 1) % self.accumulation_steps != 0:
+                optimizer.step()
+                optimizer.zero_grad()
+
+            # Always test the results and save them once at the end of the epoch
+            model.zero_grad()
+            logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
+
+            _, metrics_train = self.task_manager.test_mt(model, train_loader, criterion)
+            _, metrics_valid = self.task_manager.test_mt(model, valid_loader, criterion)
+
+            model.train()
+            train_loader.dataset.train()
+
+            log_writer.step(epoch, i, metrics_train, metrics_valid, len(train_loader))
+            logger.info(
+                f"{self.mode} level training loss is {metrics_train['loss']} "
+                f"at the end of iteration {i}"
+            )
+            logger.info(
+                f"{self.mode} level validation loss is {metrics_valid['loss']} "
+                f"at the end of iteration {i}"
+            )
+
+            # Save checkpoints and best models
+            best_dict = retain_best.step(metrics_valid)
+            self._write_weights(
+                {
+                    "model": model.state_dict(),
+                    "epoch": epoch,
+                    "name": self.architecture,
+                },
+                best_dict,
+                split,
+                network=network,
+            )
+            self._write_weights(
+                {
+                    "optimizer": optimizer.state_dict(),
+                    "epoch": epoch,
+                    "name": self.optimizer,
+                },
+                None,
+                split,
+                filename="optimizer.pth.tar",
+            )
+
+            epoch += 1
+
+        self._test_loader_mt(
+            train_loader,
+            criterion,
+            "train",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+        self._test_loader_mt(
+            valid_loader,
+            criterion,
+            "validation",
+            split,
+            self.selection_metrics,
+            network=network,
+        )
+
+        if self.task_manager.save_outputs:
+            self._compute_output_tensors(
+                train_loader.dataset,
+                "train",
+                split,
+                self.selection_metrics,
+                nb_images=1,
+                network=network,
+            )
+            self._compute_output_tensors(
+                train_loader.dataset,
+                "validation",
+                split,
+                self.selection_metrics,
+                nb_images=1,
+                network=network,
+            )
 
     def _train(
         self,
@@ -1060,6 +1364,67 @@ class MapsManager:
                 prediction_df, metrics, split, selection_metric, data_group=data_group
             )
 
+    def _test_loader_mt(
+            self,
+            dataloader,
+            criterion,
+            data_group,
+            split,
+            selection_metrics,
+            use_labels=True,
+            gpu=None,
+            network=None,
+        ):
+            """
+            Launches the testing task on a dataset wrapped by a DataLoader and writes prediction TSV files.
+
+            Args:
+                dataloader (torch.utils.data.DataLoader): DataLoader wrapping the test CapsDataset.
+                criterion (torch.nn.modules.loss._Loss): optimization criterion used during training.
+                data_group (str): name of the data group used for the testing task.
+                split (int): Index of the split used to train the model tested.
+                selection_metrics (list[str]): List of metrics used to select the best models which are tested.
+                use_labels (bool): If True, the labels must exist in test meta-data and metrics are computed.
+                gpu (bool): If given, a new value for the device of the model will be computed.
+                network (int): Index of the network tested (only used in multi-network setting).
+            """
+            for selection_metric in selection_metrics:
+                log_dir = (
+                    self.maps_path
+                    / f"{self.split_name}-{split}"
+                    / f"best-{selection_metric}"
+                    / data_group
+                )
+                self.write_description_log(
+                    log_dir,
+                    data_group,
+                    dataloader.dataset.caps_dict,
+                    dataloader.dataset.df,
+                )
+
+                # load the best trained model during the training
+                model, _ = self._init_model(
+                    transfer_path=self.maps_path,
+                    split=split,
+                    transfer_selection=selection_metric,
+                    gpu=gpu,
+                    network=network,
+                )
+                prediction_df, prediction2_df, metrics = self.task_manager.test_mt(
+                    model, dataloader, criterion, use_labels=use_labels
+                )
+                if use_labels:
+                    if network is not None:
+                        metrics[f"{self.mode}_id"] = network
+                    logger.info(
+                        f"{self.mode} level {data_group} loss is {metrics['loss']} for model selected on {selection_metric}"
+                    )
+
+                # Replace here
+                self._mode_level_to_tsv(
+                    prediction_df, metrics, split, selection_metric, data_group=data_group
+                )
+
     def _compute_output_nifti(
         self,
         dataset,
@@ -1309,11 +1674,14 @@ class MapsManager:
             size_reduction=self.size_reduction,
             size_reduction_factor=self.size_reduction_factor,
         )
-
+        
         split_manager = self._init_split_manager(None)
         train_df = split_manager[0]["train"]
+        print(self.parameters)
         if "label" not in self.parameters:
             self.parameters["label"] = None
+        if "label2" not in self.parameters:
+            self.parameters["label2"] = None
 
         self.task_manager = self._init_task_manager(df=train_df)
 
@@ -1327,6 +1695,13 @@ class MapsManager:
         ):  # Allows to set custom label code in TOML
             self.parameters["label_code"] = self.task_manager.generate_label_code(
                 train_df, self.label
+            )
+        if (
+            "label_code2" not in self.parameters
+            or len(self.parameters["label_code2"]) == 0
+        ):  # Allows to set custom label code in TOML
+            self.parameters["label_code2"] = self.task_manager.generate_label_code(
+                train_df, self.label2
             )
         full_dataset = return_dataset(
             self.caps_directory,
@@ -1995,8 +2370,10 @@ class MapsManager:
         args.remove("self")
         args.remove("split_list")
         kwargs = {"split_list": split_list}
+        print(args)
         for arg in args:
             kwargs[arg] = self.parameters[arg]
+        print(kwargs)
         return split_class(**kwargs)
 
     def _init_task_manager(self, df=None, n_classes=None):
@@ -2010,7 +2387,7 @@ class MapsManager:
             if n_classes is not None:
                 return ClassificationManager(self.mode, n_classes=n_classes)
             else:
-                return ClassificationManager(self.mode, df=df, label=self.label)
+                return ClassificationManager(self.mode, df=df, label=self.label, label2=self.label2)
         elif self.network_task == "regression":
             return RegressionManager(self.mode)
         elif self.network_task == "reconstruction":

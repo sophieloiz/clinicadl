@@ -246,8 +246,8 @@ class SplitManager:
                     check_caps_folder(caps_path)
                     caps_dict[cohort] = caps_path
         else:
-            check_caps_folder(caps_directory)
-            caps_dict = {"single": caps_directory}
+            check_caps_folder(str(caps_directory))
+            caps_dict = {"single": str(caps_directory)}
 
         return caps_dict
 

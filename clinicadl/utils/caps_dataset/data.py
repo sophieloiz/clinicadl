@@ -50,6 +50,8 @@ class CapsDataset(Dataset):
         label_presence: bool,
         label: str = None,
         label_code: Dict[Any, int] = None,
+        label2: str = None,
+        label_code2: Dict[Any, int] = None,
         augmentation_transformations: Optional[Callable] = None,
         multi_cohort: bool = False,
     ):
@@ -60,7 +62,9 @@ class CapsDataset(Dataset):
         self.eval_mode = False
         self.label_presence = label_presence
         self.label = label
+        self.label2 = label2
         self.label_code = label_code
+        self.label_code2 = label_code2
         self.preprocessing_dict = preprocessing_dict
 
         if not hasattr(self, "elem_index"):
@@ -108,6 +112,18 @@ class CapsDataset(Dataset):
         else:
             return self.label_code[str(target)]
 
+    def label_fn_mt(self, target: Union[str, float, int]) -> Union[float, int]:
+            """
+            Returns the label value usable in criterion.
+
+            Args:
+                target: value of the target.
+            Returns:
+                label: value of the label usable in criterion.
+            """
+
+            return self.label_code[str(target)]
+
     def __len__(self) -> int:
         return len(self.df) * self.elem_per_image
 
@@ -131,7 +147,7 @@ class CapsDataset(Dataset):
                     caps_dict[cohort] = caps_path
         else:
             # print("No CHeck CAPS")
-            check_caps_folder(caps_directory)
+            check_caps_folder(str(caps_directory))
             caps_dict = {"single": caps_directory}
 
         return caps_dict
@@ -177,6 +193,7 @@ class CapsDataset(Dataset):
             results = clinica_file_reader(
                 [participant], [session], self.caps_dict[cohort], file_type
             )
+
             filepath = results[0]
             image_path = Path(filepath[0])
 
@@ -205,12 +222,13 @@ class CapsDataset(Dataset):
         else:
             elem_idx = self.elem_index
         if self.label_presence and self.label is not None:
-            target = self.df.loc[image_idx, self.label]
+            target, target2 = self.df.loc[image_idx, [self.label, "noise"]]
             label = self.label_fn(target)
+            label2 = self.label_fn_mt(target2)
         else:
             label = -1
-
-        return participant, session, cohort, elem_idx, label
+            label2 = -1
+        return participant, session, cohort, elem_idx, label, label2
 
     def _get_full_image(self) -> torch.Tensor:
         """
@@ -288,6 +306,9 @@ class CapsDatasetImage(CapsDataset):
         label_presence: bool = True,
         label: str = None,
         label_code: Dict[str, int] = None,
+        label2: str = None,
+        label_code2: Dict[str, int] = None,
+        
         all_transformations: Optional[Callable] = None,
         multi_cohort: bool = False,
     ):
@@ -324,7 +345,7 @@ class CapsDatasetImage(CapsDataset):
         return None
 
     def __getitem__(self, idx):
-        participant, session, cohort, _, label = self._get_meta_data(idx)
+        participant, session, cohort, _, label, label2 = self._get_meta_data(idx)
 
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
@@ -338,6 +359,7 @@ class CapsDatasetImage(CapsDataset):
         sample = {
             "image": image,
             "label": label,
+            "label2": label2,
             "participant_id": participant,
             "session_id": session,
             "image_id": 0,
@@ -731,6 +753,8 @@ def return_dataset(
     all_transformations: Optional[Callable],
     label: str = None,
     label_code: Dict[str, int] = None,
+    label2: str = None,
+    label_code2: Dict[str, int] = None,
     train_transformations: Optional[Callable] = None,
     cnn_index: int = None,
     label_presence: bool = True,
@@ -768,6 +792,8 @@ def return_dataset(
             label_presence=label_presence,
             label=label,
             label_code=label_code,
+            label2=label2,
+            label_code2=label_code2,
             multi_cohort=multi_cohort,
         )
     elif preprocessing_dict["mode"] == "patch":

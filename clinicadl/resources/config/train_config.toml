@@ -22,6 +22,8 @@ normalization = "batch"
 selection_metrics = ["loss"]
 label = "diagnosis"
 label_code = {}
+label2 = "noise"
+label2_code = {}
 selection_threshold = 0.0 # Will only be used if num_networks != 1
 loss = "CrossEntropyLoss"
 

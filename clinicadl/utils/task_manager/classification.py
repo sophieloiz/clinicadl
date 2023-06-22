@@ -21,10 +21,12 @@ class ClassificationManager(TaskManager):
         n_classes=None,
         df=None,
         label=None,
+        label2=None
     ):
         if n_classes is None:
             n_classes = self.output_size(None, df, label)
         self.n_classes = n_classes
+
         super().__init__(mode, n_classes)
 
     @property
@@ -35,6 +37,18 @@ class ClassificationManager(TaskManager):
             f"{self.mode}_id",
             "true_label",
             "predicted_label",
+        ] + [f"proba{i}" for i in range(self.n_classes)]
+
+    @property
+    def columns_mt(self):
+        return [
+            "participant_id",
+            "session_id",
+            f"{self.mode}_id",
+            "true_label",
+            "predicted_label",
+        ] + [f"proba{i}" for i in range(self.n_classes)] +[ "true_label2",
+            "predicted_label2",
         ] + [f"proba{i}" for i in range(self.n_classes)]
 
     @property
@@ -58,12 +72,48 @@ class ClassificationManager(TaskManager):
             ]
             + [normalized_output[i].item() for i in range(self.n_classes)]
         ]
+    
+    def generate_test_row_mt(self, idx, data, outputs, outputs2):
+        prediction = torch.argmax(outputs[idx].data).item()
+        prediction2 = torch.argmax(outputs2[idx].data).item()
+
+        normalized_output = softmax(outputs[idx], dim=0)
+        normalized_output2 = softmax(outputs2[idx], dim=0)
+
+        return [
+            [
+                data["participant_id"][idx],
+                data["session_id"][idx],
+                data[f"{self.mode}_id"][idx].item(),
+                data["label"][idx].item(),
+                prediction,
+                data["label2"][idx].item(),
+                prediction2,
+            ]
+            + [normalized_output[i].item() for i in range(self.n_classes)]
+            + [normalized_output2[i].item() for i in range(self.n_classes)]
+
+        ]
 
     def compute_metrics(self, results_df):
         return self.metrics_module.apply(
             results_df.true_label.values,
             results_df.predicted_label.values,
         )
+    
+    def compute_metrics_mt(self, results_df):
+        res_1 = self.metrics_module.apply(
+            results_df.true_label.values,
+            results_df.predicted_label.values,
+        )
+        res_2 = self.metrics_module.apply(
+            results_df.true_label2.values,
+            results_df.predicted_label2.values,
+        )
+        print(res_1)
+        print(res_2)
+
+        return {**res_1, **res_2}
 
     @staticmethod
     def generate_label_code(df, label):
