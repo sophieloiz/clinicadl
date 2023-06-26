@@ -16,6 +16,7 @@ from clinicadl.utils.network.network_utils import (
 from torch.fft import fftn, ifftn, fftshift, ifftshift
 from torch.autograd import Function
 import torch.nn.functional as F
+from einops import rearrange, repeat
 
 logger = getLogger("clinicadl")
 
