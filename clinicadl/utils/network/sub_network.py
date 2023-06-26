@@ -189,14 +189,13 @@ class ViT(Network):
 
     def forward(self, img, mask=None):
         p = self.patch_size
-        from einops import rearrange, repeat
 
         x = rearrange(
-            img[:, :, :, :, :176],
+            img[:, :, :168, :, :177],
             "b c (x p1) (y p2) (z p3) -> b (x y z) (p1 p2 p3 c)",
-            p1=p,
-            p2=p,
-            p3=16,
+            p1=56,
+            p2=52,
+            p3=59,
         )
         print(x.shape)
         x = self.patch_to_embedding(x)

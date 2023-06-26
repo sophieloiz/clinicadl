@@ -44,22 +44,6 @@ class ViTVNet(ViT):
             "mean",
         }, "pool type must be either cls (cls token) or mean (mean pooling)"
 
-        # num_patches = (
-        #     (image_size[0] // patch_size)
-        #     * (image_size[1] // patch_size)
-        #     * (image_size[2] - 3 // patch_size)
-        # )
-        # print(num_patches)
-        # print(MIN_NUM_PATCHES)
-        # patch_dim = channels * patch_size**2 * 16
-        # assert (
-        #     num_patches > MIN_NUM_PATCHES
-        # ), f"your number of patches ({num_patches}) is way too small for attention to be effective (at least 16). Try decreasing your patch size"
-        # assert pool in {
-        #     "cls",
-        #     "mean",
-        # }, "pool type must be either cls (cls token) or mean (mean pooling)"
-
         pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
         patch_to_embedding = nn.Linear(patch_dim, dim)
         cls_token = nn.Parameter(torch.randn(1, 1, dim))

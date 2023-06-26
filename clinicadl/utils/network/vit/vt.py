@@ -26,14 +26,14 @@ class PreNorm(nn.Module):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.):
+    def __init__(self, dim, hidden_dim, dropout=0.0):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
     def forward(self, x):
@@ -41,37 +41,34 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0):
         super().__init__()
         inner_dim = dim_head * heads
         self.heads = heads
-        self.scale = dim ** -0.5
+        self.scale = dim**-0.5
 
         self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(0)
-        )
+        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(0))
 
     def forward(self, x, mask=None):
         b, n, _, h = *x.shape, self.heads
         qkv = self.to_qkv(x).chunk(3, dim=-1)
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), qkv)
+        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=h), qkv)
 
-        dots = torch.einsum('bhid,bhjd->bhij', q, k) * self.scale
+        dots = torch.einsum("bhid,bhjd->bhij", q, k) * self.scale
         mask_value = -torch.finfo(dots.dtype).max
 
         if mask is not None:
             mask = F.pad(mask.flatten(1), (1, 0), value=True)
-            assert mask.shape[-1] == dots.shape[-1], 'mask has incorrect dimensions'
+            assert mask.shape[-1] == dots.shape[-1], "mask has incorrect dimensions"
             mask = mask[:, None, :] * mask[:, :, None]
             dots.masked_fill_(~mask, mask_value)
             del mask
 
         attn = dots.softmax(dim=-1)
 
-        out = torch.einsum('bhij,bhjd->bhid', attn, v)
-        out = rearrange(out, 'b h n d -> b n (h d)')
+        out = torch.einsum("bhij,bhjd->bhid", attn, v)
+        out = rearrange(out, "b h n d -> b n (h d)")
         out = self.to_out(out)
         return out
 
@@ -81,21 +78,24 @@ class Transformer(nn.Module):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                Residual(PreNorm(dim, Attention(dim, heads=heads,
-                                                dim_head=dim_head, dropout=dropout))),
-                Residual(PreNorm(dim, FeedForward(
-                    dim, mlp_dim, dropout=0)))
-            ]))
+            self.layers.append(
+                nn.ModuleList(
+                    [
+                        Residual(
+                            PreNorm(
+                                dim,
+                                Attention(
+                                    dim, heads=heads, dim_head=dim_head, dropout=dropout
+                                ),
+                            )
+                        ),
+                        Residual(PreNorm(dim, FeedForward(dim, mlp_dim, dropout=0))),
+                    ]
+                )
+            )
 
     def forward(self, x, mask=None):
         for attn, ff in self.layers:
             x = attn(x, mask=mask)
             x = ff(x)
         return x
-
-
-
-
-
-
