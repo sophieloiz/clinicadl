@@ -189,6 +189,7 @@ class ViT(Network):
 
     def forward(self, img, mask=None):
         p = self.patch_size
+        from einops import rearrange, repeat
 
         x = rearrange(
             img[:, :, :, :, :176],
