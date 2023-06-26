@@ -123,8 +123,8 @@ class CNN(Network):
 
     def forward(self, x):
         x = self.convolutions(x)
-        print("Attention Net : resize function")
-        x = x.view(x.size(0), -1)  # for attentionnet
+        # print("Attention Net : resize function")
+        # x = x.view(x.size(0), -1)  # for attentionnet
         return self.fc(x)
 
     def predict(self, x):
