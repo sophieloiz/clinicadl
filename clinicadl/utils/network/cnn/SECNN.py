@@ -20,34 +20,34 @@ class SE_Blocks(nn.Module):
         self.act1 = nn.ReLU()
         self.act2 = nn.Sigmoid()
 
-    def forward(self, x):
-        batch_size, num_channels, D, H, W = x.size()
-        out = self.avg_pooling_3D(x)
-        out = self.fc1(x.view(batch_size, num_channels))
-        out = self.act1(x)
-        out = self.fc2(x)
-        out = self.act2(x)
-        out = torch.mul(x, out.view(batch_size, num_channels, 1, 1, 1))
-        return out
+    # def forward(self, x):
+    #     batch_size, num_channels, D, H, W = x.size()
+    #     out = self.avg_pooling_3D(x)
+    #     out = self.fc1(x.view(batch_size, num_channels))
+    #     out = self.act1(x)
+    #     out = self.fc2(x)
+    #     out = self.act2(x)
+    #     out = torch.mul(x, out.view(batch_size, num_channels, 1, 1, 1))
+    #     return out
 
-    # def forward(self, input_tensor):
-    #     """
-    #     :param input_tensor: X, shape = (batch_size, num_channels, D, H, W)
-    #     :return: output tensor
-    #     """
-    #     batch_size, num_channels, D, H, W = input_tensor.size()
-    #     # Average along each channel
-    #     squeeze_tensor = self.avg_pooling_3D(input_tensor)
+    def forward(self, input_tensor):
+        """
+        :param input_tensor: X, shape = (batch_size, num_channels, D, H, W)
+        :return: output tensor
+        """
+        batch_size, num_channels, D, H, W = input_tensor.size()
+        # Average along each channel
+        squeeze_tensor = self.avg_pooling_3D(input_tensor)
 
-    #     # channel excitation
-    #     fc_out_1 = self.act1(self.fc1(squeeze_tensor.view(batch_size, num_channels)))
-    #     fc_out_2 = self.act2(self.fc2(fc_out_1))
+        # channel excitation
+        fc_out_1 = self.act1(self.fc1(squeeze_tensor.view(batch_size, num_channels)))
+        fc_out_2 = self.act2(self.fc2(fc_out_1))
 
-    #     output_tensor = torch.mul(
-    #         input_tensor, fc_out_2.view(batch_size, num_channels, 1, 1, 1)
-    #     )
+        output_tensor = torch.mul(
+            input_tensor, fc_out_2.view(batch_size, num_channels, 1, 1, 1)
+        )
 
-    #     return output_tensor
+        return output_tensor
 
 
 class ResBlock_SE(nn.Module):
