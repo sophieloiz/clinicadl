@@ -106,6 +106,7 @@ class CNN(Network):
 
     def transfer_weights(self, state_dict, transfer_class):
         if issubclass(transfer_class, CNN):
+            print(state_dict)
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
