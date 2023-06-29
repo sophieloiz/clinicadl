@@ -895,18 +895,18 @@ class MinMaxNormalization(object):
     """Normalizes a tensor between 0 and 1"""
 
     def __call__(self, image):
-        import torchio as tio
+        # import torchio as tio
 
-        rescale = tio.transforms.RescaleIntensity(
-            out_min_max=(0, 1), percentiles=(1, 100)
-        )
-        rescale2 = tio.transforms.ZNormalization()
-        # rescale2 = tio.transforms.RescaleIntensity(out_min_max=(0, 1),percentiles=(1, 100))
-        # rescale = tio.transforms.ZNormalization()
-        image = rescale(image)
-        image = rescale2(image)
-        return image
-        # return (image - image.min()) / (image.max() - image.min())
+        # rescale = tio.transforms.RescaleIntensity(
+        #     out_min_max=(0, 1), percentiles=(1, 100)
+        # )
+        # rescale2 = tio.transforms.ZNormalization()
+        # # rescale2 = tio.transforms.RescaleIntensity(out_min_max=(0, 1),percentiles=(1, 100))
+        # # rescale = tio.transforms.ZNormalization()
+        # image = rescale(image)
+        # image = rescale2(image)
+        # return image
+        return (image - image.min()) / (image.max() - image.min())
 
 
 class NanRemoval(object):
