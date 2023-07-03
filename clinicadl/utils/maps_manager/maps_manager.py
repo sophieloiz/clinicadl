@@ -5683,7 +5683,7 @@ class MapsManager:
             transfer_maps = MapsManager(transfer_path)
             transfer_state = transfer_maps.get_state_dict(
                 split,
-                selection_metric="BA",
+                selection_metric="loss",
                 network=network,
                 map_location=model.device,
             )
