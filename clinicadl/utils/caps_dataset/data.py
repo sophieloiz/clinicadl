@@ -678,6 +678,10 @@ class CapsDatasetSlice(CapsDataset):
                 image_path, self.slice_direction, self.slice_mode, slice_idx
             )
             slice_tensor = torch.load(path.join(slice_dir, slice_filename))
+            print(slice_tensor.shape)
+            slice_tensor = slice_tensor[:,:,:180]
+            print(slice_tensor.shape)
+
 
         else:
             image_path = self._get_image_path(participant, session, cohort)
