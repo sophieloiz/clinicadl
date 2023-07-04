@@ -49,6 +49,7 @@ from .task_utils import task_launcher
 @train_option.transfer_path
 @train_option.transfer_selection_metric
 # Task-related
+@train_option.multi_task
 @train_option.label
 @train_option.selection_metrics
 @train_option.selection_threshold

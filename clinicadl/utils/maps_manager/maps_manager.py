@@ -145,6 +145,8 @@ class MapsManager:
             )
         if self.multi_network:
             self._train_multi(split_list, resume=False)
+        elif self.multi_network:
+            print("Sanity Check multi_network")
         else:
             self._train_single(split_list, resume=False)
 
