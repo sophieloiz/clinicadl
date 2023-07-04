@@ -136,11 +136,11 @@ class SplitManager:
             cohort_diagnoses = self.diagnoses
 
         if self.baseline:
-            train_path = train_path / "train_baseline.tsv"
+            train_path = Path(train_path) / "train_baseline.tsv"
         else:
-            train_path = train_path / "train.tsv"
+            train_path = Path(train_path) / "train.tsv"
 
-        valid_path = valid_path / "validation_baseline.tsv"
+        valid_path = Path(valid_path) / "validation_baseline.tsv"
 
         train_df = pd.read_csv(train_path, sep="\t")
         valid_df = pd.read_csv(valid_path, sep="\t")
