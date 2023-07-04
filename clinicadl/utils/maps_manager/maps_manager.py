@@ -1143,7 +1143,7 @@ class MapsManager:
             retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
 
             profiler = self._init_profiler()
-
+            print("Start training multi-task")
             while epoch < self.epochs and not early_stopping.step(metrics_valid["loss"]):
                 logger.info(f"Beginning epoch {epoch}.")
 
@@ -1222,8 +1222,8 @@ class MapsManager:
                 model.zero_grad()
                 logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
 
-                _, metrics_train = self.task_manager.test(model, train_loader, criterion)
-                _, metrics_valid = self.task_manager.test(model, valid_loader, criterion)
+                _, metrics_train, metrics_train2 = self.task_manager.test_mt(model, train_loader, criterion)
+                _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(model, valid_loader, criterion)
 
                 model.train()
                 train_loader.dataset.train()
