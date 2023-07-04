@@ -236,7 +236,6 @@ class CapsDataset(Dataset):
             participant = self.df.loc[image_idx, "participant_id"]
             session = self.df.loc[image_idx, "session_id"]
             cohort = self.df.loc[image_idx, "cohort"]
-            print(participant)
             if self.elem_index is None:
                 elem_idx = idx % self.elem_per_image
             else:
@@ -376,7 +375,6 @@ class CapsDatasetImage(CapsDataset):
             participant, session, cohort, _, label = self._get_meta_data(idx)
             label2 = None
 
-        print(participant)
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
 
