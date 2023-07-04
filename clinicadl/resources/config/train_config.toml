@@ -24,6 +24,7 @@ label = "diagnosis"
 label_code = {}
 selection_threshold = 0.0 # Will only be used if num_networks != 1
 loss = "CrossEntropyLoss"
+multi_task = false
 
 [Regression]
 selection_metrics = ["loss"]
