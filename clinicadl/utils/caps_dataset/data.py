@@ -371,6 +371,7 @@ class CapsDatasetImage(CapsDataset):
     def __getitem__(self, idx):
         if self.multi_task:
             participant, session, cohort, _, label, label2 = self._get_meta_data_mt(idx)
+            print(participant)
         else:
             participant, session, cohort, _, label = self._get_meta_data(idx)
             label2 = None
