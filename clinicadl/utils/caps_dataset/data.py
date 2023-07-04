@@ -391,7 +391,6 @@ class CapsDatasetImage(CapsDataset):
             "image_id": 0,
             "image_path": image_path.as_posix(),
         }
-        print(sample)
         return sample
 
     def num_elem_per_image(self):

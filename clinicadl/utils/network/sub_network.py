@@ -181,9 +181,9 @@ class CNN_MT(Network):
         )
         train_output, train_output2 = self.forward(images)
         if use_labels:
-            loss = criterion(train_output, labels)
-            loss2 = criterion(train_output, labels2)
-            total_loss = loss + loss2
+            loss1 = criterion(train_output, labels)
+            loss2 = criterion(train_output2, labels2)
+            total_loss = loss1 + loss2
         else:
             total_loss = torch.Tensor([0])
 
