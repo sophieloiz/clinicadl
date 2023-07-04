@@ -80,6 +80,12 @@ multi_network = cli_param.option_group.model_group.option(
     help="If provided uses a multi-network framework.",
 )
 # Task
+multi_task = cli_param.option_group.model_group.option(
+    "--multi_task/--single_task",
+    type=bool,
+    default=None,
+    help="If provided uses a multi-task framework.",
+)
 label = cli_param.option_group.task_group.option(
     "--label",
     type=str,
