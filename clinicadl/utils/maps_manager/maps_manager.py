@@ -1408,9 +1408,8 @@ class MapsManager:
         train_df = split_manager[0]["train"]
         if "label" not in self.parameters:
             self.parameters["label"] = None
-        
-        print(self.label2)
-        self.parameters["label2"] = self.label2
+        if "label2" not in self.parameters:
+            self.parameters["label2"] = None
 
         self.task_manager = self._init_task_manager(df=train_df)
 
