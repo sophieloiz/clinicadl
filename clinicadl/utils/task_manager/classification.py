@@ -82,6 +82,12 @@ class ClassificationManager(TaskManager):
             results_df.true_label.values,
             results_df.predicted_label.values,
         )
+    
+    def compute_metrics_mt(self, results_df):
+        return self.metrics_module.apply(
+            results_df.true_label2.values,
+            results_df.predicted_label2.values,
+        )
 
     @staticmethod
     def generate_label_code(df, label):
