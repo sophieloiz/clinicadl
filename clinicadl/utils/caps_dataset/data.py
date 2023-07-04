@@ -1168,40 +1168,40 @@ def load_data_test(test_path: Path, diagnoses_list, baseline=True, multi_cohort=
     """
     # TODO: computes baseline sessions on-the-fly to manager TSV file case
 
-    print(test_path)
-    if multi_cohort:
-        if not test_path.suffix == ".tsv":
-            raise ClinicaDLArgumentError(
-                "If multi_cohort is given, the TSV_DIRECTORY argument should be a path to a TSV file."
-            )
-        else:
-            tsv_df = pd.read_csv(test_path, sep="\t")
-            check_multi_cohort_tsv(tsv_df, "labels")
-            test_df = pd.DataFrame()
-            found_diagnoses = set()
-            for idx in range(len(tsv_df)):
-                cohort_name = tsv_df.loc[idx, "cohort"]
-                cohort_path = tsv_df.loc[idx, "path"]
-                cohort_diagnoses = (
-                    tsv_df.loc[idx, "diagnoses"].replace(" ", "").split(",")
-                )
-                if bool(set(cohort_diagnoses) & set(diagnoses_list)):
-                    target_diagnoses = list(set(cohort_diagnoses) & set(diagnoses_list))
-                    cohort_test_df = load_data_test_single(
-                        cohort_path, target_diagnoses, baseline=baseline
-                    )
-                    cohort_test_df["cohort"] = cohort_name
-                    test_df = pd.concat([test_df, cohort_test_df])
-                    found_diagnoses = found_diagnoses | (
-                        set(cohort_diagnoses) & set(diagnoses_list)
-                    )
 
-            if found_diagnoses != set(diagnoses_list):
-                raise ValueError(
-                    f"The diagnoses found in the multi cohort dataset {found_diagnoses} "
-                    f"do not correspond to the diagnoses wanted {set(diagnoses_list)}."
+    if multi_cohort:
+        # if not test_path.suffix == ".tsv":
+        #     raise ClinicaDLArgumentError(
+        #         "If multi_cohort is given, the TSV_DIRECTORY argument should be a path to a TSV file."
+        #     )
+        # else:
+        tsv_df = pd.read_csv(test_path, sep="\t")
+        check_multi_cohort_tsv(tsv_df, "labels")
+        test_df = pd.DataFrame()
+        found_diagnoses = set()
+        for idx in range(len(tsv_df)):
+            cohort_name = tsv_df.loc[idx, "cohort"]
+            cohort_path = tsv_df.loc[idx, "path"]
+            cohort_diagnoses = (
+                tsv_df.loc[idx, "diagnoses"].replace(" ", "").split(",")
+            )
+            if bool(set(cohort_diagnoses) & set(diagnoses_list)):
+                target_diagnoses = list(set(cohort_diagnoses) & set(diagnoses_list))
+                cohort_test_df = load_data_test_single(
+                    cohort_path, target_diagnoses, baseline=baseline
                 )
-            test_df.reset_index(inplace=True, drop=True)
+                cohort_test_df["cohort"] = cohort_name
+                test_df = pd.concat([test_df, cohort_test_df])
+                found_diagnoses = found_diagnoses | (
+                    set(cohort_diagnoses) & set(diagnoses_list)
+                )
+
+        if found_diagnoses != set(diagnoses_list):
+            raise ValueError(
+                f"The diagnoses found in the multi cohort dataset {found_diagnoses} "
+                f"do not correspond to the diagnoses wanted {set(diagnoses_list)}."
+            )
+        test_df.reset_index(inplace=True, drop=True)
     else:
         if test_path.suffix == ".tsv":
             tsv_df = pd.read_csv(test_path, sep="\t")
