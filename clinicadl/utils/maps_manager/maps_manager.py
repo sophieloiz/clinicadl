@@ -1152,7 +1152,7 @@ class MapsManager:
 
                 with profiler:
                     for i, data in enumerate(train_loader):
-                        _, loss_dict = model.compute_outputs_and_loss(data, criterion)
+                        _, _, loss_dict = model.compute_outputs_and_loss_multi(data, criterion)
                         logger.debug(f"Train loss dictionnary {loss_dict}")
                         loss = loss_dict["loss"]
                         loss.backward()
