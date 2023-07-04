@@ -54,6 +54,7 @@ class LogWriter:
             self.beginning_time = time()
             if task:
                 results_df_t2 = pd.DataFrame(columns=self.columns)
+                print(tsv_path_t2)
                 with tsv_path_t2.open(mode="w") as f:
                     results_df_t2.to_csv(f, index=False, sep="\t")
                 self.beginning_time = time()
