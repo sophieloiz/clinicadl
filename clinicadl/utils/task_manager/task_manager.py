@@ -255,7 +255,7 @@ class TaskManager:
                 for i, data in enumerate(dataloader):
                     # initialize the loss list to save the loss components
                     if i == 0:
-                        outputs, outputs_2, loss_dict = model.compute_outputs_and_loss(
+                        outputs, outputs_2, loss_dict = model.compute_outputs_and_loss_multi(
                             data, criterion, use_labels=use_labels
                         )
                         for loss_component in loss_dict.keys():
@@ -263,7 +263,7 @@ class TaskManager:
                         for loss_component in total_loss.keys():
                             total_loss[loss_component] += loss_dict[loss_component].item()
                     else:
-                        outputs, outputs_2, loss_dict = model.compute_outputs_and_loss(
+                        outputs, outputs_2, loss_dict = model.compute_outputs_and_loss_multi(
                             data, criterion, use_labels=use_labels
                         )
                         for loss_component in total_loss.keys():
