@@ -873,18 +873,18 @@ class MapsManager:
                     resume=resume,
                 )
 
-                # self._ensemble_prediction(
-                #     "train",
-                #     split,
-                #     self.selection_metrics,
-                # )
-                # self._ensemble_prediction(
-                #     "validation",
-                #     split,
-                #     self.selection_metrics,
-                # )
+                self._ensemble_prediction(
+                    "train",
+                    split,
+                    self.selection_metrics,
+                )
+                self._ensemble_prediction(
+                    "validation",
+                    split,
+                    self.selection_metrics,
+                )
 
-                # self._erase_tmp(split)
+                self._erase_tmp(split)
                 
     def _train(
         self,
