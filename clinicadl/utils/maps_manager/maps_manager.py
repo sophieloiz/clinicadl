@@ -146,7 +146,7 @@ class MapsManager:
         if self.multi_network:
             self._train_multi(split_list, resume=False)
         elif self.multi_task:
-            print("Sanity Check multi_network")
+            self._train_multitask(split_list, resume=False)
         else:
             self._train_single(split_list, resume=False)
 
@@ -795,6 +795,98 @@ class MapsManager:
 
             self._erase_tmp(split)
 
+    def _train_multitask(self, split_list=None, resume=False):
+            """
+            Trains a single CNN for all inputs.
+
+            Args:
+                split_list (list[int]): list of splits that are trained.
+                resume (bool): If True the job is resumed from checkpoint.
+            """
+            from torch.utils.data import DataLoader
+
+            train_transforms, all_transforms = get_transforms(
+                normalize=self.normalize,
+                data_augmentation=self.data_augmentation,
+                size_reduction=self.size_reduction,
+                size_reduction_factor=self.size_reduction_factor,
+            )
+            split_manager = self._init_split_manager(split_list)
+            for split in split_manager.split_iterator():
+                logger.info(f"Training split {split}")
+                seed_everything(self.seed, self.deterministic, self.compensation)
+
+                split_df_dict = split_manager[split]
+
+                logger.debug("Loading training data...")
+                data_train = return_dataset(
+                    self.caps_directory,
+                    split_df_dict["train"],
+                    self.preprocessing_dict,
+                    train_transformations=train_transforms,
+                    all_transformations=all_transforms,
+                    multi_cohort=self.multi_cohort,
+                    label=self.label,
+                    label_code=self.label_code,
+                    label2=self.label2, #To generalize to N tasks
+                    label_code2 = self.label_code2, #To generalize to N tasks
+                    multi_task=True,
+                )
+                logger.debug("Loading validation data...")
+                data_valid = return_dataset(
+                    self.caps_directory,
+                    split_df_dict["validation"],
+                    self.preprocessing_dict,
+                    train_transformations=train_transforms,
+                    all_transformations=all_transforms,
+                    multi_cohort=self.multi_cohort,
+                    label=self.label,
+                    label_code=self.label_code,
+                    label2=self.label2, #To generalize to N tasks
+                    label_code2 = self.label_code2, #To generalize to N tasks
+                    multi_task=True,
+                )
+                train_sampler = self.task_manager.generate_sampler(data_train, self.sampler)
+                logger.debug(
+                    f"Getting train and validation loader with batch size {self.batch_size}"
+                )
+                train_loader = DataLoader(
+                    data_train,
+                    batch_size=self.batch_size,
+                    sampler=train_sampler,
+                    num_workers=self.n_proc,
+                    worker_init_fn=pl_worker_init_function,
+                )
+                logger.debug(f"Train loader size is {len(train_loader)}")
+                valid_loader = DataLoader(
+                    data_valid,
+                    batch_size=self.batch_size,
+                    shuffle=False,
+                    num_workers=self.n_proc,
+                )
+                logger.debug(f"Validation loader size is {len(valid_loader)}")
+
+                print("Sanity Check")
+                # self._train_mt(
+                #     train_loader,
+                #     valid_loader,
+                #     split,
+                #     resume=resume,
+                # )
+
+                # self._ensemble_prediction(
+                #     "train",
+                #     split,
+                #     self.selection_metrics,
+                # )
+                # self._ensemble_prediction(
+                #     "validation",
+                #     split,
+                #     self.selection_metrics,
+                # )
+
+                # self._erase_tmp(split)
+                
     def _train(
         self,
         train_loader,
@@ -1316,6 +1408,8 @@ class MapsManager:
         train_df = split_manager[0]["train"]
         if "label" not in self.parameters:
             self.parameters["label"] = None
+        if "label2" not in self.parameters:
+            self.parameters["label2"] = None
 
         self.task_manager = self._init_task_manager(df=train_df)
 
@@ -1330,16 +1424,38 @@ class MapsManager:
             self.parameters["label_code"] = self.task_manager.generate_label_code(
                 train_df, self.label
             )
-        full_dataset = return_dataset(
-            self.caps_directory,
-            train_df,
-            self.preprocessing_dict,
-            multi_cohort=self.multi_cohort,
-            label=self.label,
-            label_code=self.parameters["label_code"],
-            train_transformations=None,
-            all_transformations=transformations,
-        )
+        if (
+            "label_code2" not in self.parameters
+            or len(self.parameters["label_code2"]) == 0
+        ):  # Allows to set custom label code in TOML
+            self.parameters["label_code2"] = self.task_manager.generate_label_code(
+                train_df, self.label2
+            )
+        if self.multi_task:
+            full_dataset = return_dataset(
+                self.caps_directory,
+                train_df,
+                self.preprocessing_dict,
+                multi_cohort=self.multi_cohort,
+                label=self.label,
+                label2=self.label2,
+                label_code=self.parameters["label_code"],
+                label_code2=self.parameters["label_code2"],
+                train_transformations=None,
+                all_transformations=transformations,
+                multi_task=True
+            )
+        else:
+            full_dataset = return_dataset(
+                self.caps_directory,
+                train_df,
+                self.preprocessing_dict,
+                multi_cohort=self.multi_cohort,
+                label=self.label,
+                label_code=self.parameters["label_code"],
+                train_transformations=None,
+                all_transformations=transformations,
+            )            
         self.parameters.update(
             {
                 "num_networks": full_dataset.elem_per_image,
@@ -2011,6 +2127,8 @@ class MapsManager:
         if self.network_task == "classification":
             if n_classes is not None:
                 return ClassificationManager(self.mode, n_classes=n_classes)
+            elif self.multi_task:
+                return ClassificationManager(self.mode, df=df, label=self.label, label2=self.label2)
             else:
                 return ClassificationManager(self.mode, df=df, label=self.label)
         elif self.network_task == "regression":
