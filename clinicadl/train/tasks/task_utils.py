@@ -82,10 +82,8 @@ def task_launcher(network_task: str, task_options_list: List[str], **kwargs):
         )
         json_found = False
         for caps_name, caps_path in caps_dict.items():
-            print(caps_path)
-            print(kwargs["preprocessing_json"])
             preprocessing_json = (
-                str(caps_path) / "tensor_extraction" / kwargs["preprocessing_json"]
+                Path(caps_path) / "tensor_extraction" / kwargs["preprocessing_json"]
             )
             if preprocessing_json.is_file():
                 logger.info(
