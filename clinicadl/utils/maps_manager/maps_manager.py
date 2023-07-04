@@ -1229,6 +1229,8 @@ class MapsManager:
                 train_loader.dataset.train()
 
                 log_writer.step(epoch, i, metrics_train, metrics_valid, len(train_loader))
+                log_writer.step_mt(epoch, i, metrics_train2, metrics_valid2, len(train_loader))
+
                 logger.info(
                     f"{self.mode} level training loss is {metrics_train['loss']} "
                     f"at the end of iteration {i}"
@@ -1263,7 +1265,7 @@ class MapsManager:
 
                 epoch += 1
 
-            self._test_loader(
+            self._test_loader_mt(
                 train_loader,
                 criterion,
                 "train",
@@ -1271,7 +1273,7 @@ class MapsManager:
                 self.selection_metrics,
                 network=network,
             )
-            self._test_loader(
+            self._test_loader_mt(
                 valid_loader,
                 criterion,
                 "validation",
@@ -1359,7 +1361,7 @@ class MapsManager:
                 prediction_df, metrics, split, selection_metric, data_group=data_group
             )
 
-    def _test_loader(
+    def _test_loader_mt(
         self,
         dataloader,
         criterion,
