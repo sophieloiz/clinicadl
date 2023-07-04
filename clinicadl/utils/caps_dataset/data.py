@@ -369,6 +369,7 @@ class CapsDatasetImage(CapsDataset):
 
     def __getitem__(self, idx):
         if self.multi_task:
+            print("Multi-Task")
             participant, session, cohort, _, label, label2 = self._get_meta_data_mt(idx)
         else:
             participant, session, cohort, _, label = self._get_meta_data(idx)
@@ -394,7 +395,7 @@ class CapsDatasetImage(CapsDataset):
         }
 
         print(sample)
-        
+
         return sample
 
     def num_elem_per_image(self):
