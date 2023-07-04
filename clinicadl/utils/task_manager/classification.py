@@ -39,8 +39,25 @@ class ClassificationManager(TaskManager):
         ] + [f"proba{i}" for i in range(self.n_classes)]
 
     @property
+    def columns_mt(self):
+        return [
+            "participant_id",
+            "session_id",
+            f"{self.mode}_id",
+            "true_label",
+            "predicted_label",
+        ] + [f"proba{i}" for i in range(self.n_classes)] +[ "true_label2",
+            "predicted_label2",
+        ] + [f"proba{i}2" for i in range(self.n_classes)]
+
+    @property
     def evaluation_metrics(self):
         return ["accuracy", "sensitivity", "specificity", "PPV", "NPV", "BA"]
+
+    @property
+    def evaluation_metrics_mt(self):
+        #return ["accuracy", "sensitivity", "specificity", "PPV", "NPV", "BA","accuracy2", "sensitivity2", "specificity2", "PPV2", "NPV2", "BA2"]
+        return ["accuracy", "accuracy2", "sensitivity", "sensitivity2", "specificity", "specificity2","PPV", "PPV2", "NPV", "NPV2", "BA", "BA2"]
 
     @property
     def save_outputs(self):
