@@ -205,7 +205,7 @@ class CapsDataset(Dataset):
         participant = self.df.loc[image_idx, "participant_id"]
         session = self.df.loc[image_idx, "session_id"]
         cohort = self.df.loc[image_idx, "cohort"]
-
+    
         if self.elem_index is None:
             elem_idx = idx % self.elem_per_image
         else:
@@ -235,7 +235,7 @@ class CapsDataset(Dataset):
             participant = self.df.loc[image_idx, "participant_id"]
             session = self.df.loc[image_idx, "session_id"]
             cohort = self.df.loc[image_idx, "cohort"]
-
+            print(participant)
             if self.elem_index is None:
                 elem_idx = idx % self.elem_per_image
             else:
