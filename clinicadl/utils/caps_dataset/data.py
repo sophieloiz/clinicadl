@@ -1169,6 +1169,7 @@ def load_data_test(test_path: Path, diagnoses_list, baseline=True, multi_cohort=
     """
     # TODO: computes baseline sessions on-the-fly to manager TSV file case
 
+    print(test_path)
     if multi_cohort:
         if not test_path.suffix == ".tsv":
             raise ClinicaDLArgumentError(
