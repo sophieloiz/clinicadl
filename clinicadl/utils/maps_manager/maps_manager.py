@@ -1137,6 +1137,7 @@ class MapsManager:
                 resume=resume,
                 beginning_epoch=beginning_epoch,
                 network=network,
+                task=True,
             )
             epoch = log_writer.beginning_epoch
 
