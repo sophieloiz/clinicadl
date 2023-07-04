@@ -157,6 +157,7 @@ class CapsDataset(Dataset):
         # Try to find .nii.gz file
         try:
             file_type = self.preprocessing_dict["file_type"]
+            print(participant)
             results = clinica_file_reader(
                 [participant], [session], self.caps_dict[cohort], file_type
             )
@@ -370,11 +371,11 @@ class CapsDatasetImage(CapsDataset):
     def __getitem__(self, idx):
         if self.multi_task:
             participant, session, cohort, _, label, label2 = self._get_meta_data_mt(idx)
-            print(participant)
         else:
             participant, session, cohort, _, label = self._get_meta_data(idx)
             label2 = None
 
+        print(participant)
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
 
