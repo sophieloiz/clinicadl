@@ -147,8 +147,8 @@ class MapsManager:
         if self.multi_network:
             self._train_multi(split_list, resume=False)
         else:
-            #self._train_single(split_list, resume=False)
-            self._train_mt(split_list, resume=False)
+            self._train_single(split_list, resume=False)
+            # self._train_mt(split_list, resume=False)
 
 
     def resume(self, split_list: List[int] = None):
@@ -908,8 +908,6 @@ class MapsManager:
         """
         print('multitask training ')
 
-        
-
         model, beginning_epoch = self._init_model(
             split=split,
             resume=resume,
@@ -928,10 +926,11 @@ class MapsManager:
             "min", min_delta=self.tolerance, patience=self.patience
         )
         metrics_valid = {"loss": None}
-
+        print("Task Manager")
+        print(self.task_manager.evaluation_metrics_mt)
         log_writer = LogWriter(
             self.maps_path,
-            self.task_manager.evaluation_metrics + ["loss"],
+            self.task_manager.evaluation_metrics_mt + ["loss"],
             split,
             resume=resume,
             beginning_epoch=beginning_epoch,
@@ -976,7 +975,8 @@ class MapsManager:
                             _, metrics_valid = self.task_manager.test_mt(
                                 model, valid_loader, criterion
                             )
-
+                            print("Metrics Train")
+                            print(metrics_train)
                             model.train()
                             train_loader.dataset.train()
 
@@ -1020,14 +1020,22 @@ class MapsManager:
             # Always test the results and save them once at the end of the epoch
             model.zero_grad()
             logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
+            
 
-            _, metrics_train = self.task_manager.test_mt(model, train_loader, criterion)
-            _, metrics_valid = self.task_manager.test_mt(model, valid_loader, criterion)
+            _, metrics_train, metrics_train2 = self.task_manager.test_mt(model, train_loader, criterion)
+            _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(model, valid_loader, criterion)
 
+            print("Metrics Train")
+            print(metrics_train)
+
+            print("Metrics Train2")
+            print(metrics_train2)
             model.train()
             train_loader.dataset.train()
 
-            log_writer.step(epoch, i, metrics_train, metrics_valid, len(train_loader))
+            #log_writer.step(epoch, i, metrics_train, metrics_valid, len(train_loader))
+            log_writer.step_mt(epoch, i, metrics_train, metrics_train2, metrics_valid, metrics_valid2,  len(train_loader))
+
             logger.info(
                 f"{self.mode} level training loss is {metrics_train['loss']} "
                 f"at the end of iteration {i}"
@@ -1137,7 +1145,7 @@ class MapsManager:
 
         log_writer = LogWriter(
             self.maps_path,
-            self.task_manager.evaluation_metrics + ["loss"],
+            self.task_manager.evaluation_metrics_mt + ["loss"],
             split,
             resume=resume,
             beginning_epoch=beginning_epoch,
@@ -1157,6 +1165,7 @@ class MapsManager:
 
             with profiler:
                 for i, data in enumerate(train_loader):
+                    print(data)
                     _, loss_dict = model.compute_outputs_and_loss(data, criterion)
                     logger.debug(f"Train loss dictionnary {loss_dict}")
                     loss = loss_dict["loss"]
@@ -1410,7 +1419,7 @@ class MapsManager:
                     gpu=gpu,
                     network=network,
                 )
-                prediction_df, prediction2_df, metrics = self.task_manager.test_mt(
+                prediction_df, metrics = self.task_manager.test_mt(
                     model, dataloader, criterion, use_labels=use_labels
                 )
                 if use_labels:
@@ -1424,6 +1433,7 @@ class MapsManager:
                 self._mode_level_to_tsv(
                     prediction_df, metrics, split, selection_metric, data_group=data_group
                 )
+                
 
     def _compute_output_nifti(
         self,
@@ -1677,11 +1687,11 @@ class MapsManager:
         
         split_manager = self._init_split_manager(None)
         train_df = split_manager[0]["train"]
-        print(self.parameters)
+
         if "label" not in self.parameters:
             self.parameters["label"] = None
-        if "label2" not in self.parameters:
-            self.parameters["label2"] = None
+        #if "label2" not in self.parameters:
+        self.parameters["label2"] = "noise"
 
         self.task_manager = self._init_task_manager(df=train_df)
 
@@ -1696,13 +1706,13 @@ class MapsManager:
             self.parameters["label_code"] = self.task_manager.generate_label_code(
                 train_df, self.label
             )
-        if (
-            "label_code2" not in self.parameters
-            or len(self.parameters["label_code2"]) == 0
-        ):  # Allows to set custom label code in TOML
-            self.parameters["label_code2"] = self.task_manager.generate_label_code(
-                train_df, self.label2
-            )
+        # if (
+        #     "label_code2" not in self.parameters
+        #     or len(self.parameters["label_code2"]) == 0
+        # ):  # Allows to set custom label code in TOML
+            # self.parameters["label_code2"] = self.task_manager.generate_label_code(
+            #     train_df, "noise"
+            # )
         full_dataset = return_dataset(
             self.caps_directory,
             train_df,
@@ -1710,6 +1720,8 @@ class MapsManager:
             multi_cohort=self.multi_cohort,
             label=self.label,
             label_code=self.parameters["label_code"],
+            # label2="noise",
+            # label_code2=self.parameters["label_code2"],
             train_transformations=None,
             all_transformations=transformations,
         )
@@ -1731,7 +1743,7 @@ class MapsManager:
                 f"framework with only {self.parameters['num_networks']} element "
                 f"per image."
             )
-        possible_selection_metrics_set = set(self.task_manager.evaluation_metrics) | {
+        possible_selection_metrics_set = set(self.task_manager.evaluation_metrics_mt) | {
             "loss"
         }
         if not set(self.parameters["selection_metrics"]).issubset(
@@ -2387,7 +2399,7 @@ class MapsManager:
             if n_classes is not None:
                 return ClassificationManager(self.mode, n_classes=n_classes)
             else:
-                return ClassificationManager(self.mode, df=df, label=self.label, label2=self.label2)
+                return ClassificationManager(self.mode, df=df, label=self.label)#, label2=self.label2)
         elif self.network_task == "regression":
             return RegressionManager(self.mode)
         elif self.network_task == "reconstruction":

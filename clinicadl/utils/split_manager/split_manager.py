@@ -138,9 +138,14 @@ class SplitManager:
         if self.baseline:
             train_path = train_path / "train_baseline.tsv"
         else:
-            train_path = train_path / "train.tsv"
+            # train_path = train_path / "train.tsv"
+            train_path = Path(train_path).joinpath("train.tsv")
 
-        valid_path = valid_path / "validation_baseline.tsv"
+
+        # valid_path = valid_path / "validation_baseline.tsv"
+        valid_path = Path(valid_path).joinpath("validation_baseline.tsv")
+
+
 
         train_df = pd.read_csv(train_path, sep="\t")
         valid_df = pd.read_csv(valid_path, sep="\t")
@@ -178,6 +183,7 @@ class SplitManager:
             # or "age" not in list_columns
             # or "sex" not in list_columns
         ):
+        
             parents_path = valid_path.resolve().parent
             while (
                 not (parents_path / "labels.tsv").is_file()

@@ -28,6 +28,7 @@ def DeepLearningPrepareData(caps_directory: Path, tsv_file: Path, n_proc, parame
             f"{parameters['mode']}s will be extracted in Pytorch tensor from {len(sessions)} images."
         )
     else:
+        
         logger.info(
             f"Images will be extracted in Pytorch tensor from {len(sessions)} images."
         )

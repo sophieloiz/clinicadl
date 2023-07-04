@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 from clinica.utils.exceptions import ClinicaCAPSError
 from torch.utils.data import Dataset
 
+
 from clinicadl.prepare_data.prepare_data_utils import (
     PATTERN_DICT,
     TEMPLATE_DICT,
@@ -62,9 +63,11 @@ class CapsDataset(Dataset):
         self.eval_mode = False
         self.label_presence = label_presence
         self.label = label
-        self.label2 = label2
+        #self.label2 = "noise"
         self.label_code = label_code
-        self.label_code2 = label_code2
+        #self.label_code2 = label_code2
+
+
         self.preprocessing_dict = preprocessing_dict
 
         if not hasattr(self, "elem_index"):
@@ -166,8 +169,11 @@ class CapsDataset(Dataset):
         from clinica.utils.inputs import clinica_file_reader
 
         # Try to find .nii.gz file
+
         try:
             file_type = self.preprocessing_dict["file_type"]
+
+
             results = clinica_file_reader(
                 [participant], [session], self.caps_dict[cohort], file_type
             )
@@ -176,8 +182,20 @@ class CapsDataset(Dataset):
             image_filename = filepath.name.replace(".nii.gz", ".pt")
 
             folder, _ = compute_folder_and_file_type(self.preprocessing_dict)
+
+
+            # image_dir = (
+            #     self.caps_dict[cohort]
+            #     / "subjects"
+            #     / participant
+            #     / session
+            #     / "deeplearning_prepare_data"
+            #     / "image_based"
+            #     / folder
+            # )
+
             image_dir = (
-                self.caps_dict[cohort]
+                Path(self.caps_dict[cohort])
                 / "subjects"
                 / participant
                 / session
@@ -222,13 +240,15 @@ class CapsDataset(Dataset):
         else:
             elem_idx = self.elem_index
         if self.label_presence and self.label is not None:
-            target, target2 = self.df.loc[image_idx, [self.label, "noise"]]
+            #target, target2 = self.df.loc[image_idx, [self.label, "noise"]]
+            target = self.df.loc[image_idx, self.label]
+
             label = self.label_fn(target)
-            label2 = self.label_fn_mt(target2)
+            #label2 = self.label_fn_mt(target2)
         else:
             label = -1
-            label2 = -1
-        return participant, session, cohort, elem_idx, label, label2
+            #label2 = -1
+        return participant, session, cohort, elem_idx, label, #label2
 
     def _get_full_image(self) -> torch.Tensor:
         """
@@ -240,7 +260,6 @@ class CapsDataset(Dataset):
         """
         import nibabel as nib
         from clinica.utils.inputs import clinica_file_reader
-
         participant_id = self.df.loc[0, "participant_id"]
         session_id = self.df.loc[0, "session_id"]
         cohort = self.df.loc[0, "cohort"]
@@ -345,7 +364,9 @@ class CapsDatasetImage(CapsDataset):
         return None
 
     def __getitem__(self, idx):
-        participant, session, cohort, _, label, label2 = self._get_meta_data(idx)
+        #participant, session, cohort, _, label, label2 = self._get_meta_data(idx)
+        participant, session, cohort, _, label = self._get_meta_data(idx)
+
 
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
@@ -1172,6 +1193,8 @@ def load_data_test(test_path: Path, diagnoses_list, baseline=True, multi_cohort=
 
 
 def load_data_test_single(test_path: Path, diagnoses_list, baseline=True):
+    test_path = Path(test_path)
+
     if test_path.suffix == ".tsv":
         test_df = pd.read_csv(test_path, sep="\t")
         if "diagnosis" not in test_df.columns.values:

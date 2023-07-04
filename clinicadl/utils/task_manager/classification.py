@@ -49,11 +49,17 @@ class ClassificationManager(TaskManager):
             "predicted_label",
         ] + [f"proba{i}" for i in range(self.n_classes)] +[ "true_label2",
             "predicted_label2",
-        ] + [f"proba{i}" for i in range(self.n_classes)]
+        ] + [f"proba{i}2" for i in range(self.n_classes)]
 
     @property
     def evaluation_metrics(self):
         return ["accuracy", "sensitivity", "specificity", "PPV", "NPV", "BA"]
+    
+    @property
+    def evaluation_metrics_mt(self):
+        #return ["accuracy", "sensitivity", "specificity", "PPV", "NPV", "BA","accuracy2", "sensitivity2", "specificity2", "PPV2", "NPV2", "BA2"]
+        return ["accuracy", "accuracy2", "sensitivity", "sensitivity2", "specificity", "specificity2","PPV", "PPV2", "NPV", "NPV2", "BA", "BA2"]
+
 
     @property
     def save_outputs(self):
@@ -76,7 +82,6 @@ class ClassificationManager(TaskManager):
     def generate_test_row_mt(self, idx, data, outputs, outputs2):
         prediction = torch.argmax(outputs[idx].data).item()
         prediction2 = torch.argmax(outputs2[idx].data).item()
-
         normalized_output = softmax(outputs[idx], dim=0)
         normalized_output2 = softmax(outputs2[idx], dim=0)
 
@@ -100,20 +105,26 @@ class ClassificationManager(TaskManager):
             results_df.true_label.values,
             results_df.predicted_label.values,
         )
-    
+
     def compute_metrics_mt(self, results_df):
-        res_1 = self.metrics_module.apply(
-            results_df.true_label.values,
-            results_df.predicted_label.values,
-        )
-        res_2 = self.metrics_module.apply(
+        return self.metrics_module.apply(
             results_df.true_label2.values,
             results_df.predicted_label2.values,
         )
-        print(res_1)
-        print(res_2)
+    
+    # def compute_metrics_mt(self, results_df):
+    #     res_1 = self.metrics_module.apply(
+    #         results_df.true_label.values,
+    #         results_df.predicted_label.values,
+    #     )
+    #     res_2 = self.metrics_module.apply(
+    #         results_df.true_label2.values,
+    #         results_df.predicted_label2.values,
+    #     )
+    #     print(res_1)
+    #     print(res_2)
 
-        return {**res_1, **res_2}
+    #     return {**res_1, **res_2}
 
     @staticmethod
     def generate_label_code(df, label):

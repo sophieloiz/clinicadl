@@ -965,7 +965,7 @@ def generate_artefacted_dataset(
             / "subjects"
             / f"{participant_id}{data_idx}"
             / session_id
-            / preprocessing
+            / "t1_linear"
         )
         artefacted_image_nii_filename = (
             f"{participant_id}{data_idx}_{session_id}_{filename_pattern}"
@@ -973,29 +973,33 @@ def generate_artefacted_dataset(
 
         artefacted_image_nii_dir.mkdir(parents=True, exist_ok=True)
 
-        artefacted = tio.Compose(
-            [
-                tio.RandomMotion(degrees=(2, 4), translation=(2, 4), p=0.7),
-                tio.RandomNoise(std=(5, 30), p=0.7),
-            ]
-        )
+        # artefacted = tio.Compose(
+        #     [
+        #         tio.RandomMotion(degrees=(2, 4), translation=(2, 4)),
+        #         tio.RandomNoise(std=(5, 30)),
+        #     ]
+        # )
+
+        #artefacted = tio.RandomMotion(degrees=(2, 4), translation=(2, 4))
+        #artefacted = tio.RandomNoise(std=(5, 30))
+
 
         subject = tio.Subject(one_image=tio.ScalarImage(image_path))
-        artefacted_image = artefacted(subject)
-        artefacted_image["one_image"].save(
+        #artefacted_image = artefacted(subject)
+        subject["one_image"].save(
             artefacted_image_nii_dir / artefacted_image_nii_filename
         )
-        reproduce_transform = artefacted_image.get_composed_history()
-        print(reproduce_transform)
-        for transform in reproduce_transform.transforms:
-            transform_type = type(transform).__name__
-            if transform_type == "Motion":
-                # degrees = transform.degrees['one_image']
-                # translation = transform.translation['one_image']
-                motion = 1
-            if transform_type == "Noise":
-                # std = transform.std['one_image']
-                noise = 1
+        #reproduce_transform = artefacted_image.get_composed_history()
+        #print(reproduce_transform)
+        # for transform in reproduce_transform.transforms:
+        #     transform_type = type(transform).__name__
+        #     if transform_type == "Motion":
+        #         # degrees = transform.degrees['one_image']
+        #         # translation = transform.translation['one_image']
+        #         motion = 1
+        #     if transform_type == "Noise":
+        #         # std = transform.std['one_image']
+        #         noise = 1
 
         # Append row to output tsv
         row = [f"{participant_id}_{data_idx}", session_id, motion, noise]

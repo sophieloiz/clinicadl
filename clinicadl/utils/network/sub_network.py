@@ -179,9 +179,7 @@ class CNN_MT(Network):
         ), input_dict["label2"].to(
             self.device
         )
-        print(images)
-        print(labels)
-        print(labels2)
+
 
         train_output, train_output2 = self.forward(images)
         if use_labels:

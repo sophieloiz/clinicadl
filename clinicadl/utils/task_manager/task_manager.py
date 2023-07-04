@@ -271,20 +271,35 @@ class TaskManager:
 
                     # Generate detailed DataFrame
                     for idx in range(len(data["participant_id"])):
-                        row = self.generate_test_row_mt(idx, data, outputs, outputs2)
-                        row_df = pd.DataFrame(row, columns=self.columns_mt)
+                        #row = self.generate_test_row_mt(idx, data, outputs, outputs2)
+                        row = self.generate_test_row(idx, data, outputs)
+                        print(row)
+                        row2 = self.generate_test_row(idx, data, outputs2)
+                        print(row2)
+                        row1 = [row[0] + row2[0][3:]]
+                        row_df = pd.DataFrame(row1, columns=self.columns_mt)
                         results_df = pd.concat([results_df, row_df])
+                        print(results_df.columns)
 
                     del outputs, loss_dict
                 results_df.reset_index(inplace=True, drop=True)
+                import numpy as np
+                ra = np.random.randint(0,1000)
+                results_df.to_csv(f"/network/lustre/iss02/aramis/users/sophie.loizillon/test{ra}.tsv")
 
             if not use_labels:
                 metrics_dict = None
             else:
-                metrics_dict = self.compute_metrics_mt(results_df)
+                metrics_dict = self.compute_metrics(results_df)
                 print(metrics_dict)
+                print(f"metrics_dict : {metrics_dict} ")
+
+                metrics_dict2 = self.compute_metrics_mt(results_df)
+                print(metrics_dict2)
+                print(f"metrics_dict2 : {metrics_dict2} ")
+
                 for loss_component in total_loss.keys():
                     metrics_dict[loss_component] = total_loss[loss_component]
             torch.cuda.empty_cache()
 
-            return results_df, metrics_dict
+            return results_df, metrics_dict, metrics_dict2

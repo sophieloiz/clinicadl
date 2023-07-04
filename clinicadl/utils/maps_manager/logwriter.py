@@ -64,7 +64,7 @@ class LogWriter:
         self.writer_train = SummaryWriter(self.file_dir / "tensorboard" / "train")
         self.writer_valid = SummaryWriter(self.file_dir / "tensorboard" / "validation")
 
-    def step(self, epoch, i, metrics_train, metrics_valid, len_epoch):
+    def step_mt(self, epoch, i, metrics_train, metrics_train2, metrics_valid, metrics_valid2, len_epoch):
         """
         Write a new row on the output file training.tsv.
 
@@ -87,7 +87,14 @@ class LogWriter:
         for selection in self.evaluation_metrics:
             if selection in metrics_train:
                 train_row.append(metrics_train[selection])
+                if selection != "loss":
+                    train_row.append(metrics_train2[selection])
+
                 valid_row.append(metrics_valid[selection])
+                if selection != "loss":
+
+                    valid_row.append(metrics_valid2[selection])
+
             else:
                 # Multi-class case, there is one metric per class (i.e. sensitivity-0, sensitivity-1...)
                 train_values = [
@@ -102,9 +109,14 @@ class LogWriter:
                 ]
                 train_row.append(np.mean(train_values))
                 valid_row.append(np.mean(valid_values))
+        import math
+        row = general_row + train_row + valid_row
+        row_without_nan = [x for x in row if not math.isnan(x)]
+        row_without_nan = [row_without_nan]
+        print(row_without_nan)
 
-        row = [general_row + train_row + valid_row]
-        row_df = pd.DataFrame(row, columns=self.columns)
+        print(self.columns)
+        row_df = pd.DataFrame(row_without_nan, columns=self.columns)
         with tsv_path.open(mode="a") as f:
             row_df.to_csv(f, header=False, index=False, sep="\t")
 
@@ -121,3 +133,61 @@ class LogWriter:
                 valid_row[metric_idx],
                 global_step,
             )
+
+    # def step(self, epoch, i, metrics_train, metrics_valid, len_epoch):
+    #     """
+    #     Write a new row on the output file training.tsv.
+
+    #     Args:
+    #         epoch (int): current epoch number
+    #         i (int): current iteration number
+    #         metrics_train (Dict[str:float]): metrics on the training set
+    #         metrics_valid (Dict[str:float]): metrics on the validation set
+    #         len_epoch (int): number of iterations in an epoch
+    #     """
+    #     from time import time
+
+    #     # Write TSV file
+    #     tsv_path = self.file_dir / "training.tsv"
+
+    #     t_current = time() - self.beginning_time
+    #     general_row = [epoch, i, t_current]
+    #     train_row = list()
+    #     valid_row = list()
+    #     for selection in self.evaluation_metrics:
+    #         if selection in metrics_train:
+    #             train_row.append(metrics_train[selection])
+    #             valid_row.append(metrics_valid[selection])
+    #         else:
+    #             # Multi-class case, there is one metric per class (i.e. sensitivity-0, sensitivity-1...)
+    #             train_values = [
+    #                 metrics_train[key]
+    #                 for key in metrics_train.keys()
+    #                 if selection in key
+    #             ]
+    #             valid_values = [
+    #                 metrics_valid[key]
+    #                 for key in metrics_valid.keys()
+    #                 if selection in key
+    #             ]
+    #             train_row.append(np.mean(train_values))
+    #             valid_row.append(np.mean(valid_values))
+
+    #     row = [general_row + train_row + valid_row]
+    #     row_df = pd.DataFrame(row, columns=self.columns)
+    #     with tsv_path.open(mode="a") as f:
+    #         row_df.to_csv(f, header=False, index=False, sep="\t")
+
+    #     # Write tensorboard logs
+    #     global_step = i + epoch * len_epoch
+    #     for metric_idx, metric in enumerate(self.evaluation_metrics):
+    #         self.writer_train.add_scalar(
+    #             metric,
+    #             train_row[metric_idx],
+    #             global_step,
+    #         )
+    #         self.writer_valid.add_scalar(
+    #             metric,
+    #             valid_row[metric_idx],
+    #             global_step,
+    #         )
