@@ -47,6 +47,7 @@ def task_launcher(network_task: str, task_options_list: List[str], **kwargs):
         "learning_rate",
         "multi_cohort",
         "multi_network",
+        "multi_task",
         "n_proc",
         "n_splits",
         "normalize",
