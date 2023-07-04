@@ -165,7 +165,7 @@ class LogWriter:
             from time import time
 
             # Write TSV file
-            tsv_path = self.file_dir / "task/training_task2.tsv"
+            tsv_path = self.file_dir / "training_task2.tsv"
             t_current = time() - self.beginning_time
             general_row = [epoch, i, t_current]
             train_row = list()
