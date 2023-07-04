@@ -21,6 +21,7 @@ class ClassificationManager(TaskManager):
         n_classes=None,
         df=None,
         label=None,
+        label2=None,
     ):
         if n_classes is None:
             n_classes = self.output_size(None, df, label)

@@ -49,9 +49,12 @@ class CapsDataset(Dataset):
         transformations: Optional[Callable],
         label_presence: bool,
         label: str = None,
+        label2: str = None,
         label_code: Dict[Any, int] = None,
+        label_code2: Dict[Any, int] = None,
         augmentation_transformations: Optional[Callable] = None,
         multi_cohort: bool = False,
+        multi_task: bool = False,
     ):
         self.caps_directory = caps_directory
         self.caps_dict = self.create_caps_dict(caps_directory, multi_cohort)
@@ -60,8 +63,11 @@ class CapsDataset(Dataset):
         self.eval_mode = False
         self.label_presence = label_presence
         self.label = label
+        self.label2 = label2
         self.label_code = label_code
+        self.label_code2 = label_code2
         self.preprocessing_dict = preprocessing_dict
+        self.multi_task = multi_task
 
         if not hasattr(self, "elem_index"):
             raise AttributeError(
@@ -212,6 +218,39 @@ class CapsDataset(Dataset):
 
         return participant, session, cohort, elem_idx, label
 
+    def _get_meta_data_mt(self, idx: int) -> Tuple[str, str, str, int, int]:
+            """
+            Gets all meta data necessary to compute the path with _get_image_path
+
+            Args:
+                idx (int): row number of the meta-data contained in self.df
+            Returns:
+                participant (str): ID of the participant.
+                session (str): ID of the session.
+                cohort (str): Name of the cohort.
+                elem_index (int): Index of the part of the image.
+                label (str or float or int): value of the label to be used in criterion.
+            """
+            image_idx = idx // self.elem_per_image
+            participant = self.df.loc[image_idx, "participant_id"]
+            session = self.df.loc[image_idx, "session_id"]
+            cohort = self.df.loc[image_idx, "cohort"]
+
+            if self.elem_index is None:
+                elem_idx = idx % self.elem_per_image
+            else:
+                elem_idx = self.elem_index
+            if self.label_presence and self.label is not None  and self.label2 is not None:
+                target = self.df.loc[image_idx, [self.label, self.label2]]
+                label = self.label_fn(target)
+                label2 = self.label_fn(target)
+
+            else:
+                label = -1
+                label2 = -1
+
+            return participant, session, cohort, elem_idx, label, label2
+    
     def _get_full_image(self) -> torch.Tensor:
         """
         Allows to get the an example of the image mode corresponding to the dataset.
@@ -287,9 +326,12 @@ class CapsDatasetImage(CapsDataset):
         train_transformations: Optional[Callable] = None,
         label_presence: bool = True,
         label: str = None,
+        label2: str = None,
         label_code: Dict[str, int] = None,
+        label_code2: Dict[str, int] = None,
         all_transformations: Optional[Callable] = None,
         multi_cohort: bool = False,
+        multi_task: bool = False,
     ):
         """
         Args:
@@ -314,9 +356,12 @@ class CapsDatasetImage(CapsDataset):
             augmentation_transformations=train_transformations,
             label_presence=label_presence,
             label=label,
+            label2=label2,
             label_code=label_code,
+            label_code2=label_code2,
             transformations=all_transformations,
             multi_cohort=multi_cohort,
+            multi_task=multi_task,
         )
 
     @property
@@ -324,7 +369,11 @@ class CapsDatasetImage(CapsDataset):
         return None
 
     def __getitem__(self, idx):
-        participant, session, cohort, _, label = self._get_meta_data(idx)
+        if self.multi_task:
+            participant, session, cohort, _, label, label2 = self._get_meta_data_mt(idx)
+        else:
+            participant, session, cohort, _, label = self._get_meta_data(idx)
+            label2 = None
 
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
@@ -338,12 +387,15 @@ class CapsDatasetImage(CapsDataset):
         sample = {
             "image": image,
             "label": label,
+            "label2": label2,
             "participant_id": participant,
             "session_id": session,
             "image_id": 0,
             "image_path": image_path.as_posix(),
         }
 
+        print(sample)
+        
         return sample
 
     def num_elem_per_image(self):
@@ -730,11 +782,14 @@ def return_dataset(
     preprocessing_dict: Dict[str, Any],
     all_transformations: Optional[Callable],
     label: str = None,
+    label2: str = None,
     label_code: Dict[str, int] = None,
+    label_code2: Dict[str, int] = None,
     train_transformations: Optional[Callable] = None,
     cnn_index: int = None,
     label_presence: bool = True,
     multi_cohort: bool = False,
+    multi_task: bool = False,
 ) -> CapsDataset:
     """
     Return appropriate Dataset according to given options.
@@ -759,17 +814,34 @@ def return_dataset(
         )
 
     if preprocessing_dict["mode"] == "image":
-        return CapsDatasetImage(
-            input_dir,
-            data_df,
-            preprocessing_dict,
-            train_transformations=train_transformations,
-            all_transformations=all_transformations,
-            label_presence=label_presence,
-            label=label,
-            label_code=label_code,
-            multi_cohort=multi_cohort,
-        )
+        if multi_task:
+            return CapsDatasetImage(
+                input_dir,
+                data_df,
+                preprocessing_dict,
+                train_transformations=train_transformations,
+                all_transformations=all_transformations,
+                label_presence=label_presence,
+                label=label,
+                label2=label2,
+                label_code=label_code,
+                label_code2=label_code2,
+                multi_cohort=multi_cohort,
+            )
+        
+        else:
+            return CapsDatasetImage(
+                input_dir,
+                data_df,
+                preprocessing_dict,
+                train_transformations=train_transformations,
+                all_transformations=all_transformations,
+                label_presence=label_presence,
+                label=label,
+                label_code=label_code,
+                multi_cohort=multi_cohort,
+            )
+
     elif preprocessing_dict["mode"] == "patch":
         return CapsDatasetPatch(
             input_dir,

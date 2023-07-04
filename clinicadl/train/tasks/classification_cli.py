@@ -51,6 +51,7 @@ from .task_utils import task_launcher
 # Task-related
 @train_option.multi_task
 @train_option.label
+@train_option.label2
 @train_option.selection_metrics
 @train_option.selection_threshold
 @train_option.classification_loss
@@ -73,6 +74,7 @@ def cli(**kwargs):
     """
     task_specific_options = [
         "label",
+        "label2",
         "selection_metrics",
         "selection_threshold",
         "loss",
