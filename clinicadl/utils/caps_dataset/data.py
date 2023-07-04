@@ -166,7 +166,7 @@ class CapsDataset(Dataset):
 
             folder, _ = compute_folder_and_file_type(self.preprocessing_dict)
             image_dir = (
-                self.caps_dict[cohort]
+                Path(self.caps_dict[cohort])
                 / "subjects"
                 / participant
                 / session
