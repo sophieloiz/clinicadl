@@ -1170,7 +1170,7 @@ class MapsManager:
                                 and (i + 1) % self.evaluation_steps == 0
                             ):
                                 evaluation_flag = False
-
+                                print("Task Manager MT")
                                 _, metrics_train, metrics_train2 = self.task_manager.test_mt(
                                     model, train_loader, criterion
                                 )
