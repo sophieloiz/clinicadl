@@ -827,6 +827,7 @@ def return_dataset(
                 label_code=label_code,
                 label_code2=label_code2,
                 multi_cohort=multi_cohort,
+                multi_task=multi_task,
             )
         
         else:
