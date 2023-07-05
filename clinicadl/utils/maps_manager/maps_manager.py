@@ -1681,6 +1681,7 @@ class MapsManager:
 
         split_manager = self._init_split_manager(None)
         train_df = split_manager[0]["train"]
+        print(train_df)
         if "label" not in self.parameters:
             self.parameters["label"] = None
         if "label2" not in self.parameters:
@@ -1699,15 +1700,12 @@ class MapsManager:
             self.parameters["label_code"] = self.task_manager.generate_label_code(
                 train_df, self.label
             )
-        print(self.parameters)
-        if (
-            "label_code2" not in self.parameters
-            or len(self.parameters["label_code2"]) == 0
-        ):  # Allows to set custom label code in TOML
-            self.parameters["label_code2"] = self.task_manager.generate_label_code(
-                train_df, self.label2
-            )
+        
         if self.multi_task:
+            if ("label_code2" not in self.parameters or len(self.parameters["label_code2"]) == 0):  # Allows to set custom label code in TOML
+                self.parameters["label_code2"] = self.task_manager.generate_label_code(
+                    train_df, self.label2
+                )
             full_dataset = return_dataset(
                 self.caps_directory,
                 train_df,
