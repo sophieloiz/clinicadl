@@ -317,7 +317,6 @@ class MapsManager:
                     if label_code is "default"
                     else label_code,
                 )
-                print(len(data_test))
 
                 test_loader = DataLoader(
                     data_test,
