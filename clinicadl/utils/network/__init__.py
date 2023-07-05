@@ -12,6 +12,7 @@ from .cnn.models import (
     Conv5_FC3_DANN2,
     Conv5_FC3_MME,
     Conv5_FC3_APE,
+    Conv5_FC3_MT,
 )
 from .cnn.random import RandomArchitecture
 from .vae.vanilla_vae import (
