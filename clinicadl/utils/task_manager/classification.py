@@ -77,6 +77,19 @@ class ClassificationManager(TaskManager):
             + [normalized_output[i].item() for i in range(self.n_classes)]
         ]
 
+    def generate_test_row_mt(self, idx, data, outputs):
+        prediction = torch.argmax(outputs[idx].data).item()
+        normalized_output = softmax(outputs[idx], dim=0)
+        return [
+            [
+                data["participant_id"][idx],
+                data["session_id"][idx],
+                data[f"{self.mode}_id"][idx].item(),
+                data["label2"][idx].item(),
+                prediction,
+            ]
+            + [normalized_output[i].item() for i in range(self.n_classes)]
+        ]
     def compute_metrics(self, results_df):
         return self.metrics_module.apply(
             results_df.true_label.values,

@@ -273,7 +273,7 @@ class TaskManager:
                     # Generate detailed DataFrame
                     for idx in range(len(data["participant_id"])):
                         row_task1 = self.generate_test_row(idx, data, outputs)
-                        row_task2 = self.generate_test_row(idx, data, outputs_2)
+                        row_task2 = self.generate_test_row_mt(idx, data, outputs_2)
                         # row = [row_task1[0] + row_task2[0][3:]]
                         row_df = pd.DataFrame(row_task1, columns=self.columns)
                         row_df2 = pd.DataFrame(row_task2, columns=self.columns)
