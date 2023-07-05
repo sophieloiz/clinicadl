@@ -1587,3 +1587,58 @@ class CNN_APE(Network):
             )
 
         return mmd2
+
+
+class CNN_MT(Network):
+    def __init__(self, convolutions, fc, fc2, n_classes, gpu=False):
+        super().__init__(gpu=gpu)
+        self.convolutions = convolutions.to(self.device)
+        self.fc = fc.to(self.device)
+        self.fc2 = fc2.to(self.device)
+        self.n_classes = n_classes
+
+    @property
+    def layers(self):
+        return nn.Sequential(self.convolutions, self.fc, self.fc2)
+
+    def transfer_weights(self, state_dict, transfer_class):
+        if issubclass(transfer_class, CNN_MT):
+            self.load_state_dict(state_dict)
+        elif issubclass(transfer_class, AutoEncoder):
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("encoder.", ""), v)
+                    for k, v in state_dict.items()
+                    if "encoder" in k
+                ]
+            )
+            self.convolutions.load_state_dict(convolutions_dict)
+        else:
+            raise ClinicaDLNetworksError(
+                f"Can not transfer weights from {transfer_class} to CNN."
+            )
+
+    def forward(self, x):
+        x = self.convolutions(x)
+        x_1 = self.fc(x)
+        x_2 = self.fc2(x)
+        return x_1, x_2
+
+    def predict(self, x):
+        return self.forward(x)
+
+    def compute_outputs_and_loss_multi(self, input_dict, criterion, use_labels=True):
+        images, labels, labels2 = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        ), input_dict["label2"].to(
+            self.device
+        )
+        train_output, train_output2 = self.forward(images)
+        if use_labels:
+            loss1 = criterion(train_output, labels)
+            loss2 = criterion(train_output2, labels2)
+            total_loss = loss1 + loss2
+        else:
+            total_loss = torch.Tensor([0])
+
+        return train_output, train_output2, {"loss": total_loss, "loss1": loss1, "loss2": loss2}
