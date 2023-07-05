@@ -1628,17 +1628,20 @@ class CNN_MT(Network):
         return self.forward(x)
 
     def compute_outputs_and_loss_multi(self, input_dict, criterion, use_labels=True):
-        images, labels, labels2 = input_dict["image"].to(self.device), input_dict["label"].to(
-            self.device
-        ), input_dict["label2"].to(
+        # images, labels, labels2 = input_dict["image"].to(self.device), input_dict["label"].to(
+        #     self.device
+        # ), input_dict["label2"].to(
+        #     self.device
+        # )
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
         train_output, train_output2 = self.forward(images)
         if use_labels:
             loss1 = criterion(train_output, labels)
-            loss2 = criterion(train_output2, labels2)
-            total_loss = loss1 + loss2
+            #loss2 = criterion(train_output2, labels2)
+            total_loss = loss1 #+ loss2
         else:
             total_loss = torch.Tensor([0])
 
-        return train_output, train_output2, {"loss": total_loss, "loss1": loss1, "loss2": loss2}
+        return train_output, train_output2, {"loss": total_loss, "loss1": loss1}#, "loss2": loss2}
