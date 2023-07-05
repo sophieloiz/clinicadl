@@ -193,7 +193,6 @@ class TaskManager:
         results_df = pd.DataFrame(columns=self.columns)
         total_loss = 0
         embedded_features = None
-        print(dataloader)
         import matplotlib.pyplot as plt
 
         features_list = []
