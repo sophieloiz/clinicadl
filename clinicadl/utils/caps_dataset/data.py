@@ -251,6 +251,7 @@ class CapsDataset(Dataset):
                 label (str or float or int): value of the label to be used in criterion.
             """
             image_idx = idx // self.elem_per_image
+            print(self.df)
             participant = self.df.loc[image_idx, "participant_id"]
             session = self.df.loc[image_idx, "session_id"]
             cohort = self.df.loc[image_idx, "cohort"]
