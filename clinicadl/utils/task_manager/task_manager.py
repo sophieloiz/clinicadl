@@ -200,7 +200,7 @@ class TaskManager:
         with torch.no_grad():
             for i, data in enumerate(dataloader):
                 print("Remove alpha from task manager if no ssda training")
-                outputs, loss_dict = model.compute_outputs_and_loss(
+                outputs, _,loss_dict = model.compute_outputs_and_loss(
                     data, criterion, use_labels=use_labels
                 )  # , alpha=0 features
 
