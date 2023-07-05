@@ -284,6 +284,7 @@ class MapsManager:
                         else label_code,
                         cnn_index=network,
                     )
+                    print(len(data_test))
                     test_loader = DataLoader(
                         data_test,
                         batch_size=batch_size
