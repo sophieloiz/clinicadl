@@ -250,6 +250,7 @@ class TaskManager:
             dataloader.dataset.eval()
 
             results_df = pd.DataFrame(columns=self.columns)
+            results_df2 = pd.DataFrame(columns=self.columns)
             total_loss = {}
             with torch.no_grad():
                 for i, data in enumerate(dataloader):
@@ -271,22 +272,30 @@ class TaskManager:
 
                     # Generate detailed DataFrame
                     for idx in range(len(data["participant_id"])):
+                        print(outputs)
+                        print(outputs_2)
                         row_task1 = self.generate_test_row(idx, data, outputs)
                         row_task2 = self.generate_test_row(idx, data, outputs_2)
-                        row = [row_task1[0] + row_task2[0][3:]]
-                        row_df = pd.DataFrame(row, columns=self.columns_mt)
+                        # row = [row_task1[0] + row_task2[0][3:]]
+                        row_df = pd.DataFrame(row_task1, columns=self.columns)
+                        row_df2 = pd.DataFrame(row_task2, columns=self.columns)
                         results_df = pd.concat([results_df, row_df])
+                        results_df2 = pd.concat([results_df2, row_df2])
 
                     del outputs, outputs_2, loss_dict
                 results_df.reset_index(inplace=True, drop=True)
+                results_df2.reset_index(inplace=True, drop=True)
+
 
             if not use_labels:
                 metrics_dict = None
             else:
                 metrics_dict = self.compute_metrics(results_df)
+                print(results_df)
                 print(metrics_dict)
 
-                metrics_dict2 = self.compute_metrics_mt(results_df)
+                metrics_dict2 = self.compute_metrics(results_df2)
+                print(results_df2.columns)
                 print(metrics_dict2)
 
                 for loss_component in total_loss.keys():
@@ -295,4 +304,4 @@ class TaskManager:
 
             torch.cuda.empty_cache()
 
-            return results_df, metrics_dict, metrics_dict2
+            return results_df, results_df2, metrics_dict, metrics_dict2

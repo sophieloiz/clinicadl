@@ -846,7 +846,7 @@ class MapsManager:
                     label_code2 = self.label_code2, #To generalize to N tasks
                     multi_task=True,
                 )
-                train_sampler = self.task_manager.generate_sampler(data_train, self.sampler)
+                train_sampler = self.task_manager.generate_sampler_mt(data_train, self.sampler)
                 logger.debug(
                     f"Getting train and validation loader with batch size {self.batch_size}"
                 )
@@ -1119,7 +1119,7 @@ class MapsManager:
             )
             criterion = self.task_manager.get_criterion(self.loss)
             logger.info(f"Criterion for {self.network_task} is {criterion}")
-            optimizer = self._init_optimizer(model, split=split, resume=resume)
+            optimizer_c, optimizer_fc, optimizer_fc2 = self._init_optimizer_mt(model, split=split, resume=resume)
             logger.debug(f"Optimizer used for training is optimizer")
 
             model.train()
@@ -1155,15 +1155,24 @@ class MapsManager:
                     for i, data in enumerate(train_loader):
                         _, _, loss_dict = model.compute_outputs_and_loss_multi(data, criterion)
                         logger.debug(f"Train loss dictionnary {loss_dict}")
-                        loss = loss_dict["loss"]
-                        loss.backward()
+                        # loss = loss_dict["loss"]
+                        # loss.backward()
+                        loss_1 = loss_dict[f"loss1"]
+                        loss_1.backward(retain_graph=True)
+                        loss_2 = loss_dict[f"loss2"]
+                        loss_2.backward(retain_graph=True)
 
                         if (i + 1) % self.accumulation_steps == 0:
                             step_flag = False
-                            optimizer.step()
-                            optimizer.zero_grad()
+                            optimizer_c.step()
+                            optimizer_c.zero_grad()
+                            optimizer_fc.step()
+                            optimizer_fc.zero_grad()
+                            optimizer_fc2.step()
+                            optimizer_fc2.zero_grad()
 
-                            del loss
+                            # del loss
+                            del loss_1, loss_2
 
                             # Evaluate the model only when no gradients are accumulated
                             if (
@@ -1172,10 +1181,10 @@ class MapsManager:
                             ):
                                 evaluation_flag = False
                                 print("Task Manager MT")
-                                _, metrics_train, metrics_train2 = self.task_manager.test_mt(
+                                _, _, metrics_train, metrics_train2 = self.task_manager.test_mt(
                                     model, train_loader, criterion
                                 )
-                                _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(
+                                _, _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(
                                     model, valid_loader, criterion
                                 )
 
@@ -1187,6 +1196,14 @@ class MapsManager:
                                     i,
                                     metrics_train,
                                     metrics_valid,
+                                    len(train_loader),
+                                )
+
+                                log_writer.step_mt(
+                                    epoch,
+                                    i,
+                                    metrics_train2,
+                                    metrics_valid2,
                                     len(train_loader),
                                 )
                                 logger.info(
@@ -1216,15 +1233,21 @@ class MapsManager:
 
                 # Update weights one last time if gradients were computed without update
                 if (i + 1) % self.accumulation_steps != 0:
-                    optimizer.step()
-                    optimizer.zero_grad()
+                    # optimizer.step()
+                    # optimizer.zero_grad()
+                    optimizer_c.step()
+                    optimizer_c.zero_grad()
+                    optimizer_fc.step()
+                    optimizer_fc.zero_grad()
+                    optimizer_fc2.step()
+                    optimizer_fc2.zero_grad()
 
                 # Always test the results and save them once at the end of the epoch
                 model.zero_grad()
                 logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
 
-                _, metrics_train, metrics_train2 = self.task_manager.test_mt(model, train_loader, criterion)
-                _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(model, valid_loader, criterion)
+                _, _, metrics_train, metrics_train2 = self.task_manager.test_mt(model, train_loader, criterion)
+                _, _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(model, valid_loader, criterion)
 
                 model.train()
                 train_loader.dataset.train()
@@ -1255,7 +1278,7 @@ class MapsManager:
                 )
                 self._write_weights(
                     {
-                        "optimizer": optimizer.state_dict(),
+                        "optimizer": optimizer_c.state_dict(),
                         "epoch": epoch,
                         "name": self.optimizer,
                     },
@@ -1408,7 +1431,7 @@ class MapsManager:
                 gpu=gpu,
                 network=network,
             )
-            prediction_df, metrics, metrics_t2 = self.task_manager.test_mt(
+            prediction_df, prediction_df2, metrics, metrics_t2 = self.task_manager.test_mt(
                 model, dataloader, criterion, use_labels=use_labels
             )
             if use_labels:
@@ -1426,7 +1449,7 @@ class MapsManager:
             )
             
             self._mode_level_to_tsv(
-                prediction_df, metrics_t2, split, selection_metric, data_group=f"{data_group}_t2"
+                prediction_df2, metrics_t2, split, selection_metric, data_group=f"{data_group}_t2"
             )
 
     def _compute_output_nifti(
@@ -1681,7 +1704,6 @@ class MapsManager:
 
         split_manager = self._init_split_manager(None)
         train_df = split_manager[0]["train"]
-        print(train_df)
         if "label" not in self.parameters:
             self.parameters["label"] = None
         if "label2" not in self.parameters:
@@ -2375,6 +2397,35 @@ class MapsManager:
 
         return optimizer
 
+    def _init_optimizer_mt(self, model, split=None, resume=False):
+            """Initialize the optimizer and use checkpoint weights if resume is True."""
+            optimizer_conv = getattr(torch.optim, self.optimizer)(
+                filter(lambda x: x.requires_grad, model.convolutions.parameters()),
+                lr=self.learning_rate,
+                weight_decay=self.weight_decay,
+            )
+            optimizer_fc = getattr(torch.optim, self.optimizer)(
+                filter(lambda x: x.requires_grad, model.fc.parameters()),
+                lr=self.learning_rate,
+                weight_decay=self.weight_decay,
+            )
+            optimizer_fc2 = getattr(torch.optim, self.optimizer)(
+                filter(lambda x: x.requires_grad, model.fc2.parameters()),
+                lr=self.learning_rate,
+                weight_decay=self.weight_decay,
+            )
+
+            if resume:
+                checkpoint_path = (
+                    self.maps_path
+                    / f"{self.split_name}-{split}"
+                    / "tmp"
+                    / "optimizer.pth.tar"
+                )
+                checkpoint_state = torch.load(checkpoint_path, map_location=model.device)
+                optimizer.load_state_dict(checkpoint_state["optimizer"])
+
+            return optimizer_conv, optimizer_fc, optimizer_fc2
     def _init_split_manager(self, split_list=None):
         from clinicadl.utils import split_manager
 

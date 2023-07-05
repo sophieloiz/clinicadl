@@ -129,6 +129,37 @@ class ClassificationManager(TaskManager):
             raise NotImplementedError(
                 f"The option {sampler_option} for sampler on classification task is not implemented"
             )
+    
+    @staticmethod
+    def generate_sampler_mt(dataset, sampler_option="random", n_bins=5):
+        df = dataset.df
+        labels = df[dataset.label].unique()
+        codes = set()
+        for label in labels:
+            codes.add(dataset.label_code[label])
+        count = np.zeros(len(codes))
+
+        for idx in df.index:
+            label = df.loc[idx, dataset.label]
+            key = dataset.label_fn(label)
+            count[key] += 1
+
+        weight_per_class = 1 / np.array(count)
+        weights = []
+
+        for idx, (label, label2) in enumerate(zip(df[dataset.label].values, df[dataset.label2].values)):
+            key = dataset.label_fn(label)
+            key2 = dataset.label_fn(label2)
+            weights += [weight_per_class[key] + weight_per_class[key2]] * dataset.elem_per_image
+
+        if sampler_option == "random":
+            return sampler.RandomSampler(weights)
+        elif sampler_option == "weighted":
+            return sampler.WeightedRandomSampler(weights, len(weights))
+        else:
+            raise NotImplementedError(
+                f"The option {sampler_option} for sampler on classification task is not implemented"
+            )
 
     def ensemble_prediction(
         self,

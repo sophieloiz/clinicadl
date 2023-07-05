@@ -114,6 +114,25 @@ class CapsDataset(Dataset):
         else:
             return self.label_code[str(target)]
 
+    def label_fn_mt(self, target: Union[str, float, int]) -> Union[float, int]:
+            """
+            Returns the label value usable in criterion.
+
+            Args:
+                target: value of the target.
+            Returns:
+                label: value of the label usable in criterion.
+            """
+            # Reconstruction case (no label)
+            if self.label2 is None:
+                return None
+            # Regression case (no label code)
+            elif self.label_code2 is None:
+                return np.float32([target])
+            # Classification case (label + label_code dict)
+            else:
+                return self.label_code2[str(target)]
+
     def __len__(self) -> int:
         return len(self.df) * self.elem_per_image
 
@@ -239,10 +258,10 @@ class CapsDataset(Dataset):
                 elem_idx = idx % self.elem_per_image
             else:
                 elem_idx = self.elem_index
-            if self.label_presence and self.label is not None  and self.label2 is not None:
+            if self.label_presence and self.label is not None and self.label2 is not None:
                 target, target2 = self.df.loc[image_idx, [self.label, self.label2]]
                 label = self.label_fn(target)
-                label2 = self.label_fn(target2)
+                label2 = self.label_fn_mt(target2)
 
             else:
                 label = -1
