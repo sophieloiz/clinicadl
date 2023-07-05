@@ -846,7 +846,7 @@ class MapsManager:
                     label_code2 = self.label_code2, #To generalize to N tasks
                     multi_task=True,
                 )
-                train_sampler = self.task_manager.generate_sampler_mt(data_train, self.sampler)
+                train_sampler = self.task_manager.generate_sampler(data_train, self.sampler)
                 logger.debug(
                     f"Getting train and validation loader with batch size {self.batch_size}"
                 )
@@ -1119,7 +1119,7 @@ class MapsManager:
             )
             criterion = self.task_manager.get_criterion(self.loss)
             logger.info(f"Criterion for {self.network_task} is {criterion}")
-            optimizer_c, optimizer_fc, optimizer_fc2 = self._init_optimizer_mt(model, split=split, resume=resume)
+            optimizer = self._init_optimizer(model, split=split, resume=resume)
             logger.debug(f"Optimizer used for training is optimizer")
 
             model.train()
@@ -1155,24 +1155,15 @@ class MapsManager:
                     for i, data in enumerate(train_loader):
                         _, _, loss_dict = model.compute_outputs_and_loss_multi(data, criterion)
                         logger.debug(f"Train loss dictionnary {loss_dict}")
-                        # loss = loss_dict["loss"]
-                        # loss.backward()
-                        loss_1 = loss_dict[f"loss1"]
-                        loss_1.backward(retain_graph=True)
-                        loss_2 = loss_dict[f"loss2"]
-                        loss_2.backward(retain_graph=True)
+                        loss = loss_dict["loss"]
+                        loss.backward()
 
                         if (i + 1) % self.accumulation_steps == 0:
                             step_flag = False
-                            optimizer_c.step()
-                            optimizer_c.zero_grad()
-                            optimizer_fc.step()
-                            optimizer_fc.zero_grad()
-                            optimizer_fc2.step()
-                            optimizer_fc2.zero_grad()
+                            optimizer.step()
+                            optimizer.zero_grad()
 
-                            # del loss
-                            del loss_1, loss_2
+                            del loss
 
                             # Evaluate the model only when no gradients are accumulated
                             if (
@@ -1233,14 +1224,8 @@ class MapsManager:
 
                 # Update weights one last time if gradients were computed without update
                 if (i + 1) % self.accumulation_steps != 0:
-                    # optimizer.step()
-                    # optimizer.zero_grad()
-                    optimizer_c.step()
-                    optimizer_c.zero_grad()
-                    optimizer_fc.step()
-                    optimizer_fc.zero_grad()
-                    optimizer_fc2.step()
-                    optimizer_fc2.zero_grad()
+                    optimizer.step()
+                    optimizer.zero_grad()
 
                 # Always test the results and save them once at the end of the epoch
                 model.zero_grad()
@@ -1278,7 +1263,7 @@ class MapsManager:
                 )
                 self._write_weights(
                     {
-                        "optimizer": optimizer_c.state_dict(),
+                        "optimizer": optimizer.state_dict(),
                         "epoch": epoch,
                         "name": self.optimizer,
                     },

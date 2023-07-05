@@ -272,8 +272,6 @@ class TaskManager:
 
                     # Generate detailed DataFrame
                     for idx in range(len(data["participant_id"])):
-                        print(outputs)
-                        print(outputs_2)
                         row_task1 = self.generate_test_row(idx, data, outputs)
                         row_task2 = self.generate_test_row(idx, data, outputs_2)
                         # row = [row_task1[0] + row_task2[0][3:]]
@@ -291,11 +289,9 @@ class TaskManager:
                 metrics_dict = None
             else:
                 metrics_dict = self.compute_metrics(results_df)
-                print(results_df)
                 print(metrics_dict)
 
                 metrics_dict2 = self.compute_metrics(results_df2)
-                print(results_df2.columns)
                 print(metrics_dict2)
 
                 for loss_component in total_loss.keys():
