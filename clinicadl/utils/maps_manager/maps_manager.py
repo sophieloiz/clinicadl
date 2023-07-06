@@ -187,6 +187,7 @@ class MapsManager:
         split_list: List[int] = None,
         selection_metrics: List[str] = None,
         multi_cohort: bool = False,
+        multi_task: bool = False,
         diagnoses: List[str] = (),
         use_labels: bool = True,
         batch_size: int = None,
@@ -194,7 +195,9 @@ class MapsManager:
         gpu: bool = None,
         overwrite: bool = False,
         label: str = None,
+        label2: str = None,
         label_code: Optional[Dict[str, int]] = "default",
+        label_code2: Optional[Dict[str, int]] = "default",
         save_tensor: bool = False,
         save_nifti: bool = False,
         save_latent_tensor: bool = False,
@@ -256,6 +259,10 @@ class MapsManager:
             # Find label code if not given
             if label is not None and label != self.label and label_code == "default":
                 self.task_manager.generate_label_code(group_df, label)
+            
+            if multi_task:
+                if label2 is not None and label2 != self.label2 and label_code2 == "default":
+                    self.task_manager.generate_label_code(group_df, label2)
 
             # Erase previous TSV files
             if not selection_metrics:
@@ -336,6 +343,65 @@ class MapsManager:
                             gpu=gpu,
                             network=network,
                         )
+            elif self.multi_task:
+                data_test = return_dataset(
+                    group_parameters["caps_directory"],
+                    group_df,
+                    self.preprocessing_dict,
+                    all_transformations=all_transforms,
+                    multi_cohort=group_parameters["multi_cohort"],
+                    multi_task=True,
+                    label_presence=use_labels,
+                    label=self.label,
+                    label_code=self.label_code,
+                    label2=self.label2,
+                    label_code2=self.label_code2
+                    if label_code2 == "default"
+                    else label_code2,
+                )
+
+                test_loader = DataLoader(
+                    data_test,
+                    batch_size=batch_size
+                    if batch_size is not None
+                    else self.batch_size,
+                    shuffle=False,
+                    num_workers=n_proc if n_proc is not None else self.n_proc,
+                )
+                self._test_loader_mt(
+                    test_loader,
+                    criterion,
+                    data_group,
+                    split,
+                    split_selection_metrics,
+                    use_labels=use_labels,
+                    gpu=gpu,
+                )
+                if save_tensor:
+                    logger.debug("Saving tensors")
+                    self._compute_output_tensors(
+                        data_test,
+                        data_group,
+                        split,
+                        selection_metrics,
+                        gpu=gpu,
+                    )
+                if save_nifti:
+                    self._compute_output_nifti(
+                        data_test,
+                        data_group,
+                        split,
+                        selection_metrics,
+                        gpu=gpu,
+                    )
+                if save_latent_tensor:
+                    self._compute_latent_tensors(
+                        data_test,
+                        data_group,
+                        split,
+                        selection_metrics,
+                        gpu=gpu,
+                    )
             else:
                 data_test = return_dataset(
                     group_parameters["caps_directory"],
@@ -1172,10 +1238,10 @@ class MapsManager:
                             ):
                                 evaluation_flag = False
                                 print("Task Manager MT")
-                                _, metrics_train, metrics_train2 = self.task_manager.test_mt(
+                                _, _, metrics_train, metrics_train2 = self.task_manager.test_mt(
                                     model, train_loader, criterion
                                 )
-                                _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(
+                                _, _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(
                                     model, valid_loader, criterion
                                 )
 
@@ -1187,6 +1253,14 @@ class MapsManager:
                                     i,
                                     metrics_train,
                                     metrics_valid,
+                                    len(train_loader),
+                                )
+
+                                log_writer.step_mt(
+                                    epoch,
+                                    i,
+                                    metrics_train2,
+                                    metrics_valid2,
                                     len(train_loader),
                                 )
                                 logger.info(
@@ -1223,8 +1297,8 @@ class MapsManager:
                 model.zero_grad()
                 logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
 
-                _, metrics_train, metrics_train2 = self.task_manager.test_mt(model, train_loader, criterion)
-                _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(model, valid_loader, criterion)
+                _, _, metrics_train, metrics_train2 = self.task_manager.test_mt(model, train_loader, criterion)
+                _, _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(model, valid_loader, criterion)
 
                 model.train()
                 train_loader.dataset.train()
@@ -1408,7 +1482,7 @@ class MapsManager:
                 gpu=gpu,
                 network=network,
             )
-            prediction_df, metrics, metrics_t2 = self.task_manager.test_mt(
+            prediction_df, prediction_df2, metrics, metrics_t2 = self.task_manager.test_mt(
                 model, dataloader, criterion, use_labels=use_labels
             )
             if use_labels:
@@ -1426,7 +1500,7 @@ class MapsManager:
             )
             
             self._mode_level_to_tsv(
-                prediction_df, metrics_t2, split, selection_metric, data_group=f"{data_group}_t2"
+                prediction_df2, metrics_t2, split, selection_metric, data_group=f"{data_group}_t2"
             )
 
     def _compute_output_nifti(
@@ -1699,15 +1773,12 @@ class MapsManager:
             self.parameters["label_code"] = self.task_manager.generate_label_code(
                 train_df, self.label
             )
-        print(self.parameters)
-        if (
-            "label_code2" not in self.parameters
-            or len(self.parameters["label_code2"]) == 0
-        ):  # Allows to set custom label code in TOML
-            self.parameters["label_code2"] = self.task_manager.generate_label_code(
-                train_df, self.label2
-            )
+        
         if self.multi_task:
+            if ("label_code2" not in self.parameters or len(self.parameters["label_code2"]) == 0):  # Allows to set custom label code in TOML
+                self.parameters["label_code2"] = self.task_manager.generate_label_code(
+                    train_df, self.label2
+                )
             full_dataset = return_dataset(
                 self.caps_directory,
                 train_df,
@@ -2389,6 +2460,35 @@ class MapsManager:
 
         return optimizer
 
+    def _init_optimizer_mt(self, model, split=None, resume=False):
+            """Initialize the optimizer and use checkpoint weights if resume is True."""
+            optimizer_conv = getattr(torch.optim, self.optimizer)(
+                filter(lambda x: x.requires_grad, model.convolutions.parameters()),
+                lr=self.learning_rate,
+                weight_decay=self.weight_decay,
+            )
+            optimizer_fc = getattr(torch.optim, self.optimizer)(
+                filter(lambda x: x.requires_grad, model.fc.parameters()),
+                lr=self.learning_rate,
+                weight_decay=self.weight_decay,
+            )
+            optimizer_fc2 = getattr(torch.optim, self.optimizer)(
+                filter(lambda x: x.requires_grad, model.fc2.parameters()),
+                lr=self.learning_rate,
+                weight_decay=self.weight_decay,
+            )
+
+            if resume:
+                checkpoint_path = (
+                    self.maps_path
+                    / f"{self.split_name}-{split}"
+                    / "tmp"
+                    / "optimizer.pth.tar"
+                )
+                checkpoint_state = torch.load(checkpoint_path, map_location=model.device)
+                optimizer.load_state_dict(checkpoint_state["optimizer"])
+
+            return optimizer_conv, optimizer_fc, optimizer_fc2
     def _init_split_manager(self, split_list=None):
         from clinicadl.utils import split_manager
 
@@ -2518,6 +2618,7 @@ class MapsManager:
         with json_path.open(mode="r") as f:
             parameters = json.load(f)
         parameters = change_str_to_path(parameters)
+        print(parameters)
         return df, parameters
 
     def get_parameters(self):

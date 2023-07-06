@@ -77,6 +77,19 @@ class ClassificationManager(TaskManager):
             + [normalized_output[i].item() for i in range(self.n_classes)]
         ]
 
+    def generate_test_row_mt(self, idx, data, outputs):
+        prediction = torch.argmax(outputs[idx].data).item()
+        normalized_output = softmax(outputs[idx], dim=0)
+        return [
+            [
+                data["participant_id"][idx],
+                data["session_id"][idx],
+                data[f"{self.mode}_id"][idx].item(),
+                data["label2"][idx].item(),
+                prediction,
+            ]
+            + [normalized_output[i].item() for i in range(self.n_classes)]
+        ]
     def compute_metrics(self, results_df):
         return self.metrics_module.apply(
             results_df.true_label.values,
@@ -120,6 +133,37 @@ class ClassificationManager(TaskManager):
         for idx, label in enumerate(df[dataset.label].values):
             key = dataset.label_fn(label)
             weights += [weight_per_class[key]] * dataset.elem_per_image
+
+        if sampler_option == "random":
+            return sampler.RandomSampler(weights)
+        elif sampler_option == "weighted":
+            return sampler.WeightedRandomSampler(weights, len(weights))
+        else:
+            raise NotImplementedError(
+                f"The option {sampler_option} for sampler on classification task is not implemented"
+            )
+    
+    @staticmethod
+    def generate_sampler_mt(dataset, sampler_option="random", n_bins=5):
+        df = dataset.df
+        labels = df[dataset.label].unique()
+        codes = set()
+        for label in labels:
+            codes.add(dataset.label_code[label])
+        count = np.zeros(len(codes))
+
+        for idx in df.index:
+            label = df.loc[idx, dataset.label]
+            key = dataset.label_fn(label)
+            count[key] += 1
+
+        weight_per_class = 1 / np.array(count)
+        weights = []
+
+        for idx, (label, label2) in enumerate(zip(df[dataset.label].values, df[dataset.label2].values)):
+            key = dataset.label_fn(label)
+            key2 = dataset.label_fn(label2)
+            weights += [weight_per_class[key] + weight_per_class[key2]] * dataset.elem_per_image
 
         if sampler_option == "random":
             return sampler.RandomSampler(weights)

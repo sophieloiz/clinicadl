@@ -44,6 +44,13 @@ from clinicadl.utils import cli_param
             In this case, CAPS_DIRECTORY and PARTICIPANTS_TSV must be paths to TSV files.""",
 )
 @click.option(
+    "--multi_task",
+    type=bool,
+    default=False,
+    is_flag=True,
+    help="""Predict multitask network""",
+)
+@click.option(
     "--diagnoses",
     "-d",
     type=str,
@@ -52,6 +59,13 @@ from clinicadl.utils import cli_param
 )
 @click.option(
     "--label",
+    type=str,
+    default=None,
+    help="Target label used for training (if NETWORK_TASK in [`regression`, `classification`]). "
+    "Default will reuse the same label as during the training task.",
+)
+@click.option(
+    "--label2",
     type=str,
     default=None,
     help="Target label used for training (if NETWORK_TASK in [`regression`, `classification`]). "
@@ -89,9 +103,11 @@ def cli(
     batch_size,
     use_labels,
     label,
+    label2,
     selection_metrics,
     diagnoses,
     multi_cohort,
+    multi_task,
     overwrite,
     save_tensor,
     save_nifti,
@@ -117,6 +133,7 @@ def cli(
         tsv_path=participants_tsv,
         use_labels=use_labels,
         label=label,
+        label2=label2,
         gpu=gpu,
         n_proc=n_proc,
         batch_size=batch_size,
@@ -124,6 +141,7 @@ def cli(
         selection_metrics=selection_metrics,
         diagnoses=diagnoses,
         multi_cohort=multi_cohort,
+        multi_task=multi_task,
         overwrite=overwrite,
         save_tensor=save_tensor,
         save_nifti=save_nifti,
