@@ -2425,7 +2425,7 @@ class MapsManager:
             transfer_class = getattr(network_package, transfer_maps.architecture)
             logger.debug(f"Transfer from {transfer_class}")
             model.transfer_weights(transfer_state["model"], transfer_class)
-             print("Finetunning")
+            print("Finetunning")
             list_name = [name for (name, _) in model.named_parameters()]
             list_param = [param for (_, param) in model.named_parameters()]
 
