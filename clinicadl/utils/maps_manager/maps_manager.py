@@ -1503,7 +1503,7 @@ class MapsManager:
                 gpu=gpu,
                 network=network,
             )
-            prediction_df, prediction_df2, metrics, metrics_t2 = self.task_manager.test_mt(
+            prediction_df, prediction_df2,prediction_df3, metrics, metrics_t2, metrics_t3 = self.task_manager.test_mt(
                 model, dataloader, criterion, use_labels=use_labels
             )
             if use_labels:
@@ -1516,12 +1516,17 @@ class MapsManager:
             # Replace here
             print(metrics)
             print(metrics_t2)
+            print(metrics_t3)
             self._mode_level_to_tsv(
                 prediction_df, metrics, split, selection_metric, data_group=data_group
             )
             
             self._mode_level_to_tsv(
                 prediction_df2, metrics_t2, split, selection_metric, data_group=f"{data_group}_t2"
+            )
+
+            self._mode_level_to_tsv(
+                prediction_df3, metrics_t3, split, selection_metric, data_group=f"{data_group}_t2"
             )
 
     def _compute_output_nifti(
