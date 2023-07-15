@@ -256,6 +256,8 @@ class MapsManager:
             multi_cohort,
             overwrite,
             label=label,
+            label2=label2,
+            label3=label3
         )
         for split in split_list:
             logger.info(f"Prediction of split {split}")
@@ -1954,6 +1956,8 @@ class MapsManager:
         multi_cohort=False,
         overwrite=False,
         label=None,
+        label2=None,
+        label3=None,
     ):
         """
         Check if a data group is already available if other arguments are None.
@@ -2012,7 +2016,7 @@ class MapsManager:
         ):  # Data group does not exist yet / was overwritten + all data is provided
             self._check_leakage(data_group, df)
             self._write_data_group(
-                data_group, df, caps_directory, multi_cohort, label=label
+                data_group, df, caps_directory, multi_cohort, label=label, label2=label2, label3=label3
             )
 
     ###############################
@@ -2079,6 +2083,8 @@ class MapsManager:
         caps_directory: Path = None,
         multi_cohort: bool = None,
         label=None,
+        label2=None,
+        label3=None,
     ):
         """
         Check that a data_group is not already written and writes the characteristics of the data group
