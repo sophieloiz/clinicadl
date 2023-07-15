@@ -81,10 +81,12 @@ class CapsDataset(Dataset):
             raise AttributeError("Child class of CapsDataset, must set mode attribute.")
 
         self.df = data_df
-
+        print(self.df)
         mandatory_col = {"participant_id", "session_id", "cohort"}
         if self.label_presence and self.label is not None:
             mandatory_col.add(self.label)
+        if self.multi_task:
+            mandatory_col.add(self.label2, self.label3)
 
         if not mandatory_col.issubset(set(self.df.columns.values)):
             raise Exception(
