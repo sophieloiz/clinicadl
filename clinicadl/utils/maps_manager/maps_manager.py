@@ -2103,7 +2103,8 @@ class MapsManager:
             columns += [self.label]
         if label is not None and label in df.columns.values:
             columns += [label]
-
+        columns += ["noise"]
+        columns += ["diagnosis_z"]
         df.to_csv(group_path / "data.tsv", sep="\t", columns=columns, index=False)
         self.write_parameters(
             group_path,
