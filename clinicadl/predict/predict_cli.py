@@ -72,6 +72,13 @@ from clinicadl.utils import cli_param
     "Default will reuse the same label as during the training task.",
 )
 @click.option(
+    "--label3",
+    type=str,
+    default=None,
+    help="Target label used for training (if NETWORK_TASK in [`regression`, `classification`]). "
+    "Default will reuse the same label as during the training task.",
+)
+@click.option(
     "--save_tensor",
     type=bool,
     default=False,
@@ -104,6 +111,7 @@ def cli(
     use_labels,
     label,
     label2,
+    label3,
     selection_metrics,
     diagnoses,
     multi_cohort,
@@ -134,6 +142,7 @@ def cli(
         use_labels=use_labels,
         label=label,
         label2=label2,
+        label3=label3,
         gpu=gpu,
         n_proc=n_proc,
         batch_size=batch_size,
