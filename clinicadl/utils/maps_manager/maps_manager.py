@@ -256,8 +256,6 @@ class MapsManager:
             multi_cohort,
             overwrite,
             label=label,
-            label2=label2,
-            label3=label3
         )
         for split in split_list:
             logger.info(f"Prediction of split {split}")
@@ -352,6 +350,7 @@ class MapsManager:
                             network=network,
                         )
             elif self.multi_task:
+                print("353")
                 print(group_df)
                 data_test = return_dataset(
                     group_parameters["caps_directory"],
@@ -1956,8 +1955,6 @@ class MapsManager:
         multi_cohort=False,
         overwrite=False,
         label=None,
-        label2=None,
-        label3=None,
     ):
         """
         Check if a data group is already available if other arguments are None.
@@ -2016,7 +2013,7 @@ class MapsManager:
         ):  # Data group does not exist yet / was overwritten + all data is provided
             self._check_leakage(data_group, df)
             self._write_data_group(
-                data_group, df, caps_directory, multi_cohort, label=label, label2=label2, label3=label3
+                data_group, df, caps_directory, multi_cohort, label=label
             )
 
     ###############################
@@ -2083,8 +2080,6 @@ class MapsManager:
         caps_directory: Path = None,
         multi_cohort: bool = None,
         label=None,
-        label2=None,
-        label3=None,
     ):
         """
         Check that a data_group is not already written and writes the characteristics of the data group
@@ -2104,13 +2099,6 @@ class MapsManager:
             columns += [self.label]
         if label is not None and label in df.columns.values:
             columns += [label]
-
-        if self.label2 in df.columns.values:
-            columns += [self.label2]
-        if label2 is not None and label2 in df.columns.values:
-            columns += [label2]
-        if label3 is not None and label3 in df.columns.values:
-            columns += [label3]
 
         df.to_csv(group_path / "data.tsv", sep="\t", columns=columns, index=False)
         self.write_parameters(
