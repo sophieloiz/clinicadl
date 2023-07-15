@@ -86,7 +86,8 @@ class CapsDataset(Dataset):
         if self.label_presence and self.label is not None:
             mandatory_col.add(self.label)
         if self.multi_task:
-            mandatory_col.add(self.label2, self.label3)
+            mandatory_col.add(self.label2)
+            mandatory_col.add(self.label3)
 
         if not mandatory_col.issubset(set(self.df.columns.values)):
             raise Exception(
