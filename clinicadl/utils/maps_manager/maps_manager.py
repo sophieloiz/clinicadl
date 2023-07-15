@@ -246,6 +246,8 @@ class MapsManager:
                 diagnoses if len(diagnoses) != 0 else self.diagnoses,
                 multi_cohort=multi_cohort,
             )
+        print("249")
+        print(group_df)
         criterion = self.task_manager.get_criterion(self.loss)
         self._check_data_group(
             data_group,
@@ -2096,6 +2098,13 @@ class MapsManager:
             columns += [self.label]
         if label is not None and label in df.columns.values:
             columns += [label]
+
+        if self.label2 in df.columns.values:
+            columns += [self.label2]
+        if label2 is not None and label2 in df.columns.values:
+            columns += [label2]
+        if label3 is not None and label3 in df.columns.values:
+            columns += [label3]
 
         df.to_csv(group_path / "data.tsv", sep="\t", columns=columns, index=False)
         self.write_parameters(
