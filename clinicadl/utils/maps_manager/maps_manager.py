@@ -2682,6 +2682,8 @@ class MapsManager:
         json_path = group_path / "maps.json"
         with json_path.open(mode="r") as f:
             parameters = json.load(f)
+            print("2685")
+            print(parameters)
         parameters = change_str_to_path(parameters)
         print(parameters)
         return df, parameters
