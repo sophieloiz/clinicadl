@@ -1261,13 +1261,13 @@ def load_data_test(test_path: Path, diagnoses_list, baseline=True, multi_cohort=
         if test_path.suffix == ".tsv":
             tsv_df = pd.read_csv(test_path, sep="\t")
             multi_col = {"cohort", "path"}
-            print("1264")
-            print(test_df)
             if multi_col.issubset(tsv_df.columns.values):
                 raise ClinicaDLConfigurationError(
                     "To use multi-cohort framework, please add 'multi_cohort=true' in your configuration file or '--multi_cohort' flag to the command line."
                 )
         test_df = load_data_test_single(test_path, diagnoses_list, baseline=baseline)
+        print("1264")
+        print(test_df)
         test_df["cohort"] = "single"
 
     return test_df
