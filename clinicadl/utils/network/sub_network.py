@@ -199,20 +199,20 @@ class CNN_MT(Network):
                 f"Can not transfer weights from {transfer_class} to CNN."
             )
     def transfer_weights(self, state_dict, transfer_class):
-        if issubclass(transfer_class, CNN):
+        if issubclass(transfer_class, CNN_MT):
             # self.convolutions.load_state_dict(convolutions_dict)
             # self.fc.load_state_dict(convolutions_dict)
             # self.fc2.load_state_dict(convolutions_dict)
 
             
-            convolutions_dict = OrderedDict(
-                [
-                    (k.replace("fc.", "fc2"), v)
-                    for k, v in state_dict.items()
-                    if "fc" in k
-                ]
-            )
-            print(state_dict)
+            # convolutions_dict = OrderedDict(
+            #     [
+            #         (k.replace("fc.", "fc2"), v)
+            #         for k, v in state_dict.items()
+            #         if "fc" in k
+            #     ]
+            # )
+            # print(state_dict)
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
