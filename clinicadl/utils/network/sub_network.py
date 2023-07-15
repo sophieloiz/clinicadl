@@ -199,7 +199,7 @@ class CNN_MT(Network):
                 f"Can not transfer weights from {transfer_class} to CNN."
             )
     def transfer_weights(self, state_dict, transfer_class):
-        if issubclass(transfer_class, CNN):
+        if issubclass(transfer_class, CNN_MT):
             # self.convolutions.load_state_dict(convolutions_dict)
             # self.fc.load_state_dict(convolutions_dict)
             # self.fc2.load_state_dict(convolutions_dict)
