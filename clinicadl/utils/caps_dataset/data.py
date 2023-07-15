@@ -1267,6 +1267,7 @@ def load_data_test(test_path: Path, diagnoses_list, baseline=True, multi_cohort=
                 )
         test_df = load_data_test_single(test_path, diagnoses_list, baseline=baseline)
         test_df["cohort"] = "single"
+        print(test_df)
 
     return test_df
 

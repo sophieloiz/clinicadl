@@ -348,6 +348,7 @@ class MapsManager:
                             network=network,
                         )
             elif self.multi_task:
+                print(group_df)
                 data_test = return_dataset(
                     group_parameters["caps_directory"],
                     group_df,
