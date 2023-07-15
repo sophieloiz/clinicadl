@@ -260,6 +260,8 @@ class MapsManager:
         for split in split_list:
             logger.info(f"Prediction of split {split}")
             group_df, group_parameters = self.get_group_info(data_group, split)
+            print("263")
+            print(group_df)
             # Find label code if not given
             if label is not None and label != self.label and label_code == "default":
                 self.task_manager.generate_label_code(group_df, label)
