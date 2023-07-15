@@ -257,6 +257,8 @@ class MapsManager:
             overwrite,
             label=label,
         )
+        print("260")
+        print(group_df)
         for split in split_list:
             logger.info(f"Prediction of split {split}")
             group_df, group_parameters = self.get_group_info(data_group, split)
