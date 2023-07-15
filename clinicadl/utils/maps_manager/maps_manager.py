@@ -2456,24 +2456,24 @@ class MapsManager:
             transfer_class = getattr(network_package, transfer_maps.architecture)
             logger.debug(f"Transfer from {transfer_class}")
 
-            # Transfer_maps : bleu foncé (couche fc pour le mouvement)
-            from pathlib import Path
-            transfer_maps_motion = MapsManager(Path("/network/lustre/iss02/aramis/users/sophie.loizillon/QC/pre-train_train_opti_adni_motion/"))
-            transfer_state_motion = transfer_maps_motion.get_state_dict(
-                split,
-                selection_metric=transfer_selection,
-                network=network,
-                map_location=model.device,
-            )
+            # # Transfer_maps : bleu foncé (couche fc pour le mouvement)
+            # from pathlib import Path
+            # transfer_maps_motion = MapsManager(Path("/network/lustre/iss02/aramis/users/sophie.loizillon/QC/pre-train_train_opti_adni_motion/"))
+            # transfer_state_motion = transfer_maps_motion.get_state_dict(
+            #     split,
+            #     selection_metric=transfer_selection,
+            #     network=network,
+            #     map_location=model.device,
+            # )
         
-            # Transfer_maps : bleu foné (couche fc pour le bruit)
-            transfer_maps_noise = MapsManager(Path("/network/lustre/iss02/aramis/users/sophie.loizillon/QC/train_train_opti_adni_noise/"))
-            transfer_state_noise = transfer_maps_noise.get_state_dict(
-                split,
-                selection_metric=transfer_selection,
-                network=network,
-                map_location=model.device,
-            )
+            # # Transfer_maps : bleu foné (couche fc pour le bruit)
+            # transfer_maps_noise = MapsManager(Path("/network/lustre/iss02/aramis/users/sophie.loizillon/QC/train_train_opti_adni_noise/"))
+            # transfer_state_noise = transfer_maps_noise.get_state_dict(
+            #     split,
+            #     selection_metric=transfer_selection,
+            #     network=network,
+            #     map_location=model.device,
+            # )
             
             #model.transfer_weights_recombined(transfer_state["model"], transfer_state_motion["model"],transfer_state_noise["model"], transfer_class)
             model.transfer_weights(transfer_state["model"], transfer_class)
