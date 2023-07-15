@@ -1534,7 +1534,7 @@ class MapsManager:
             )
 
             self._mode_level_to_tsv(
-                prediction_df3, metrics_t3, split, selection_metric, data_group=f"{data_group}_t2"
+                prediction_df3, metrics_t3, split, selection_metric, data_group=f"{data_group}_t3"
             )
 
     def _compute_output_nifti(
