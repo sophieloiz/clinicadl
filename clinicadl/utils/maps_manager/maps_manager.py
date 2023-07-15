@@ -2679,6 +2679,7 @@ class MapsManager:
                 group_path = group_path / f"{self.split_name}-{split}"
 
         df = pd.read_csv(group_path / "data.tsv", sep="\t")
+        print(df)
         json_path = group_path / "maps.json"
         with json_path.open(mode="r") as f:
             parameters = json.load(f)
