@@ -196,8 +196,10 @@ class MapsManager:
         overwrite: bool = False,
         label: str = None,
         label2: str = None,
+        label3: str = None,
         label_code: Optional[Dict[str, int]] = "default",
         label_code2: Optional[Dict[str, int]] = "default",
+        label_code3: Optional[Dict[str, int]] = "default",
         save_tensor: bool = False,
         save_nifti: bool = False,
         save_latent_tensor: bool = False,
@@ -263,6 +265,8 @@ class MapsManager:
             if multi_task:
                 if label2 is not None and label2 != self.label2 and label_code2 == "default":
                     self.task_manager.generate_label_code(group_df, label2)
+                if label3 is not None and label3 != self.label3 and label_code3 == "default":
+                    self.task_manager.generate_label_code(group_df, label3)
 
             # Erase previous TSV files
             if not selection_metrics:
@@ -355,9 +359,13 @@ class MapsManager:
                     label=self.label,
                     label_code=self.label_code,
                     label2=self.label2,
+                    label3=self.label3,
                     label_code2=self.label_code2
                     if label_code2 == "default"
                     else label_code2,
+                    label_code3=self.label_code3
+                    if label_code3 == "default"
+                    else label_code3,
                 )
 
                 test_loader = DataLoader(
@@ -895,7 +903,9 @@ class MapsManager:
                     label=self.label,
                     label_code=self.label_code,
                     label2=self.label2, #To generalize to N tasks
+                    label3=self.label3, #To generalize to N tasks
                     label_code2 = self.label_code2, #To generalize to N tasks
+                    label_code3 = self.label_code3, #To generalize to N tasks
                     multi_task=True,
                 )
                 logger.debug("Loading validation data...")
@@ -909,7 +919,9 @@ class MapsManager:
                     label=self.label,
                     label_code=self.label_code,
                     label2=self.label2, #To generalize to N tasks
+                    label3=self.label3, #To generalize to N tasks
                     label_code2 = self.label_code2, #To generalize to N tasks
+                    label_code3 = self.label_code3, #To generalize to N tasks
                     multi_task=True,
                 )
                 train_sampler = self.task_manager.generate_sampler(data_train, self.sampler)
@@ -1219,7 +1231,7 @@ class MapsManager:
 
                 with profiler:
                     for i, data in enumerate(train_loader):
-                        _, _, loss_dict = model.compute_outputs_and_loss_multi(data, criterion)
+                        _, _,_, loss_dict = model.compute_outputs_and_loss_multi(data, criterion)
                         logger.debug(f"Train loss dictionnary {loss_dict}")
                         loss = loss_dict["loss"]
                         loss.backward()
@@ -1238,10 +1250,10 @@ class MapsManager:
                             ):
                                 evaluation_flag = False
                                 print("Task Manager MT")
-                                _, _, metrics_train, metrics_train2 = self.task_manager.test_mt(
+                                _, _, _, metrics_train, metrics_train2,metrics_train3 = self.task_manager.test_mt(
                                     model, train_loader, criterion
                                 )
-                                _, _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(
+                                _, _, _, metrics_valid, metrics_valid2, metrics_valid3 = self.task_manager.test_mt(
                                     model, valid_loader, criterion
                                 )
 
@@ -1261,6 +1273,13 @@ class MapsManager:
                                     i,
                                     metrics_train2,
                                     metrics_valid2,
+                                    len(train_loader),
+                                )
+                                log_writer.step_mt2(
+                                    epoch,
+                                    i,
+                                    metrics_train3,
+                                    metrics_valid3,
                                     len(train_loader),
                                 )
                                 logger.info(
@@ -1297,14 +1316,16 @@ class MapsManager:
                 model.zero_grad()
                 logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
 
-                _, _, metrics_train, metrics_train2 = self.task_manager.test_mt(model, train_loader, criterion)
-                _, _, metrics_valid, metrics_valid2 = self.task_manager.test_mt(model, valid_loader, criterion)
+                _, _, _, metrics_train, metrics_train2, metrics_train3 = self.task_manager.test_mt(model, train_loader, criterion)
+                _, _, _, metrics_valid, metrics_valid2,metrics_valid3 = self.task_manager.test_mt(model, valid_loader, criterion)
+
 
                 model.train()
                 train_loader.dataset.train()
 
                 log_writer.step(epoch, i, metrics_train, metrics_valid, len(train_loader))
                 log_writer.step_mt(epoch, i, metrics_train2, metrics_valid2, len(train_loader))
+                log_writer.step_mt3(epoch, i, metrics_train3, metrics_valid3, len(train_loader))
 
                 logger.info(
                     f"{self.mode} level training loss is {metrics_train['loss']} "
@@ -1759,6 +1780,8 @@ class MapsManager:
             self.parameters["label"] = None
         if "label2" not in self.parameters:
             self.parameters["label2"] = None
+        if "label3" not in self.parameters:
+            self.parameters["label3"] = None
 
         self.task_manager = self._init_task_manager(df=train_df)
 
@@ -1779,6 +1802,10 @@ class MapsManager:
                 self.parameters["label_code2"] = self.task_manager.generate_label_code(
                     train_df, self.label2
                 )
+            if ("label_code3" not in self.parameters or len(self.parameters["label_code3"]) == 0):  # Allows to set custom label code in TOML
+                self.parameters["label_code3"] = self.task_manager.generate_label_code(
+                    train_df, self.label3
+                )
             full_dataset = return_dataset(
                 self.caps_directory,
                 train_df,
@@ -1786,8 +1813,10 @@ class MapsManager:
                 multi_cohort=self.multi_cohort,
                 label=self.label,
                 label2=self.label2,
+                label3=self.label3,
                 label_code=self.parameters["label_code"],
                 label_code2=self.parameters["label_code2"],
+                label_code3=self.parameters["label_code3"],
                 train_transformations=None,
                 all_transformations=transformations,
                 multi_task=True
@@ -2415,6 +2444,8 @@ class MapsManager:
             current_epoch = checkpoint_state["epoch"]
         elif transfer_path:
             logger.debug(f"Transfer weights from MAPS at {transfer_path}")
+            # Transfer_maps : rouge (couche de convolutions)
+            print(transfer_path)
             transfer_maps = MapsManager(transfer_path)
             transfer_state = transfer_maps.get_state_dict(
                 split,
@@ -2424,19 +2455,40 @@ class MapsManager:
             )
             transfer_class = getattr(network_package, transfer_maps.architecture)
             logger.debug(f"Transfer from {transfer_class}")
-            model.transfer_weights(transfer_state["model"], transfer_class)
-            print("Finetunning")
-            list_name = [name for (name, _) in model.named_parameters()]
-            list_param = [param for (_, param) in model.named_parameters()]
 
-            for param, _ in zip(list_param, list_name):
-                param.requires_grad = False
+            # Transfer_maps : bleu foncé (couche fc pour le mouvement)
+            from pathlib import Path
+            transfer_maps_motion = MapsManager(Path("/network/lustre/iss02/aramis/users/sophie.loizillon/QC/pre-train_train_opti_adni_motion/"))
+            transfer_state_motion = transfer_maps_motion.get_state_dict(
+                split,
+                selection_metric=transfer_selection,
+                network=network,
+                map_location=model.device,
+            )
+        
+            # Transfer_maps : bleu foné (couche fc pour le bruit)
+            transfer_maps_noise = MapsManager(Path("/network/lustre/iss02/aramis/users/sophie.loizillon/QC/train_train_opti_adni_noise/"))
+            transfer_state_noise = transfer_maps_noise.get_state_dict(
+                split,
+                selection_metric=transfer_selection,
+                network=network,
+                map_location=model.device,
+            )
+            
+            model.transfer_weights_recombined(transfer_state["model"], transfer_state_motion["model"],transfer_state_noise["model"], transfer_class)
+            #model.transfer_weights(transfer_state["model"], transfer_class)
+            # print("Finetunning")
+            # list_name = [name for (name, _) in model.named_parameters()]
+            # list_param = [param for (_, param) in model.named_parameters()]
 
-            for i in range(6 * 2):  # Freeze of the last FC layers
-                param = list_param[len(list_param) - i - 1]
-                name = list_name[len(list_name) - i - 1]
-                param.requires_grad = True
-                logger.info(f"Layer {name} freezed {param.requires_grad}")
+            # for param, _ in zip(list_param, list_name):
+            #     param.requires_grad = False
+
+            # for i in range(3 * 2):  # Freeze of the last FC layers
+            #     param = list_param[len(list_param) - i - 1]
+            #     name = list_name[len(list_name) - i - 1]
+            #     param.requires_grad = True
+            #     logger.info(f"Layer {name} freezed {param.requires_grad}")
 
         return model, current_epoch
 
@@ -2516,7 +2568,7 @@ class MapsManager:
             if n_classes is not None:
                 return ClassificationManager(self.mode, n_classes=n_classes)
             elif self.multi_task:
-                return ClassificationManager(self.mode, df=df, label=self.label, label2=self.label2)
+                return ClassificationManager(self.mode, df=df, label=self.label, label2=self.label2, label3=self.label3)
             else:
                 return ClassificationManager(self.mode, df=df, label=self.label)
         elif self.network_task == "regression":

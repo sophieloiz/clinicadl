@@ -957,6 +957,8 @@ def generate_artefacted_dataset(
                 [participant_id], [session_id], caps_dict[cohort], file_type
             )[0][0]
         )
+        participant_id = participant_id.split("-")[0] + "-CM" + participant_id.split("-")[1]
+
         input_filename = image_path.name
         filename_pattern = "_".join(input_filename.split("_")[2::])
 
@@ -975,8 +977,10 @@ def generate_artefacted_dataset(
 
         artefacted = tio.Compose(
             [
-                tio.RandomMotion(degrees=(2, 4), translation=(2, 4), p=0.7),
-                tio.RandomNoise(std=(5, 30), p=0.7),
+                #tio.RandomMotion(degrees=(6, 8), translation=(6, 8), num_transforms=4),
+                tio.RandomGamma(log_gamma=(-0.2, -0.05)),
+
+                # tio.RandomNoise(std=(5, 30), p=0.7),
             ]
         )
 

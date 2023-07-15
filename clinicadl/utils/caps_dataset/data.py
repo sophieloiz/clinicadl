@@ -50,8 +50,10 @@ class CapsDataset(Dataset):
         label_presence: bool,
         label: str = None,
         label2: str = None,
+        label3: str = None,
         label_code: Dict[Any, int] = None,
         label_code2: Dict[Any, int] = None,
+        label_code3: Dict[Any, int] = None,
         augmentation_transformations: Optional[Callable] = None,
         multi_cohort: bool = False,
         multi_task: bool = False,
@@ -64,8 +66,10 @@ class CapsDataset(Dataset):
         self.label_presence = label_presence
         self.label = label
         self.label2 = label2
+        self.label3 = label3
         self.label_code = label_code
         self.label_code2 = label_code2
+        self.label_code3 = label_code3
         self.preprocessing_dict = preprocessing_dict
         self.multi_task = multi_task
 
@@ -133,6 +137,25 @@ class CapsDataset(Dataset):
             else:
                 return self.label_code2[str(target)]
 
+    def label_fn_mt3(self, target: Union[str, float, int]) -> Union[float, int]:
+                """
+                Returns the label value usable in criterion.
+
+                Args:
+                    target: value of the target.
+                Returns:
+                    label: value of the label usable in criterion.
+                """
+                # Reconstruction case (no label)
+                if self.label3 is None:
+                    return None
+                # Regression case (no label code)
+                elif self.label_code3 is None:
+                    return np.float32([target])
+                # Classification case (label + label_code dict)
+                else:
+                    return self.label_code3[str(target)]
+                        
     def __len__(self) -> int:
         return len(self.df) * self.elem_per_image
 
@@ -259,16 +282,18 @@ class CapsDataset(Dataset):
                 elem_idx = idx % self.elem_per_image
             else:
                 elem_idx = self.elem_index
-            if self.label_presence and self.label is not None and self.label2 is not None:
-                target, target2 = self.df.loc[image_idx, [self.label, self.label2]]
+            if self.label_presence and self.label is not None and self.label2 is not None and self.label3 is not None:
+                target, target2, target3 = self.df.loc[image_idx, [self.label, self.label2, self.label3]]
                 label = self.label_fn(target)
                 label2 = self.label_fn_mt(target2)
+                label3 = self.label_fn_mt3(target3)
 
             else:
                 label = -1
                 label2 = -1
+                label3 = -1
 
-            return participant, session, cohort, elem_idx, label, label2
+            return participant, session, cohort, elem_idx, label, label2, label3
     
     def _get_full_image(self) -> torch.Tensor:
         """
@@ -346,8 +371,10 @@ class CapsDatasetImage(CapsDataset):
         label_presence: bool = True,
         label: str = None,
         label2: str = None,
+        label3: str = None,
         label_code: Dict[str, int] = None,
         label_code2: Dict[str, int] = None,
+        label_code3: Dict[str, int] = None,
         all_transformations: Optional[Callable] = None,
         multi_cohort: bool = False,
         multi_task: bool = False,
@@ -376,8 +403,10 @@ class CapsDatasetImage(CapsDataset):
             label_presence=label_presence,
             label=label,
             label2=label2,
+            label3=label3,
             label_code=label_code,
             label_code2=label_code2,
+            label_code3=label_code3,
             transformations=all_transformations,
             multi_cohort=multi_cohort,
             multi_task=multi_task,
@@ -389,10 +418,11 @@ class CapsDatasetImage(CapsDataset):
 
     def __getitem__(self, idx):
         if self.multi_task:
-            participant, session, cohort, _, label, label2 = self._get_meta_data_mt(idx)
+            participant, session, cohort, _, label, label2, label3 = self._get_meta_data_mt(idx)
         else:
             participant, session, cohort, _, label = self._get_meta_data(idx)
             label2 = None
+            label3 = None
 
         image_path = self._get_image_path(participant, session, cohort)
         image = torch.load(image_path)
@@ -407,6 +437,7 @@ class CapsDatasetImage(CapsDataset):
             "image": image,
             "label": label,
             "label2": label2,
+            "label3": label3,
             "participant_id": participant,
             "session_id": session,
             "image_id": 0,
@@ -799,8 +830,10 @@ def return_dataset(
     all_transformations: Optional[Callable],
     label: str = None,
     label2: str = None,
+    label3: str = None,
     label_code: Dict[str, int] = None,
     label_code2: Dict[str, int] = None,
+    label_code3: Dict[str, int] = None,
     train_transformations: Optional[Callable] = None,
     cnn_index: int = None,
     label_presence: bool = True,
@@ -840,8 +873,10 @@ def return_dataset(
                 label_presence=label_presence,
                 label=label,
                 label2=label2,
+                label3=label3,
                 label_code=label_code,
                 label_code2=label_code2,
+                label_code3=label_code3,
                 multi_cohort=multi_cohort,
                 multi_task=multi_task,
             )

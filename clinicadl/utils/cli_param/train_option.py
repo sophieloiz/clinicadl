@@ -96,6 +96,11 @@ label2 = cli_param.option_group.task_group.option(
     type=str,
     help="Target label2 used for training.",
 )
+label3 = cli_param.option_group.task_group.option(
+    "--label3",
+    type=str,
+    help="Target label3 used for training.",
+)
 selection_metrics = cli_param.option_group.task_group.option(
     "--selection_metrics",
     "-sm",

@@ -42,6 +42,7 @@ class LogWriter:
         if task is not None:
             self.file_dir = self.file_dir / "task"
             tsv_path_t2 = self.file_dir / "training_task2.tsv"
+            tsv_path_t3 = self.file_dir / "training_task3.tsv"
 
         self.file_dir.mkdir(parents=True, exist_ok=True)
         tsv_path = self.file_dir / "training.tsv"
@@ -57,6 +58,10 @@ class LogWriter:
                 print(tsv_path_t2)
                 with tsv_path_t2.open(mode="w") as f:
                     results_df_t2.to_csv(f, index=False, sep="\t")
+                results_df_t3 = pd.DataFrame(columns=self.columns)
+                print(tsv_path_t3)
+                with tsv_path_t3.open(mode="w") as f:
+                    results_df_t3.to_csv(f, index=False, sep="\t")
                 self.beginning_time = time()
 
         else:
@@ -87,7 +92,20 @@ class LogWriter:
                 else:
                     self.beginning_time = time() + truncated_tsv_t2.iloc[-1, 0]
                 truncated_tsv_t2.to_csv(tsv_path_t2, index=True, sep="\t")
-
+                
+                if not tsv_path_t3.is_file():
+                    raise FileNotFoundError(
+                        f"The training.tsv file of the split {split} in the MAPS "
+                        f"{self.maps_path} does not exist."
+                    )
+                truncated_tsv_t3 = pd.read_csv(tsv_path_t3, sep="\t")
+                truncated_tsv_t3.set_index(["epoch", "iteration"], inplace=True)
+                truncated_tsv_t3.drop(self.beginning_epoch, level=0, inplace=True)
+                if len(truncated_tsv_t3) == 0:
+                    self.beginning_time = 0
+                else:
+                    self.beginning_time = time() + truncated_tsv_t3.iloc[-1, 0]
+                truncated_tsv_t3.to_csv(tsv_path_t3, index=True, sep="\t")
 
         self.writer_train = SummaryWriter(self.file_dir / "tensorboard" / "train")
         self.writer_valid = SummaryWriter(self.file_dir / "tensorboard" / "validation")
@@ -166,6 +184,63 @@ class LogWriter:
 
             # Write TSV file
             tsv_path = self.file_dir / "training_task2.tsv"
+            t_current = time() - self.beginning_time
+            general_row = [epoch, i, t_current]
+            train_row = list()
+            valid_row = list()
+            for selection in self.evaluation_metrics:
+                if selection in metrics_train:
+                    train_row.append(metrics_train[selection])
+                    valid_row.append(metrics_valid[selection])
+                else:
+                    # Multi-class case, there is one metric per class (i.e. sensitivity-0, sensitivity-1...)
+                    train_values = [
+                        metrics_train[key]
+                        for key in metrics_train.keys()
+                        if selection in key
+                    ]
+                    valid_values = [
+                        metrics_valid[key]
+                        for key in metrics_valid.keys()
+                        if selection in key
+                    ]
+                    train_row.append(np.mean(train_values))
+                    valid_row.append(np.mean(valid_values))
+
+            row = [general_row + train_row + valid_row]
+            row_df = pd.DataFrame(row, columns=self.columns)
+            with tsv_path.open(mode="a") as f:
+                row_df.to_csv(f, header=False, index=False, sep="\t")
+
+            # Write tensorboard logs
+            global_step = i + epoch * len_epoch
+            for metric_idx, metric in enumerate(self.evaluation_metrics):
+                self.writer_train.add_scalar(
+                    metric,
+                    train_row[metric_idx],
+                    global_step,
+                )
+                self.writer_valid.add_scalar(
+                    metric,
+                    valid_row[metric_idx],
+                    global_step,
+                )
+
+    def step_mt3(self, epoch, i, metrics_train, metrics_valid, len_epoch):
+            """
+            Write a new row on the output file training.tsv.
+
+            Args:
+                epoch (int): current epoch number
+                i (int): current iteration number
+                metrics_train (Dict[str:float]): metrics on the training set
+                metrics_valid (Dict[str:float]): metrics on the validation set
+                len_epoch (int): number of iterations in an epoch
+            """
+            from time import time
+
+            # Write TSV file
+            tsv_path = self.file_dir / "training_task3.tsv"
             t_current = time() - self.beginning_time
             general_row = [epoch, i, t_current]
             train_row = list()

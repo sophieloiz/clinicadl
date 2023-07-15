@@ -22,6 +22,7 @@ class ClassificationManager(TaskManager):
         df=None,
         label=None,
         label2=None,
+        label3=None,
     ):
         if n_classes is None:
             n_classes = self.output_size(None, df, label)
@@ -86,6 +87,20 @@ class ClassificationManager(TaskManager):
                 data["session_id"][idx],
                 data[f"{self.mode}_id"][idx].item(),
                 data["label2"][idx].item(),
+                prediction,
+            ]
+            + [normalized_output[i].item() for i in range(self.n_classes)]
+        ]
+
+    def generate_test_row_mt2(self, idx, data, outputs):
+        prediction = torch.argmax(outputs[idx].data).item()
+        normalized_output = softmax(outputs[idx], dim=0)
+        return [
+            [
+                data["participant_id"][idx],
+                data["session_id"][idx],
+                data[f"{self.mode}_id"][idx].item(),
+                data["label3"][idx].item(),
                 prediction,
             ]
             + [normalized_output[i].item() for i in range(self.n_classes)]
