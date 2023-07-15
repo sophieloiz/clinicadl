@@ -235,8 +235,8 @@ class MapsManager:
         _, all_transforms = get_transforms(
             normalize=self.normalize,
             data_augmentation=self.data_augmentation,
-            size_reduction=self.size_reduction,
-            size_reduction_factor=self.size_reduction_factor,
+            #size_reduction=self.size_reduction,
+            #size_reduction_factor=self.size_reduction_factor,
         )
 
         group_df = None
