@@ -2475,8 +2475,8 @@ class MapsManager:
                 map_location=model.device,
             )
             
-            model.transfer_weights_recombined(transfer_state["model"], transfer_state_motion["model"],transfer_state_noise["model"], transfer_class)
-            #model.transfer_weights(transfer_state["model"], transfer_class)
+            #model.transfer_weights_recombined(transfer_state["model"], transfer_state_motion["model"],transfer_state_noise["model"], transfer_class)
+            model.transfer_weights(transfer_state["model"], transfer_class)
             # print("Finetunning")
             # list_name = [name for (name, _) in model.named_parameters()]
             # list_param = [param for (_, param) in model.named_parameters()]
