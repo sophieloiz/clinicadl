@@ -214,8 +214,8 @@ class CNN_MT(Network):
             # )
             # print(state_dict)
             self.load_state_dict(state_dict)
-            if issubclass(transfer_class, CNN):
-                self.load_state_dict(state_dict)
+        elif issubclass(transfer_class, CNN):
+            self.load_state_dict(state_dict)
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
                 [
