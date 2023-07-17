@@ -253,7 +253,7 @@ class CNN_MT(Network):
             loss2 = criterion(train_output2, labels2)
             loss3 = criterion(train_output3, labels3)
 
-            total_loss = loss1 + loss2 + loss3
+            total_loss = 2*loss1 + loss2 + loss3
         else:
             total_loss = torch.Tensor([0])
 
