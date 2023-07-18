@@ -242,7 +242,7 @@ class CNN_MT(Network):
         return self.forward(x)
 
     def compute_outputs_and_loss_multi(self, input_dict, criterion, use_labels=True):
-        images, labels, labels2, labels3 = input_dict["image"].to(self.device), input_dict["label"].to(
+        images, labels, labels2 = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         ), input_dict["label2"].to(
             self.device
