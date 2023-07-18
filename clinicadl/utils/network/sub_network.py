@@ -259,4 +259,4 @@ class CNN_MT(Network):
         else:
             total_loss = torch.Tensor([0])
 
-        return train_output, train_output2, train_output3, {"loss": total_loss, "loss1": loss1, "loss2": loss2}#, "loss3": loss3}
+        return train_output, train_output2, {"loss": total_loss, "loss1": loss1, "loss2": loss2}#, "loss3": loss3}
