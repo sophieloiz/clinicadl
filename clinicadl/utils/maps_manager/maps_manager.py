@@ -361,7 +361,7 @@ class MapsManager:
                     label=self.label,
                     label_code=self.label_code,
                     label2=self.label2,
-                    label3=self.label3,
+                    #label3=self.label3,
                     label_code2=self.label_code2
                     if label_code2 == "default"
                     else label_code2,
