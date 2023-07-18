@@ -148,17 +148,17 @@ class CNN(Network):
 
 
 class CNN_MT(Network):
-    def __init__(self, convolutions, fc, fc2, fc3, n_classes, gpu=False):
+    def __init__(self, convolutions, fc, fc2, n_classes, gpu=False): #fc3
         super().__init__(gpu=gpu)
         self.convolutions = convolutions.to(self.device)
         self.fc = fc.to(self.device)
         self.fc2 = fc2.to(self.device)
-        self.fc3 = fc3.to(self.device)
+        #self.fc3 = fc3.to(self.device)
         self.n_classes = n_classes
 
     @property
     def layers(self):
-        return nn.Sequential(self.convolutions, self.fc, self.fc2, self.fc3)
+        return nn.Sequential(self.convolutions, self.fc, self.fc2)#, self.fc3)
 
     
     def transfer_weights_recombined(self, state_dict,state_dict_motion,state_dict_noise, transfer_class):
@@ -234,9 +234,9 @@ class CNN_MT(Network):
         x = self.convolutions(x)
         x_1 = self.fc(x)
         x_2 = self.fc2(x)
-        x_3 = self.fc3(x)
+        #x_3 = self.fc3(x)
 
-        return x_1, x_2, x_3
+        return x_1, x_2#, x_3
 
     def predict(self, x):
         return self.forward(x)
@@ -253,10 +253,10 @@ class CNN_MT(Network):
         if use_labels:
             loss1 = criterion(train_output, labels)
             loss2 = criterion(train_output2, labels2)
-            loss3 = criterion(train_output3, labels3)
+            l#oss3 = criterion(train_output3, labels3)
 
-            total_loss = loss1 + loss2 + loss3
+            total_loss = loss1 + loss2 #+ loss3
         else:
             total_loss = torch.Tensor([0])
 
-        return train_output, train_output2, train_output3, {"loss": total_loss, "loss1": loss1, "loss2": loss2, "loss3": loss3}
+        return train_output, train_output2, train_output3, {"loss": total_loss, "loss1": loss1, "loss2": loss2}#, "loss3": loss3}

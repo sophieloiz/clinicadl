@@ -441,24 +441,24 @@ class Conv5_FC3_MT(CNN_MT):
 
             nn.Linear(50, output_size)
         )
-        fc3 = nn.Sequential(
-            nn.Flatten(),
-            nn.Dropout(p=dropout),
+        # fc3 = nn.Sequential(
+        #     nn.Flatten(),
+        #     nn.Dropout(p=dropout),
 
-            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
-            nn.ReLU(),
+        #     nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
+        #     nn.ReLU(),
 
-            nn.Linear(1300, 50),
-            nn.ReLU(),
+        #     nn.Linear(1300, 50),
+        #     nn.ReLU(),
 
-            nn.Linear(50, output_size)
-        )
+        #     nn.Linear(50, output_size)
+        # )
         # fmt: on
         super().__init__(
             convolutions=convolutions,
             fc=fc,
             fc2=fc2,
-            fc3=fc3,
+            #fc3=fc3,
             n_classes=output_size,
             gpu=gpu,
         )

@@ -251,13 +251,16 @@ class TaskManager:
 
             results_df = pd.DataFrame(columns=self.columns)
             results_df2 = pd.DataFrame(columns=self.columns)
-            results_df3 = pd.DataFrame(columns=self.columns)
+            #results_df3 = pd.DataFrame(columns=self.columns)
             total_loss = {}
             with torch.no_grad():
                 for i, data in enumerate(dataloader):
                     # initialize the loss list to save the loss components
                     if i == 0:
-                        outputs, outputs_2, outputs_3, loss_dict = model.compute_outputs_and_loss_multi(
+                        # outputs, outputs_2, outputs_3, loss_dict = model.compute_outputs_and_loss_multi(
+                        #     data, criterion, use_labels=use_labels
+                        # )
+                        outputs, outputs_2, loss_dict = model.compute_outputs_and_loss_multi(
                             data, criterion, use_labels=use_labels
                         )
                         for loss_component in loss_dict.keys():
@@ -265,7 +268,10 @@ class TaskManager:
                         for loss_component in total_loss.keys():
                             total_loss[loss_component] += loss_dict[loss_component].item()
                     else:
-                        outputs, outputs_2, outputs_3, loss_dict = model.compute_outputs_and_loss_multi(
+                        # outputs, outputs_2, outputs_3, loss_dict = model.compute_outputs_and_loss_multi(
+                        #     data, criterion, use_labels=use_labels
+                        # )
+                        outputs, outputs_2, loss_dict = model.compute_outputs_and_loss_multi(
                             data, criterion, use_labels=use_labels
                         )
                         for loss_component in total_loss.keys():
@@ -275,19 +281,19 @@ class TaskManager:
                     for idx in range(len(data["participant_id"])):
                         row_task1 = self.generate_test_row(idx, data, outputs)
                         row_task2 = self.generate_test_row_mt(idx, data, outputs_2)
-                        row_task3 = self.generate_test_row_mt2(idx, data, outputs_3)
-                        # row = [row_task1[0] + row_task2[0][3:]]
+                        # row_task3 = self.generate_test_row_mt2(idx, data, outputs_3)
+                        ## row = [row_task1[0] + row_task2[0][3:]]
                         row_df = pd.DataFrame(row_task1, columns=self.columns)
                         row_df2 = pd.DataFrame(row_task2, columns=self.columns)
-                        row_df3 = pd.DataFrame(row_task3, columns=self.columns)
+                        # row_df3 = pd.DataFrame(row_task3, columns=self.columns)
                         results_df = pd.concat([results_df, row_df])
                         results_df2 = pd.concat([results_df2, row_df2])
-                        results_df3 = pd.concat([results_df3, row_df3])
+                        # results_df3 = pd.concat([results_df3, row_df3])
 
-                    del outputs, outputs_2, outputs_3, loss_dict
+                    del outputs, outputs_2, loss_dict #outputs_3, 
                 results_df.reset_index(inplace=True, drop=True)
                 results_df2.reset_index(inplace=True, drop=True)
-                results_df3.reset_index(inplace=True, drop=True)
+                # results_df3.reset_index(inplace=True, drop=True)
 
 
             if not use_labels:
@@ -299,14 +305,14 @@ class TaskManager:
                 metrics_dict2 = self.compute_metrics(results_df2)
                 print(metrics_dict2)
 
-                metrics_dict3 = self.compute_metrics(results_df3)
-                print(metrics_dict3)
+                # metrics_dict3 = self.compute_metrics(results_df3)
+                # print(metrics_dict3)
 
                 for loss_component in total_loss.keys():
                     metrics_dict[loss_component] = total_loss[loss_component]
                     metrics_dict2[loss_component] = total_loss[loss_component]
-                    metrics_dict3[loss_component] = total_loss[loss_component]
+                    # metrics_dict3[loss_component] = total_loss[loss_component]
 
             torch.cuda.empty_cache()
 
-            return results_df, results_df2, results_df3, metrics_dict, metrics_dict2, metrics_dict3
+            return results_df, results_df2, metrics_dict, metrics_dict2#, metrics_dict3, #results_df3
