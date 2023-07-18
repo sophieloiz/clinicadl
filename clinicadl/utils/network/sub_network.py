@@ -246,9 +246,9 @@ class CNN_MT(Network):
             self.device
         ), input_dict["label2"].to(
             self.device
-        ), input_dict["label3"].to(
-            self.device
-        )
+        )#, input_dict["label3"].to(
+          #  self.device
+        #)
         train_output, train_output2, train_output3 = self.forward(images)
         if use_labels:
             loss1 = criterion(train_output, labels)
