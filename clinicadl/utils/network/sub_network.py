@@ -253,7 +253,7 @@ class CNN_MT(Network):
         if use_labels:
             loss1 = criterion(train_output, labels)
             loss2 = criterion(train_output2, labels2)
-            l#oss3 = criterion(train_output3, labels3)
+            #loss3 = criterion(train_output3, labels3)
 
             total_loss = loss1 + loss2 #+ loss3
         else:
