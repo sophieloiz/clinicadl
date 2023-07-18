@@ -1790,8 +1790,8 @@ class MapsManager:
             self.parameters["label"] = None
         if "label2" not in self.parameters:
             self.parameters["label2"] = None
-        if "label3" not in self.parameters:
-            self.parameters["label3"] = None
+        # if "label3" not in self.parameters:
+        #     self.parameters["label3"] = None
 
         self.task_manager = self._init_task_manager(df=train_df)
 
