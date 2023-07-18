@@ -246,7 +246,8 @@ class MapsManager:
                 diagnoses if len(diagnoses) != 0 else self.diagnoses,
                 multi_cohort=multi_cohort,
             )
-
+        print("249")
+        print(group_df)
         criterion = self.task_manager.get_criterion(self.loss)
         self._check_data_group(
             data_group,
@@ -256,10 +257,13 @@ class MapsManager:
             overwrite,
             label=label,
         )
-
+        print("260")
+        print(group_df)
         for split in split_list:
             logger.info(f"Prediction of split {split}")
             group_df, group_parameters = self.get_group_info(data_group, split)
+            print("263")
+            print(group_df)
             # Find label code if not given
             if label is not None and label != self.label and label_code == "default":
                 self.task_manager.generate_label_code(group_df, label)
@@ -267,8 +271,8 @@ class MapsManager:
             if multi_task:
                 if label2 is not None and label2 != self.label2 and label_code2 == "default":
                     self.task_manager.generate_label_code(group_df, label2)
-                # if label3 is not None and label3 != self.label3 and label_code3 == "default":
-                #     self.task_manager.generate_label_code(group_df, label3)
+                if label3 is not None and label3 != self.label3 and label_code3 == "default":
+                    self.task_manager.generate_label_code(group_df, label3)
 
             # Erase previous TSV files
             if not selection_metrics:
@@ -350,6 +354,8 @@ class MapsManager:
                             network=network,
                         )
             elif self.multi_task:
+                print("353")
+                print(group_df)
                 data_test = return_dataset(
                     group_parameters["caps_directory"],
                     group_df,
@@ -361,13 +367,13 @@ class MapsManager:
                     label=self.label,
                     label_code=self.label_code,
                     label2=self.label2,
-                    #label3=self.label3,
+                    label3=self.label3,
                     label_code2=self.label_code2
                     if label_code2 == "default"
                     else label_code2,
-                    # label_code3=self.label_code3
-                    # if label_code3 == "default"
-                    # else label_code3,
+                    label_code3=self.label_code3
+                    if label_code3 == "default"
+                    else label_code3,
                 )
 
                 test_loader = DataLoader(
@@ -1505,10 +1511,7 @@ class MapsManager:
                 gpu=gpu,
                 network=network,
             )
-            # prediction_df, prediction_df2,prediction_df3, metrics, metrics_t2, metrics_t3 = self.task_manager.test_mt(
-            #     model, dataloader, criterion, use_labels=use_labels
-            # )
-            prediction_df, prediction_df2, metrics, metrics_t2 = self.task_manager.test_mt(
+            prediction_df, prediction_df2,prediction_df3, metrics, metrics_t2, metrics_t3 = self.task_manager.test_mt(
                 model, dataloader, criterion, use_labels=use_labels
             )
             if use_labels:
@@ -1521,7 +1524,7 @@ class MapsManager:
             # Replace here
             print(metrics)
             print(metrics_t2)
-            # print(metrics_t3)
+            print(metrics_t3)
             self._mode_level_to_tsv(
                 prediction_df, metrics, split, selection_metric, data_group=data_group
             )
@@ -1530,9 +1533,9 @@ class MapsManager:
                 prediction_df2, metrics_t2, split, selection_metric, data_group=f"{data_group}_t2"
             )
 
-            # self._mode_level_to_tsv(
-            #     prediction_df3, metrics_t3, split, selection_metric, data_group=f"{data_group}_t3"
-            # )
+            self._mode_level_to_tsv(
+                prediction_df3, metrics_t3, split, selection_metric, data_group=f"{data_group}_t3"
+            )
 
     def _compute_output_nifti(
         self,
@@ -1790,8 +1793,8 @@ class MapsManager:
             self.parameters["label"] = None
         if "label2" not in self.parameters:
             self.parameters["label2"] = None
-        # if "label3" not in self.parameters:
-        #     self.parameters["label3"] = None
+        if "label3" not in self.parameters:
+            self.parameters["label3"] = None
 
         self.task_manager = self._init_task_manager(df=train_df)
 
