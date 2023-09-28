@@ -736,13 +736,7 @@ class MapsManager:
     # High-level functions templates  #
     ###################################
     def _train_single(self, split_list=None, resume=False):
-        """
-        Trains a single CNN for all inputs.
 
-        Args:
-            split_list (list[int]): list of splits that are trained.
-            resume (bool): If True the job is resumed from checkpoint.
-        """
         from torch.utils.data import DataLoader
 
         train_transforms, all_transforms = get_transforms(
@@ -768,6 +762,8 @@ class MapsManager:
                 label=self.label,
                 label_code=self.label_code,
             )
+            print("Data Train")
+            print(data_train)
             logger.debug("Loading validation data...")
             data_valid = return_dataset(
                 self.caps_directory,
@@ -5693,17 +5689,17 @@ class MapsManager:
 
             # sophie
             # print("Finetunning")
-            # list_name = [name for (name, _) in model.named_parameters()]
-            # list_param = [param for (_, param) in model.named_parameters()]
+            #list_name = [name for (name, _) in model.named_parameters()]
+            #list_param = [param for (_, param) in model.named_parameters()]
 
-            # for param, _ in zip(list_param, list_name):
-            #     param.requires_grad = False
+            #for param, _ in zip(list_param, list_name):
+             #   param.requires_grad = False
 
-            # for i in range(3 * 2):  # Freeze of the last FC layers
-            #     param = list_param[len(list_param) - i - 1]
-            #     name = list_name[len(list_name) - i - 1]
-            #     param.requires_grad = True
-            #     logger.info(f"Layer {name} freezed {param.requires_grad}")
+            #for i in range(3 * 2):  # Freeze of the last FC layers
+             #   param = list_param[len(list_param) - i - 1]
+              #  name = list_name[len(list_name) - i - 1]
+               # param.requires_grad = True
+                #logger.info(f"Layer {name} freezed {param.requires_grad}")
         return model, current_epoch
 
     def _init_optimizer(self, model, split=None, resume=False):

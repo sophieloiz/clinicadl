@@ -1,7 +1,5 @@
-from turtle import forward
-import torch.nn as nn
 import torch
-import torch.nn.functional as F
+import torch.nn as nn
 
 
 class Flatten(nn.Module):
@@ -20,20 +18,16 @@ class SE_Blocks(nn.Module):
         self.act1 = nn.ReLU()
         self.act2 = nn.Sigmoid()
 
-    # def forward(self, x):
-    #     batch_size, num_channels, D, H, W = x.size()
-    #     out = self.avg_pooling_3D(x)
-    #     out = self.fc1(x.view(batch_size, num_channels))
-    #     out = self.act1(x)
-    #     out = self.fc2(x)
-    #     out = self.act2(x)
-    #     out = torch.mul(x, out.view(batch_size, num_channels, 1, 1, 1))
-    #     return out
-
     def forward(self, input_tensor):
         """
-        :param input_tensor: X, shape = (batch_size, num_channels, D, H, W)
-        :return: output tensor
+        Parameters
+        ----------
+        input_tensor: pt tensor
+            X, shape = (batch_size, num_channels, D, H, W)
+
+        Returns
+        -------
+        output_tensor: pt tensor
         """
         batch_size, num_channels, D, H, W = input_tensor.size()
         # Average along each channel

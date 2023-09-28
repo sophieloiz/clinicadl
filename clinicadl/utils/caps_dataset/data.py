@@ -670,6 +670,7 @@ class CapsDatasetSlice(CapsDataset):
         participant, session, cohort, slice_idx, label = self._get_meta_data(idx)
         slice_idx = slice_idx + self.discarded_slices[0]
         image_path = self._get_image_path(participant, session, cohort)
+        print(image_path)
 
         if self.prepare_dl:
             slice_dir = path.dirname(image_path).replace(
@@ -679,26 +680,33 @@ class CapsDatasetSlice(CapsDataset):
                 image_path, self.slice_direction, self.slice_mode, slice_idx
             )
             slice_tensor = torch.load(path.join(slice_dir, slice_filename))
+            print("Shape Slice tensor")
             print(slice_tensor.shape)
             slice_tensor = slice_tensor[:,:,:180]
-            print(slice_tensor.shape)
 
 
         else:
+            print("Not DL")
             image_path = self._get_image_path(participant, session, cohort)
+            print("Prepare DL")
+            print("Slice Tensor")
             image = torch.load(image_path)
+            image = image[:,:,:180]
+            print(image.shape)
+            
+            
             slice_tensor = extract_slice_tensor(
                 image, self.slice_direction, self.slice_mode, slice_idx
             )
 
-        if self.transformations:
-            slice_tensor = self.transformations(slice_tensor)
+        #if self.transformations:
+         #   slice_tensor = self.transformations(slice_tensor)
 
-        if self.augmentation_transformations and not self.eval_mode:
-            slice_tensor = self.augmentation_transformations(slice_tensor)
-
+        #if self.augmentation_transformations and not self.eval_mode:
+         #   slice_tensor = self.augmentation_transformations(slice_tensor)
+       
         sample = {
-            "image": slice_tensor,
+            "image": slice_tensor[:,:,:180],
             "label": label,
             "participant_id": participant,
             "session_id": session,

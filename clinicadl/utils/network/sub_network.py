@@ -106,9 +106,17 @@ class CNN(Network):
 
     def transfer_weights(self, state_dict, transfer_class):
         if issubclass(transfer_class, CNN):
-            # state_dict["fc.2.weight"] = state_dict.pop("fc.1.weight")
-            # state_dict["fc.2.bias"] = state_dict.pop("fc.1.bias")
-            # print(state_dict)
+            #state_dict["fc.2.weight"] = state_dict.pop("fc.1.weight")
+            #state_dict["fc.2.bias"] = state_dict.pop("fc.1.bias")
+            ##
+            #state_dict.pop("fc2.2.weight")
+            #state_dict.pop("fc2.2.bias")
+            #state_dict.pop("fc2.4.weight")
+            #state_dict.pop("fc2.4.bias")
+            #state_dict.pop("fc2.6.weight")
+            #state_dict.pop("fc2.6.bias")
+            
+            print(state_dict)
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
