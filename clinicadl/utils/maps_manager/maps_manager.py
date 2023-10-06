@@ -1443,7 +1443,7 @@ class MapsManager:
                 _, _, loss_dict = model.compute_outputs_and_loss(
                     data_source, data_target, data_target_unl, criterion, alpha
                 )  # TO CHECK
-                logger.debug(f"Train loss dictionnary {loss_dict}")
+                logger.debug(f"Train loss dictionnary {loss_dict} with alpha : {alpha}")
                 loss = loss_dict["loss"]
                 loss.backward()
                 if (i + 1) % self.accumulation_steps == 0:
