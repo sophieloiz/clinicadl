@@ -1420,16 +1420,6 @@ class MapsManager:
         epoch = log_writer.beginning_epoch
 
         retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
-        import numpy as np
-
-        
-        for batch_idx, (source_data, target_data) in enumerate(zip(source_train_loader, target_train_loader)):
-
-            source_image, source_label = source_data
-            target_image, target_label = target_data
-
-            p = float(batch_idx + start_steps) / total_steps
-            alpha = 2. / (1. + np.exp(-10 * p)) - 1
 
         while epoch < self.epochs and not early_stopping.step(
             metrics_valid_target["loss"]
@@ -1441,7 +1431,8 @@ class MapsManager:
 
             start_steps = epoch * len(train_source_loader)
             total_steps = self.epochs * len(train_target_loader)
-
+            import numpy as np
+            print("Sanity Check")
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
