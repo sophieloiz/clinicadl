@@ -1432,7 +1432,6 @@ class MapsManager:
             start_steps = epoch * len(train_source_loader)
             total_steps = self.epochs * len(train_target_loader)
             import numpy as np
-            print("Sanity Check")
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
@@ -1441,8 +1440,8 @@ class MapsManager:
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
 
 
-                optimizer = model.lr_scheduler(lr=0.01, optimizer=optimizer, p=p) # TO MODIFY ;  lr=self.learning_rate
-                optimizer.zero_grad()
+                #optimizer = model.lr_scheduler(lr=0.01, optimizer=optimizer, p=p) # TO MODIFY ;  lr=self.learning_rate
+                #optimizer.zero_grad()
 
                 _, _, loss_dict = model.compute_outputs_and_loss(
                     data_source, data_target, data_target_unl, criterion, alpha
@@ -1453,8 +1452,8 @@ class MapsManager:
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
                     optimizer.step()
-                    #optimizer = model.lr_scheduler(self.lr, optimizer, p)
-                    #optimizer.zero_grad()
+                    optimizer = model.lr_scheduler(self.lr, optimizer, p)
+                    optimizer.zero_grad()
                     del loss
 
                     # Evaluate the model only when no gradients are accumulated
