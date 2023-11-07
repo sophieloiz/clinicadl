@@ -1441,7 +1441,7 @@ class MapsManager:
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
 
 
-                optimizer = self.optimizer_scheduler(lr=self.lr, optimizer=optimizer, p=p)
+                optimizer = self.lr_scheduler(lr=self.lr, optimizer=optimizer, p=p)
                 optimizer.zero_grad()
 
                 _, _, loss_dict = model.compute_outputs_and_loss(
