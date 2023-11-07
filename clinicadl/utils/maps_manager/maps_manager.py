@@ -1422,6 +1422,15 @@ class MapsManager:
         retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
         import numpy as np
 
+        
+        for batch_idx, (source_data, target_data) in enumerate(zip(source_train_loader, target_train_loader)):
+
+            source_image, source_label = source_data
+            target_image, target_label = target_data
+
+            p = float(batch_idx + start_steps) / total_steps
+            alpha = 2. / (1. + np.exp(-10 * p)) - 1
+
         while epoch < self.epochs and not early_stopping.step(
             metrics_valid_target["loss"]
         ):
@@ -1430,16 +1439,20 @@ class MapsManager:
             model.zero_grad()
             evaluation_flag, step_flag = True, True
 
+            start_steps = epoch * len(train_source_loader)
+            total_steps = self.epochs * len(train_target_loader)
+
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
-                p = (
-                    float(epoch * len(train_target_loader))
-                    / 10
-                    / len(train_target_loader)
-                )
+                p = float(i + start_steps) / total_steps
+                
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
-                # alpha = 0
+
+
+                optimizer = self.optimizer_scheduler(lr=self.lr, optimizer=optimizer, p=p)
+                optimizer.zero_grad()
+
                 _, _, loss_dict = model.compute_outputs_and_loss(
                     data_source, data_target, data_target_unl, criterion, alpha
                 )  # TO CHECK
@@ -1449,8 +1462,8 @@ class MapsManager:
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
                     optimizer.step()
-                    optimizer.zero_grad()
-
+                    #optimizer = model.lr_scheduler(self.lr, optimizer, p)
+                    #optimizer.zero_grad()
                     del loss
 
                     # Evaluate the model only when no gradients are accumulated

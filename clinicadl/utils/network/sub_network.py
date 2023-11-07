@@ -3,6 +3,7 @@ from logging import getLogger
 
 import torch
 from torch import nn
+import numpy as np
 
 from clinicadl.utils.exceptions import ClinicaDLNetworksError
 from clinicadl.utils.network.network import Network
@@ -220,7 +221,7 @@ class CNN_SSDA(Network):
         )
 
         images_target_unl = data_target_unl["image"].to(self.device)
-
+        
         (
             train_output_class_source,
             _,
@@ -260,7 +261,7 @@ class CNN_SSDA(Network):
 
         loss_domain = loss_domain_lab + loss_domain_lab_t + loss_domain_t_unl
 
-        total_loss = loss_classif + 0.3 * loss_domain
+        total_loss = loss_classif + loss_domain
 
         return (
             train_output_class_source,
@@ -273,3 +274,6 @@ class CNN_SSDA(Network):
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
         return optimizer
+    
+    def lambda_scheduler(self, gamma, p):
+        return 2 / (1 + np.exp(-gamma * p)) -1
