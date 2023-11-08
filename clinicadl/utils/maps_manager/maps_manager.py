@@ -1452,8 +1452,9 @@ class MapsManager:
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
                     optimizer.step()
-                    optimizer = model.lr_scheduler(0.01, optimizer, p)
                     optimizer.zero_grad()
+                    optimizer = model.lr_scheduler(0.0001, optimizer, p)
+
                     del loss
 
                     # Evaluate the model only when no gradients are accumulated
