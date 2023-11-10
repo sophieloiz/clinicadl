@@ -1439,10 +1439,6 @@ class MapsManager:
                 
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
 
-
-                #optimizer = model.lr_scheduler(lr=0.01, optimizer=optimizer, p=p) # TO MODIFY ;  lr=self.learning_rate
-                #optimizer.zero_grad()
-
                 _, _, loss_dict = model.compute_outputs_and_loss(
                     data_source, data_target, data_target_unl, criterion, alpha
                 )  # TO CHECK
@@ -1453,7 +1449,7 @@ class MapsManager:
                     step_flag = False
                     optimizer.step()
                     optimizer.zero_grad()
-                    optimizer = model.lr_scheduler(0.0001, optimizer, p)
+                    optimizer = model.lr_scheduler(0.01, optimizer, p)
 
                     del loss
 
