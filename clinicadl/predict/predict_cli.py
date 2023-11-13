@@ -60,6 +60,14 @@ from clinicadl.utils.exceptions import ClinicaDLArgumentError
             In this case, CAPS_DIRECTORY and PARTICIPANTS_TSV must be paths to TSV files.""",
 )
 @click.option(
+    "--ssda_network",
+    type=bool,
+    default=False,
+    is_flag=True,
+    help="""Allow to use multiple CAPS directories.
+            In this case, CAPS_DIRECTORY and PARTICIPANTS_TSV must be paths to TSV files.""",
+)
+@click.option(
     "--diagnoses",
     "-d",
     type=str,
