@@ -10,6 +10,7 @@ def predict(
     maps_dir: Path,
     data_group: str,
     caps_directory: Path,
+    caps_directory_target: Path,
     tsv_path: Path,
     tsv_path_target: Path,
     use_labels: bool = True,
@@ -66,6 +67,7 @@ def predict(
     maps_manager.predict(
         data_group,
         caps_directory=caps_directory,
+        caps_directory_target=caps_directory_target,
         tsv_path=tsv_path,
         tsv_path_target=tsv_path_target,
         split_list=split_list,
