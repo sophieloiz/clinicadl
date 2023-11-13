@@ -371,7 +371,7 @@ class MapsManager:
                             gpu=gpu,
                             network=network,
                         )
-            elif group_parameters["ssda_network"]!= False:
+            elif self.ssda_network:
                 
                 data_test_source = return_dataset(
                 group_parameters["caps_directory"],
