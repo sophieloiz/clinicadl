@@ -15,6 +15,7 @@ from clinicadl.utils.exceptions import ClinicaDLArgumentError
     default=None,
     help="Data using CAPS structure, if different from the one used during network training.",
 )
+
 @click.option(
     "--participants_tsv",
     default=None,
@@ -22,6 +23,20 @@ from clinicadl.utils.exceptions import ClinicaDLArgumentError
     help="""Path to the file with subjects/sessions to process, if different from the one used during network training.
     If it includes the filename will load the TSV file directly.
     Else will load the baseline TSV files of wanted diagnoses produced by `tsvtool split`.""",
+)
+@click.option(
+    "--participants_tsv_target",
+    default=None,
+    type=click.Path(exists=True, path_type=Path),
+    help="""Path to the file with subjects/sessions to process, if different from the one used during network training.
+    If it includes the filename will load the TSV file directly.
+    Else will load the baseline TSV files of wanted diagnoses produced by `tsvtool split`.""",
+)
+@click.option(
+    "--caps_directory_target",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Data using CAPS structure, if different from the one used during network training.",
 )
 @click.option(
     "--use_labels/--no_labels",
@@ -84,7 +99,9 @@ def cli(
     input_maps_directory,
     data_group,
     caps_directory,
+    caps_directory_target,
     participants_tsv,
+    participants_tsv_target,
     split,
     gpu,
     amp,
@@ -121,7 +138,9 @@ def cli(
         maps_dir=input_maps_directory,
         data_group=data_group,
         caps_directory=caps_directory,
+        caps_directory_target=caps_directory_target,
         tsv_path=participants_tsv,
+        tsv_path_target=participants_tsv_target,
         use_labels=use_labels,
         label=label,
         gpu=gpu,

@@ -11,6 +11,7 @@ def predict(
     data_group: str,
     caps_directory: Path,
     tsv_path: Path,
+    tsv_path_target: Path,
     use_labels: bool = True,
     label: str = None,
     gpu: bool = True,
@@ -25,6 +26,7 @@ def predict(
     save_tensor: bool = False,
     save_nifti: bool = False,
     save_latent_tensor: bool = False,
+
 ):
     """
     This function loads a MAPS and predicts the global metrics and individual values
@@ -65,6 +67,7 @@ def predict(
         data_group,
         caps_directory=caps_directory,
         tsv_path=tsv_path,
+        tsv_path_target=tsv_path_target,
         split_list=split_list,
         selection_metrics=selection_metrics,
         multi_cohort=multi_cohort,

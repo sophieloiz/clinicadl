@@ -197,7 +197,9 @@ class MapsManager:
         self,
         data_group: str,
         caps_directory: Path = None,
+        caps_directory_target: Path = None,
         tsv_path: Path = None,
+        tsv_path_target: Path = None,
         split_list: List[int] = None,
         selection_metrics: List[str] = None,
         multi_cohort: bool = False,
@@ -257,6 +259,12 @@ class MapsManager:
                 diagnoses if len(diagnoses) != 0 else self.diagnoses,
                 multi_cohort=multi_cohort,
             )
+        if tsv_path_target is not None:
+            group_df_target = load_data_test(
+                tsv_path_target,
+                diagnoses if len(diagnoses) != 0 else self.diagnoses,
+                multi_cohort=multi_cohort,
+            )
         criterion = self.task_manager.get_criterion(self.loss)
         self._check_data_group(
             data_group,
@@ -266,9 +274,13 @@ class MapsManager:
             overwrite,
             label=label,
         )
+        # Add check for target group
         for split in split_list:
             logger.info(f"Prediction of split {split}")
             group_df, group_parameters = self.get_group_info(data_group, split)
+            group_df_target, group_parameters = self.get_group_info(group_df_target, split)
+
+            print(group_df)
             # Find label code if not given
             if label is not None and label != self.label and label_code == "default":
                 self.task_manager.generate_label_code(group_df, label)
@@ -359,6 +371,86 @@ class MapsManager:
                             gpu=gpu,
                             network=network,
                         )
+            elif self.ssda_network:
+                
+                data_test_source = return_dataset(
+                group_parameters["caps_directory"],
+                group_df,
+                self.preprocessing_dict,
+                all_transformations=all_transforms,
+                multi_cohort=group_parameters["multi_cohort"],
+                label_presence=use_labels,
+                label=self.label if label is None else label,
+                label_code=self.label_code
+                if label_code == "default"
+                else label_code,
+                )
+
+                data_test_target = return_dataset(
+                    group_parameters["caps_directory_target"],  # TO CHECK
+                    group_df_target, # TO CHANGE
+                    self.preprocessing_dict_target,
+                    all_transformations=all_transforms,
+                    multi_cohort=group_parameters["multi_cohort"],
+                    label_presence=use_labels,
+                    label=self.label if label is None else label,
+                    label_code=self.label_code
+                    if label_code == "default"
+                    else label_code,
+                )
+                
+                test_source_loader = DataLoader(
+                    data_test_source,
+                    batch_size=batch_size
+                    if batch_size is not None
+                    else self.batch_size,
+                    shuffle=False,
+                    sampler=DistributedSampler(
+                        data_test_source,
+                        num_replicas=cluster.world_size,
+                        rank=cluster.rank,
+                        shuffle=False,
+                    ),
+                    num_workers=n_proc if n_proc is not None else self.n_proc,
+                )
+
+                test_target_loader = DataLoader(
+                    data_test_target,
+                    batch_size=batch_size
+                    if batch_size is not None
+                    else self.batch_size,
+                    shuffle=False,
+                    sampler=DistributedSampler(
+                        data_test_source,
+                        num_replicas=cluster.world_size,
+                        rank=cluster.rank,
+                        shuffle=False,
+                    ),
+                    num_workers=n_proc if n_proc is not None else self.n_proc,
+                )
+                self._test_loader_ssda(
+                    test_target_loader,
+                    criterion,
+                    data_group,
+                    split,
+                    self.selection_metrics,
+                    use_labels=use_labels,
+                    gpu=gpu,
+                    target=True,
+                    alpha=0
+                )
+                self._test_loader_ssda(
+                    test_source_loader,
+                    criterion,
+                    data_group,
+                    split,
+                    self.selection_metrics,
+                    use_labels=use_labels,
+                    gpu=gpu,
+                    target=False,
+                    alpha=0
+                )                
+
             else:
                 data_test = return_dataset(
                     group_parameters["caps_directory"],
