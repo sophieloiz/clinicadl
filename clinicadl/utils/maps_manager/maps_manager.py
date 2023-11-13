@@ -278,7 +278,7 @@ class MapsManager:
         for split in split_list:
             logger.info(f"Prediction of split {split}")
             group_df, group_parameters = self.get_group_info(data_group, split)
-            group_df_target, group_parameters = self.get_group_info(group_df_target, split)
+            group_df_target, group_parameters = self.get_group_info(Path(group_df_target), split)
 
             print(group_df)
             # Find label code if not given
