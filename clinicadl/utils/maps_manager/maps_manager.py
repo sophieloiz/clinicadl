@@ -215,7 +215,7 @@ class MapsManager:
         save_tensor: bool = False,
         save_nifti: bool = False,
         save_latent_tensor: bool = False,
-        ssda_network: bool = False,
+        ssda_network: bool = True,
 
     ):
         """
@@ -373,7 +373,7 @@ class MapsManager:
                             gpu=gpu,
                             network=network,
                         )
-            elif self.ssda_network:
+            elif ssda_network:
                 
                 data_test_source = return_dataset(
                 group_parameters["caps_directory"],
