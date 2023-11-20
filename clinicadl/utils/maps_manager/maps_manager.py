@@ -387,7 +387,7 @@ class MapsManager:
                 if label_code == "default"
                 else label_code,
                 )
-                print(group_parameters)
+                print(pd.read_csv(Path(tsv_path_target), sep="\t"))
                 data_test_target = return_dataset(
                     Path(caps_directory_target), #group_parameters_target["caps_directory"],  # TO CHECK
                     pd.read_csv(Path(tsv_path_target), sep="\t"), #group_df_target, # TO CHANGE
