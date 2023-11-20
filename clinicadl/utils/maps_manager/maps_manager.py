@@ -215,6 +215,8 @@ class MapsManager:
         save_tensor: bool = False,
         save_nifti: bool = False,
         save_latent_tensor: bool = False,
+        ssda_network: bool = False,
+
     ):
         """
         Performs the prediction task on a subset of caps_directory defined in a TSV file.
