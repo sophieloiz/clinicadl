@@ -3,6 +3,7 @@ from .cnn.models import (
     Conv4_FC3,
     Conv5_FC3,
     Conv5_FC3_SSDA,
+    Conv5_FC3_SSDA_INIT, 
     ResNet3D,
     SqueezeExcitationCNN,
     Stride_Conv5_FC3,
