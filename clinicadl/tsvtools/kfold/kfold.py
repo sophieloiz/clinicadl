@@ -42,7 +42,7 @@ def write_splits(
     """
 
     baseline_df = extract_baseline(diagnosis_df)
-
+    print(baseline_df)
     if split_label is None:
         diagnoses_list = list(baseline_df["diagnosis"])
         unique = list(set(diagnoses_list))
