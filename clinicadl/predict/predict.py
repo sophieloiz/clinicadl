@@ -27,6 +27,8 @@ def predict(
     save_tensor: bool = False,
     save_nifti: bool = False,
     save_latent_tensor: bool = False,
+    ssda_network: bool = False,
+
 
 ):
     """
@@ -84,4 +86,6 @@ def predict(
         save_tensor=save_tensor,
         save_nifti=save_nifti,
         save_latent_tensor=save_latent_tensor,
+        ssda_network=ssda_network,
+
     )
