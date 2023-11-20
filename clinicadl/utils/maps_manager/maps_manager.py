@@ -439,7 +439,7 @@ class MapsManager:
                     use_labels=use_labels,
                     gpu=gpu,
                     target=True,
-                    alpha=0
+                    #alpha=0
                 )
                 self._test_loader_ssda(
                     test_source_loader,
@@ -450,7 +450,7 @@ class MapsManager:
                     use_labels=use_labels,
                     gpu=gpu,
                     target=False,
-                    alpha=0
+                    #alpha=0
                 )                
 
             else:
