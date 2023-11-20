@@ -1856,7 +1856,7 @@ class MapsManager:
         self,
         dataloader,
         criterion,
-        alpha,
+        #alpha,
         data_group,
         split,
         selection_metrics,
