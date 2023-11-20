@@ -430,21 +430,11 @@ class MapsManager:
                     ),
                     num_workers=n_proc if n_proc is not None else self.n_proc,
                 )
-                self._test_loader_ssda(
-                    test_target_loader,
-                    criterion,
-                    data_group,
-                    split,
-                    self.selection_metrics,
-                    use_labels=use_labels,
-                    gpu=gpu,
-                    target=True,
-                    #alpha=0
-                )
+
                 self._test_loader_ssda(
                     test_source_loader,
                     criterion,
-                    data_group,
+                    f'{data_group}_source',
                     split,
                     self.selection_metrics,
                     use_labels=use_labels,
@@ -453,6 +443,17 @@ class MapsManager:
                     #alpha=0
                 )                
 
+                self._test_loader_ssda(
+                    test_target_loader,
+                    criterion,
+                    f'{data_group}_target',
+                    split,
+                    self.selection_metrics,
+                    use_labels=use_labels,
+                    gpu=gpu,
+                    target=True,
+                    #alpha=0
+                )
             else:
                 data_test = return_dataset(
                     group_parameters["caps_directory"],
