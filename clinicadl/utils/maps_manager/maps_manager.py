@@ -389,7 +389,7 @@ class MapsManager:
                 )
 
                 data_test_target = return_dataset(
-                    group_parameters["caps_directory_target"],  # TO CHECK
+                    group_parameters["caps_target"],  # TO CHECK
                     group_df_target, # TO CHANGE
                     self.preprocessing_dict_target,
                     all_transformations=all_transforms,
