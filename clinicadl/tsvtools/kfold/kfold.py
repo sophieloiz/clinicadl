@@ -42,7 +42,7 @@ def write_splits(
     """
 
     baseline_df = extract_baseline(diagnosis_df)
-    baseline_df.rename(columns={"diagnosis": "diagnosis_x"}, inplace=True)
+    baseline_df.rename(columns={"diagnosis": "diagnosis_y"}, inplace=True)
     print(baseline_df)
 
     if split_label is None:
