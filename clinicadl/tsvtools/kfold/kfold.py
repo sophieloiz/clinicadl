@@ -44,7 +44,7 @@ def write_splits(
     baseline_df = extract_baseline(diagnosis_df)
     print(baseline_df)
     if split_label is None:
-        diagnoses_list = list(baseline_df["diagnosis"])
+        diagnoses_list = list(baseline_df["diagnosis_x"])
         unique = list(set(diagnoses_list))
         y = np.array([unique.index(x) for x in diagnoses_list])
     else:
