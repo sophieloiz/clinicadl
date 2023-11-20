@@ -387,7 +387,7 @@ class MapsManager:
                 if label_code == "default"
                 else label_code,
                 )
-
+                print(group_parameters)
                 data_test_target = return_dataset(
                     group_parameters["caps_target"],  # TO CHECK
                     group_df_target, # TO CHANGE
