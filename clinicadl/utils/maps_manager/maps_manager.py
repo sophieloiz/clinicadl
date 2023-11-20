@@ -280,7 +280,7 @@ class MapsManager:
         for split in split_list:
             logger.info(f"Prediction of split {split}")
             group_df, group_parameters = self.get_group_info(data_group, split)
-            group_df_target, group_parameters = self.get_group_info(data_group, split)
+            group_df_target, group_parameters_target = self.get_group_info(data_group, split)
 
             print(group_df)
             # Find label code if not given
@@ -389,7 +389,7 @@ class MapsManager:
                 )
                 print(group_parameters)
                 data_test_target = return_dataset(
-                    group_parameters["caps_target"],  # TO CHECK
+                    group_parameters_target["caps_directory"],  # TO CHECK
                     group_df_target, # TO CHANGE
                     self.preprocessing_dict_target,
                     all_transformations=all_transforms,
