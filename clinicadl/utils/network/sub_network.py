@@ -351,30 +351,15 @@ class CNN_SSDA_INIT(Network):
             data_source["label"].to(self.device),
         )
 
-        images_target, labels_target = (
-            data_target["image"].to(self.device),
-            data_target["label"].to(self.device),
-        )
-        
         (
             train_output_class_source,
-            _,
+            train_output_class_target,
         ) = self.forward(images, alpha)
 
-        (
-            _,
-            train_output_class_target,
-        ) = self.forward(images_target, alpha)
-
         loss_classif_source = criterion(train_output_class_source, labels)
-        loss_classif_target = criterion(train_output_class_target, labels_target)
-
-        loss_classif = loss_classif_source + loss_classif_target
-
-        total_loss = loss_classif
 
         return (
             train_output_class_source,
             train_output_class_target,
-            {"loss": total_loss},
+            {"loss": loss_classif_source},
         )
