@@ -335,11 +335,11 @@ class CNN_SSDA_INIT(Network):
 
         if target:
             out = train_output_target
-            loss_bce = criterion(train_output_target, labels)
+            loss_bce = criterion(out, labels)
 
         else:
             out = train_output_source
-            loss_bce = criterion(train_output_source, labels)
+            loss_bce = criterion(out, labels)
 
         return out, {"loss": loss_bce}
 
@@ -356,7 +356,7 @@ class CNN_SSDA_INIT(Network):
             train_output_class_target,
         ) = self.forward(images, alpha)
 
-        loss_classif_source = criterion(train_output_class_source, labels)
+        loss_classif_source = criterion(train_output_class_source, labels) + criterion(train_output_class_target, labels)
 
         return (
             train_output_class_source,
