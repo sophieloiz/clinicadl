@@ -121,7 +121,7 @@ def create_split(
     test_df: DataFrame
         Subjects in the test set
     """
-    splt_label="diagnosis_x"
+    split_label="diagnosis_x"
     if supplementary_train_df is not None:
         sup_train_sex = [sex_dict[x] for x in supplementary_train_df.sex.values]
         sup_train_age = [float(x) for x in supplementary_train_df.age.values]
