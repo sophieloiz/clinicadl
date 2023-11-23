@@ -128,7 +128,10 @@ def create_split(
         sup_train_sex = []
         sup_train_age = []
 
+    print(diagnosis_df)
     baseline_df = extract_baseline(diagnosis_df)
+    print(baseline_df)
+
     if n_test >= 1:
         n_test = int(n_test)
     else:
