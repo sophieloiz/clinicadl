@@ -363,3 +363,98 @@ class CNN_SSDA_INIT(Network):
             train_output_class_target,
             {"loss": loss_classif_source},
         )
+
+class CNN_SSDA_INIT_MC(Network):
+    def __init__(
+        self,
+        convolutions,
+        fc_class_source,
+        fc_class_target,
+        n_classes,
+        gpu=False,
+    ):
+        super().__init__(gpu=gpu)
+        self.convolutions = convolutions.to(self.device)
+        self.fc_class_source = fc_class_source.to(self.device)
+        self.fc_class_target = fc_class_target.to(self.device)
+        self.n_classes = n_classes
+
+    @property
+    def layers(self):
+        return nn.Sequential(
+            self.convolutions,
+            self.fc_class_source,
+            self.fc_class_target,
+        )
+
+    def transfer_weights(self, state_dict, transfer_class):
+        if issubclass(transfer_class, CNN_SSDA_INIT):
+            self.load_state_dict(state_dict)
+        elif issubclass(transfer_class, AutoEncoder):
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("encoder.", ""), v)
+                    for k, v in state_dict.items()
+                    if "encoder" in k
+                ]
+            )
+            self.convolutions.load_state_dict(convolutions_dict)
+        else:
+            raise ClinicaDLNetworksError(
+                f"Cannot transfer weights from {transfer_class} to CNN."
+            )
+
+    def forward(self, x, alpha):
+        x = self.convolutions(x)
+        x_class_source = self.fc_class_source(x)
+        x_class_target = self.fc_class_target(x)
+        return x_class_source, x_class_target
+
+    def predict(self, x):
+        return self.forward(x)
+
+    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target):
+        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
+            self.device
+        )
+        train_output_source, train_output_target = self.forward(images, alpha)
+
+        if target:
+            out = train_output_target
+            loss_bce = criterion(out, labels)
+
+        else:
+            out = train_output_source
+            loss_bce = criterion(out, labels)
+
+        return out, {"loss": loss_bce}
+
+    def compute_outputs_and_loss(
+        self, data_source, data_target, data_target_unl, criterion, alpha
+    ):
+        images, labels = (
+            data_source["image"].to(self.device),
+            data_source["label"].to(self.device),
+        )
+
+        images_target, labels_target = (
+            data_target["image"].to(self.device),
+            data_target["label"].to(self.device),
+        )
+
+        (
+            train_output_class_source,
+            _,
+        ) = self.forward(images, alpha)
+
+        (_,
+        train_output_class_target,
+        ) = self.forward(images_target, alpha)
+
+        loss_classif_source = criterion(train_output_class_source, labels) + criterion(train_output_class_target, labels_target)
+
+        return (
+            train_output_class_source,
+            train_output_class_target,
+            {"loss": loss_classif_source},
+        )
