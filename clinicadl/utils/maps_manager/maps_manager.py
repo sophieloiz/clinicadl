@@ -1540,6 +1540,7 @@ class MapsManager:
                 logger.debug(f"Train loss dictionnary {loss_dict} with alpha : {alpha}")
                 loss = loss_dict["loss"]
                 loss.backward()
+                
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
                     optimizer.step()
