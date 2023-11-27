@@ -167,7 +167,7 @@ class CNN_SSDA(Network):
         if issubclass(transfer_class, CNN_SSDA):
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, CNN_SSDA_INIT_MC):
-            two_heads_dict = state_dict()
+            two_heads_dict = state_dict
             keys_to_pop = ["fc_domain.2.weight", "fc_domain.2.bias", "fc_domain.4.weight", "fc_domain.4.bias", "fc_domain.6.weight", "fc_domain.6.bias"]
 
             for key in keys_to_pop:
