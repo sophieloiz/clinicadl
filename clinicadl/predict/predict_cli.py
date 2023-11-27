@@ -164,6 +164,6 @@ def cli(
         save_tensor=save_tensor,
         save_nifti=save_nifti,
         save_latent_tensor=save_latent_tensor,
-        ssda_network=ssda_network,
+        ssda_network=save_latent_tensor,
 
     )

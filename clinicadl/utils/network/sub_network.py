@@ -164,7 +164,7 @@ class CNN_SSDA(Network):
         )
 
     def transfer_weights(self, state_dict, transfer_class):
-        if issubclass(transfer_class, CNN_SSDA):
+        if (issubclass(transfer_class, CNN_SSDA)) | (issubclass(transfer_class, CNN_SSDA_INIT)):
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
