@@ -202,53 +202,53 @@ class CNN_SSDA(Network):
             
             self.fc_class_target.load_state_dict(fc_class_target_dict)
         elif issubclass(transfer_class, CNN_SSDA_INIT):
-                    print(state_dict)
-                    convolutions_dict = OrderedDict(
-                        [
-                            (k.replace("convolutions.", ""), v)
-                            for k, v in state_dict.items()
-                            if "convolutions" in k
-                        ]
-                    )
-                    
-                    
-                    self.convolutions.load_state_dict(convolutions_dict)
+            print(state_dict)
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("convolutions.", ""), v)
+                    for k, v in state_dict.items()
+                    if "convolutions" in k
+                ]
+            )
+            
+            
+            self.convolutions.load_state_dict(convolutions_dict)
 
-                    fc_class_source_dict = OrderedDict(
-                        [
-                            (k.replace("fc_class_source.", ""), v)
-                            for k, v in state_dict.items()
-                            if "fc_class_source" in k
-                        ]
-                    )
-                    
-                    
-                    self.fc_class_source.load_state_dict(fc_class_source_dict)
+            fc_class_source_dict = OrderedDict(
+                [
+                    (k.replace("fc_class_source.", ""), v)
+                    for k, v in state_dict.items()
+                    if "fc_class_source" in k
+                ]
+            )
+            
+            
+            self.fc_class_source.load_state_dict(fc_class_source_dict)
 
 
-                    fc_class_target_dict = OrderedDict(
-                        [
-                            (k.replace("fc_class_target.", ""), v)
-                            for k, v in state_dict.items()
-                            if "fc_class_target" in k
-                        ]
-                    )
-                    
-                    
-                    self.fc_class_target.load_state_dict(fc_class_target_dict)        
-            elif issubclass(transfer_class, AutoEncoder):
-                convolutions_dict = OrderedDict(
-                    [
-                        (k.replace("encoder.", ""), v)
-                        for k, v in state_dict.items()
-                        if "encoder" in k
-                    ]
-                )
-                self.convolutions.load_state_dict(convolutions_dict)
-            else:
-                raise ClinicaDLNetworksError(
-                    f"Cannot transfer weights from {transfer_class} to CNN."
-                )
+            fc_class_target_dict = OrderedDict(
+                [
+                    (k.replace("fc_class_target.", ""), v)
+                    for k, v in state_dict.items()
+                    if "fc_class_target" in k
+                ]
+            )
+            
+            
+            self.fc_class_target.load_state_dict(fc_class_target_dict)        
+        elif issubclass(transfer_class, AutoEncoder):
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("encoder.", ""), v)
+                    for k, v in state_dict.items()
+                    if "encoder" in k
+                ]
+            )
+            self.convolutions.load_state_dict(convolutions_dict)
+        else:
+            raise ClinicaDLNetworksError(
+                f"Cannot transfer weights from {transfer_class} to CNN."
+            )
 
     def forward(self, x, alpha):
         x = self.convolutions(x)
