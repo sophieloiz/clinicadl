@@ -167,12 +167,41 @@ class CNN_SSDA(Network):
         if issubclass(transfer_class, CNN_SSDA):
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, CNN_SSDA_INIT_MC):
-            two_heads_dict = state_dict
-            keys_to_pop = ["fc_domain.2.weight", "fc_domain.2.bias", "fc_domain.4.weight", "fc_domain.4.bias", "fc_domain.6.weight", "fc_domain.6.bias"]
+            print(state_dict)
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("convolutions.", ""), v)
+                    for k, v in state_dict.items()
+                    if "convolutions" in k
+                ]
+            )
+            
+            
+            self.convolutions.load_state_dict(convolutions_dict)
 
-            for key in keys_to_pop:
-                two_heads_dict.pop(key, None)
-            self.load_state_dict(two_heads_dict)
+            fc_class_source_dict = OrderedDict(
+                [
+                    (k.replace("fc_class_source.", ""), v)
+                    for k, v in state_dict.items()
+                    if "fc_class_source" in k
+                ]
+            )
+            
+            
+            self.fc_class_source.load_state_dict(fc_class_source_dict)
+
+
+            fc_class_target_dict = OrderedDict(
+                [
+                    (k.replace("fc_class_target.", ""), v)
+                    for k, v in state_dict.items()
+                    if "fc_class_target" in k
+                ]
+            )
+            
+            
+            self.fc_class_target.load_state_dict(fc_class_target_dict)
+            
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
                 [
