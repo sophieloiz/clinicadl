@@ -374,7 +374,7 @@ class MapsManager:
                             network=network,
                         )
             elif ssda_network:
-                
+                print("ssda")
                 data_test_source = return_dataset(
                 group_parameters["caps_directory"],
                 group_df,
@@ -455,6 +455,7 @@ class MapsManager:
                     #alpha=0
                 )
             else:
+                print("no_ssda")
                 data_test = return_dataset(
                     group_parameters["caps_directory"],
                     group_df,
