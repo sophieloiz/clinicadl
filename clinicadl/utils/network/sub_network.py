@@ -261,7 +261,7 @@ class CNN_SSDA(Network):
     def predict(self, x):
         return self.forward(x)
 
-    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target):
+    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target, use_labels=True,):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
@@ -278,7 +278,7 @@ class CNN_SSDA(Network):
         return out, {"loss": loss_bce}
 
     def compute_outputs_and_loss(
-        self, data_source, data_target, data_target_unl, criterion, alpha
+        self, data_source, data_target, data_target_unl, criterion, alpha, use_labels=True,
     ):
         images, labels = (
             data_source["image"].to(self.device),
@@ -397,7 +397,7 @@ class CNN_SSDA_INIT(Network):
     def predict(self, x):
         return self.forward(x)
 
-    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target):
+    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target,use_labels=True):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
@@ -414,7 +414,7 @@ class CNN_SSDA_INIT(Network):
         return out, {"loss": loss_bce}
 
     def compute_outputs_and_loss(
-        self, data_source, data_target, data_target_unl, criterion, alpha
+        self, data_source, data_target, data_target_unl, criterion, alpha,use_labels=True,
     ):
         images, labels = (
             data_source["image"].to(self.device),
