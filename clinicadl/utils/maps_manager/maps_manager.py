@@ -1080,6 +1080,7 @@ class MapsManager:
             train_target_loader = DataLoader(
                 data_train_target_labeled,
                 batch_size= self.batch_size,  # 1 To limit the need of oversampling
+                sampler=train_source_sampler,
                 # sampler=train_target_sampler,
                 #sampler=labeled_sampler,
                 num_workers=self.n_proc,
@@ -1529,6 +1530,7 @@ class MapsManager:
                 p = float(i + start_steps) / total_steps
                 
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+
 
                 _, _, loss_dict = model.compute_outputs_and_loss(
                     data_source, data_target, data_target_unl, criterion, alpha
