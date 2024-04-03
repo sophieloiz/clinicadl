@@ -331,7 +331,7 @@ class CNN_SSDA(Network):
 
         loss_domain = loss_domain_lab + loss_domain_lab_t + loss_domain_t_unl
 
-        total_loss = loss_classif + loss_domain
+        total_loss = loss_classif # + loss_domain
 
         return (
             train_output_class_source,
