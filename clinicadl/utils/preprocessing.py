@@ -22,6 +22,7 @@ def write_preprocessing(preprocessing_dict: Dict[str, Any], caps_directory: Path
 
 
 def read_preprocessing(json_path: Path) -> Dict[str, Any]:
+    print(json_path)
     if not json_path.name.endswith(".json"):
         json_path = json_path.with_suffix(".json")
 
