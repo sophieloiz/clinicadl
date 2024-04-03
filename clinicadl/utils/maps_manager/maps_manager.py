@@ -1002,11 +1002,6 @@ class MapsManager:
                 label=self.label,
                 label_code=self.label_code,
             )
-            from torch.utils.data import ConcatDataset, DataLoader
-
-            combined_dataset = ConcatDataset(
-                [data_train_source, data_train_target_labeled]
-            )
 
             logger.debug("Loading target unlabelled training data...")
             data_target_unlabeled = return_dataset(
@@ -1051,24 +1046,24 @@ class MapsManager:
             )
 
             ## Oversampling of the target dataset
-            from torch.utils.data import SubsetRandomSampler
+            # from torch.utils.data import SubsetRandomSampler
 
-            # Create index lists for target labeled dataset
-            labeled_indices = list(range(len(data_train_target_labeled)))
+            # # Create index lists for target labeled dataset
+            # labeled_indices = list(range(len(data_train_target_labeled)))
 
-            # Oversample the indices for the target labeld dataset to match the size of the labeled source dataset
-            data_train_source_size = len(data_train_source) // self.batch_size
-            labeled_oversampled_indices = labeled_indices * (
-                data_train_source_size // len(labeled_indices)
-            )
+            # # Oversample the indices for the target labeld dataset to match the size of the labeled source dataset
+            # data_train_source_size = len(data_train_source) // self.batch_size
+            # labeled_oversampled_indices = labeled_indices * (
+            #     data_train_source_size // len(labeled_indices)
+            # )
 
-            # Append remaining indices to match the size of the largest dataset
-            labeled_oversampled_indices += labeled_indices[
-                : data_train_source_size % len(labeled_indices)
-            ]
+            # # Append remaining indices to match the size of the largest dataset
+            # labeled_oversampled_indices += labeled_indices[
+            #     : data_train_source_size % len(labeled_indices)
+            # ]
 
-            # Create SubsetRandomSamplers using the oversampled indices
-            labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
+            # # Create SubsetRandomSamplers using the oversampled indices
+            # labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
 
             train_source_loader = DataLoader(
                 data_train_source,
@@ -1084,9 +1079,9 @@ class MapsManager:
             )
             train_target_loader = DataLoader(
                 data_train_target_labeled,
-                batch_size=1,  # To limit the need of oversampling
+                batch_size= self.batch_size,  # 1 To limit the need of oversampling
                 # sampler=train_target_sampler,
-                sampler=labeled_sampler,
+                #sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
