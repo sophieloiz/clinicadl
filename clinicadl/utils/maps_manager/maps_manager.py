@@ -1041,6 +1041,10 @@ class MapsManager:
                 data_train_source, self.sampler
             )
 
+            train_target_sampler = self.task_manager.generate_sampler(
+                data_train_target_labeled, self.sampler
+            )
+
             logger.info(
                 f"Getting train and validation loader with batch size {self.batch_size}"
             )
@@ -1081,8 +1085,8 @@ class MapsManager:
                 data_train_target_labeled,
                 batch_size= self.batch_size,  # 1 To limit the need of oversampling
                 # sampler=train_source_sampler,
-                # sampler=train_target_sampler,
-                sampler=labeled_sampler,
+                sampler=train_target_sampler,
+                # sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
@@ -1543,7 +1547,7 @@ class MapsManager:
                     optimizer.step()
                     optimizer.zero_grad()
                     print("WARNING NO DOMAIN ADVV")
-                    optimizer = model.lr_scheduler(1e-6, optimizer, p)
+                    # optimizer = model.lr_scheduler(1e-6, optimizer, p)
 
                     del loss
 
