@@ -1546,7 +1546,7 @@ class MapsManager:
                     step_flag = False
                     optimizer.step()
                     optimizer.zero_grad()
-                    print("WARNING NO DOMAIN ADVV")
+                    # print("WARNING NO DOMAIN ADVV")
                     # optimizer = model.lr_scheduler(1e-6, optimizer, p)
 
                     del loss
