@@ -1085,8 +1085,8 @@ class MapsManager:
                 data_train_target_labeled,
                 batch_size= self.batch_size,  # 1 To limit the need of oversampling
                 # sampler=train_source_sampler,
-                sampler=train_target_sampler,
-                # sampler=labeled_sampler,
+                # sampler=train_target_sampler,
+                sampler=labeled_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
