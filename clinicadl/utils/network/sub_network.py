@@ -268,8 +268,11 @@ class CNN_SSDA(Network):
         train_output_source, train_output_target, _ = self.forward(images, alpha)
 
         if target:
-            out = train_output_target
-            loss_bce = criterion(train_output_target, labels)
+            #out = train_output_target
+            out = train_output_source
+            #loss_bce = criterion(train_output_target, labels)
+            loss_bce = criterion(train_output_source, labels)
+
 
         else:
             out = train_output_source
@@ -298,12 +301,17 @@ class CNN_SSDA(Network):
             train_output_domain_s,
         ) = self.forward(images, alpha)
 
+        # (
+        #     _,
+        #     train_output_class_target,
+        #     train_output_domain_t,
+        # ) = self.forward(images_target, alpha)
+
         (
-            _,
             train_output_class_target,
+            _,
             train_output_domain_t,
         ) = self.forward(images_target, alpha)
-
 
         _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
 
