@@ -702,7 +702,7 @@ class CNN_SSDA_DANN(Network):
             train_output_domain_target_unlab, labels_domain_tu
         )
 
-        loss_domain = loss_domain_lab + loss_domain_lab_t + loss_domain_t_unl
+        loss_domain = loss_domain_lab  + loss_domain_t_unl
 
         total_loss = loss_classif  + loss_domain
 
