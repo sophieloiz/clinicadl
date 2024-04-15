@@ -668,7 +668,7 @@ class CNN_SSDA_DANN(Network):
         return train_output_label, {"loss": loss_bce}
 
     def compute_outputs_and_loss(
-        self, data_source, data_target, data_target_unl, criterion, alpha, use_labels=True,
+        self, data_source, data_target_unl, criterion, alpha, use_labels=True,
     ):
         images, labels = (
             data_source["image"].to(self.device),
