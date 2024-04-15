@@ -2014,7 +2014,7 @@ class MapsManager:
                     _, loss_dict = model.compute_outputs_and_loss(
                         data_source, data_target_unl, criterion, alpha
                     )  # TO CHECK
-                    logger.debug(f"Train loss dictionnary {loss_dict} with alpha : {alpha}")
+                    #logger.debug(f"Train loss dictionnary {loss_dict} with alpha : {alpha}")
                     loss = loss_dict["loss"]
                     loss.backward()
                     
