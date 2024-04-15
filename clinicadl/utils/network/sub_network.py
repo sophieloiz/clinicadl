@@ -562,7 +562,7 @@ class CNN_SSDA_DANN(Network):
         )
 
     def transfer_weights(self, state_dict, transfer_class):
-        if issubclass(transfer_class, CNN_DANN):
+        if issubclass(transfer_class, CNN_SSDA_DANN):
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, CNN_SSDA_INIT_MC):
             print(state_dict)
