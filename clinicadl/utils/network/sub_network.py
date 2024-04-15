@@ -686,7 +686,7 @@ class CNN_SSDA_DANN(Network):
 
         loss_classif_source = criterion(train_output_class_source, labels)
 
-        loss_classif = loss_classif_source + loss_classif_target
+        loss_classif = loss_classif_source
 
         labels_domain_s = (
             torch.zeros(data_source["image"].shape[0]).long().to(self.device)
