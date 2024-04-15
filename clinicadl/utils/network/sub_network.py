@@ -538,7 +538,7 @@ class CNN_SSDA_INIT_MC(Network):
             {"loss": loss_classif_source},
         )
 
-class CNN_DANN(Network):
+class CNN_SSDA_DANN(Network):
     def __init__(
         self,
         convolutions,
