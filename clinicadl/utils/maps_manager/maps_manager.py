@@ -1222,17 +1222,7 @@ class MapsManager:
                     label=self.label,
                     label_code=self.label_code,
                 )
-                logger.debug("Loading validation target labelled data...")
-                data_valid_target_labeled = return_dataset(
-                    Path(self.caps_target),
-                    split_df_dict_target_lab["validation"],
-                    self.preprocessing_dict_target,
-                    train_transformations=train_transforms,
-                    all_transformations=all_transforms,
-                    multi_cohort=False,
-                    label=self.label,
-                    label_code=self.label_code,
-                )
+                
                 train_source_sampler = self.task_manager.generate_sampler(
                     data_train_source, self.sampler
                 )
@@ -1241,7 +1231,7 @@ class MapsManager:
                     data_train_source,
                     batch_size=self.batch_size,
                     sampler=train_source_sampler,
-                    # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
+                    shuffle=True,
                     num_workers=self.n_proc,
                     worker_init_fn=pl_worker_init_function,
                     drop_last=True,
@@ -1249,7 +1239,6 @@ class MapsManager:
                 logger.info(
                     f"Train source loader size is {len(train_source_loader)*self.batch_size}"
                 )
-               
 
                 train_target_unl_loader = DataLoader(
                     data_target_unlabeled,
@@ -1259,7 +1248,6 @@ class MapsManager:
                     shuffle=True,
                     drop_last=True,
                 )
-
                 logger.info(
                     f"Train target unlabeled loader size is {len(train_target_unl_loader)*self.batch_size}"
                 )
@@ -1274,20 +1262,9 @@ class MapsManager:
                     f"Validation loader source size is {len(valid_loader_source)*self.batch_size}"
                 )
 
-                valid_loader_target = DataLoader(
-                    data_valid_target_labeled,
-                    batch_size=self.batch_size,
-                    shuffle=False,
-                    num_workers=self.n_proc,
-                )
-                logger.info(
-                    f"Validation loader target size is {len(valid_loader_target)*self.batch_size}"
-                )
-
                 self._train_ssdann_dann(
                     train_source_loader,
                     train_target_unl_loader,
-                    valid_loader_target,
                     valid_loader_source,
                     split,
                     resume=resume,
@@ -1938,7 +1915,6 @@ class MapsManager:
             self,
             train_source_loader,
             train_target_unl_loader,
-            valid_loader,
             valid_source_loader,
             split,
             network=None,
@@ -2033,34 +2009,6 @@ class MapsManager:
                         ):
                             evaluation_flag = False
 
-
-                            _, _,  metrics_valid_target = self.task_manager.test_da(
-                                model,
-                                valid_loader,
-                                criterion,
-                                alpha,
-                                target=True,
-                            )
-
-                            model.train()
-   
-                            log_writer.step(
-                                epoch,
-                                i,
-                                metrics_valid_target,
-                                metrics_valid_target,
-                                len(valid_loader),
-                                "training_target.tsv",
-                            )
-                            logger.info(
-                                f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
-                                f"at the end of iteration {i}"
-                            )
-                            logger.info(
-                                f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
-                                f"at the end of iteration {i}"
-                            )
-
                             # Evaluate on source data
                             logger.info("Evaluation on source data")
                             _, _, metrics_train_source = self.task_manager.test_da(
@@ -2149,38 +2097,10 @@ class MapsManager:
                         f"at the end of iteration {i}"
                     )
 
-                _, metrics_train_target = self.task_manager.test_da(
-                    model,
-                    train_target_loader,
-                    criterion,
-                    alpha,
-                    target=True,
-                )
-                _, metrics_valid_target = self.task_manager.test_da(
-                    model,
-                    valid_loader,
-                    criterion,
-                    alpha,
-                    target=True,
-                )
 
                 model.train()
                 train_source_loader.dataset.train()
-                train_target_loader.dataset.train()
 
-                log_writer.step(
-                    epoch,
-                    i,
-                    metrics_train_target,
-                    metrics_valid_target,
-                    len(train_target_loader),
-                    "training_target.tsv",
-                )
-
-                logger.info(
-                    f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
-                    f"at the end of iteration {i}"
-                )
                 logger.info(
                     f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
                     f"at the end of iteration {i}"
@@ -2210,45 +2130,6 @@ class MapsManager:
                 )
 
                 epoch += 1
-
-            self._test_loader_ssda(
-                train_target_loader,
-                criterion,
-                data_group="train",
-                split=split,
-                selection_metrics=self.selection_metrics,
-                network=network,
-                target=True,
-                alpha=0,
-            )
-            self._test_loader_ssda(
-                valid_loader,
-                criterion,
-                data_group="validation",
-                split=split,
-                selection_metrics=self.selection_metrics,
-                network=network,
-                target=True,
-                alpha=0,
-            )
-
-            if self.task_manager.save_outputs:
-                self._compute_output_tensors(
-                    train_target_loader.dataset,
-                    "train",
-                    split,
-                    self.selection_metrics,
-                    nb_images=1,
-                    network=network,
-                )
-                self._compute_output_tensors(
-                    train_target_loader.dataset,
-                    "validation",
-                    split,
-                    self.selection_metrics,
-                    nb_images=1,
-                    network=network,
-                )
                 
     def _test_loader(
         self,

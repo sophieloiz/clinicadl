@@ -658,7 +658,7 @@ class CNN_SSDA_DANN(Network):
     def predict(self, x):
         return self.forward(x)
 
-    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target, use_labels=True,):
+    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
@@ -668,7 +668,7 @@ class CNN_SSDA_DANN(Network):
         return train_output_label, {"loss": loss_bce}
 
     def compute_outputs_and_loss(
-        self, data_source, data_target_unl, criterion, alpha, use_labels=True,
+        self, data_source, data_target_unl, criterion, alpha,
     ):
         images, labels = (
             data_source["image"].to(self.device),
@@ -686,36 +686,25 @@ class CNN_SSDA_DANN(Network):
 
         loss_classif_source = criterion(train_output_class_source, labels)
 
-        loss_classif = loss_classif_source
-
         labels_domain_s = (
             torch.zeros(data_source["image"].shape[0]).long().to(self.device)
         )
-
 
         labels_domain_tu = (
             torch.ones(data_target_unl["image"].shape[0]).long().to(self.device)
         )
 
         loss_domain_lab = criterion(train_output_domain_s, labels_domain_s)
+        
         loss_domain_t_unl = criterion(
             train_output_domain_target_unlab, labels_domain_tu
         )
 
         loss_domain = loss_domain_lab  + loss_domain_t_unl
 
-        total_loss = loss_classif  + loss_domain
+        total_loss = loss_classif_source  + loss_domain
 
         return (
             train_output_class_source,
             {"loss": total_loss},
         )
-
-    def lr_scheduler(self, lr, optimizer, p):
-        lr = lr / (1 + 10 * p) ** 0.75
-        for param_group in optimizer.param_groups:
-            param_group["lr"] = lr
-        return optimizer
-    
-    def lambda_scheduler(self, gamma, p):
-        return 2 / (1 + np.exp(-gamma * p)) -1
