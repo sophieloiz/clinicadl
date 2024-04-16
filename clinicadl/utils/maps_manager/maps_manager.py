@@ -1231,7 +1231,7 @@ class MapsManager:
                     data_train_source,
                     batch_size=self.batch_size,
                     sampler=train_source_sampler,
-                    shuffle=True,
+                    #shuffle=True,
                     num_workers=self.n_proc,
                     worker_init_fn=pl_worker_init_function,
                     drop_last=True,
