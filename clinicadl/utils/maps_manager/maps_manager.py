@@ -1939,13 +1939,13 @@ class MapsManager:
                 transfer_selection=self.transfer_selection_metric,
             )
             
-            logger.debug(f"DANN")
+            logger.info(f"DANN")
             
             criterion = self.task_manager.get_criterion(self.loss)
             logger.debug(f"Criterion for {self.network_task} is {criterion}")
             optimizer = self._init_optimizer(model, split=split, resume=resume)
 
-            logger.debug(f"Optimizer used for training is optimizer")
+            logger.info(f"Optimizer used for training is optimizer")
 
             model.train()
             train_source_loader.dataset.train()
