@@ -499,10 +499,10 @@ class Conv5_FC3_SSDA_DANN(CNN_SSDA_DANN):
             nn.ReLU(),
             pool(2, 2),
 
-            conv(64, 128, 3, padding=1),
-            norm(128),
-            nn.ReLU(),
-            pool(2, 2),
+            # conv(64, 128, 3, padding=1),
+            # norm(128),
+            # nn.ReLU(),
+            # pool(2, 2),
 
         #     conv(128, 256, 3, padding=1),
         #     norm(256),
