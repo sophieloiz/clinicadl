@@ -1166,7 +1166,7 @@ class MapsManager:
                 resume (bool): If True the job is resumed from checkpoint.
             """
             from torch.utils.data import DataLoader
-            logger.debug("DANN")
+            logger.info("DANN")
             train_transforms, all_transforms = get_transforms(
                 normalize=self.normalize,
                 data_augmentation=self.data_augmentation,
