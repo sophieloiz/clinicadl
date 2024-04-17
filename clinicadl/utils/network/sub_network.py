@@ -112,6 +112,25 @@ class CNN(Network):
                 ]
             )
             self.convolutions.load_state_dict(convolutions_dict)
+        elif issubclass(transfer_class, CNN_SSDA):
+            convolutions_dict = OrderedDict(
+                [
+                    (k.replace("convolutions.", ""), v)
+                    for k, v in state_dict.items()
+                    if "convolutions" in k
+                ]
+            )
+            self.convolutions.load_state_dict(convolutions_dict)
+            
+            fc_class_source_dict = OrderedDict(
+                    [
+                        (k.replace("fc_class_source.", ""), v)
+                        for k, v in state_dict.items()
+                        if "fc_class_source" in k
+                    ]
+                )
+            self.fc.load_state_dict(fc_class_source_dict)
+            
         else:
             raise ClinicaDLNetworksError(
                 f"Can not transfer weights from {transfer_class} to CNN."
@@ -309,7 +328,7 @@ class CNN_SSDA(Network):
         loss_classif_source = criterion(train_output_class_source, labels)
         loss_classif_target = criterion(train_output_class_target, labels_target)
 
-        loss_classif = loss_classif_source #+ loss_classif_target
+        loss_classif = loss_classif_source + loss_classif_target
 
         labels_domain_s = (
             torch.zeros(data_source["image"].shape[0]).long().to(self.device)
