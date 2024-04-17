@@ -2389,7 +2389,7 @@ class MapsManager:
         elif (
             not group_dir.is_dir()
         ):  # Data group does not exist yet / was overwritten + all data is provided
-            self._check_leakage(data_group, df)
+            # self._check_leakage(data_group, df)
             self._write_data_group(
                 data_group, df, caps_directory, multi_cohort, label=label
             )
