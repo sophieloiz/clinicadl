@@ -318,7 +318,7 @@ class CNN_SSDA(Network):
         ) = self.forward(images, alpha)
 
         (
-            train_output_class_target_dann,
+            _,
             train_output_class_target,
             train_output_domain_t,
         ) = self.forward(images_target, alpha)
@@ -326,8 +326,7 @@ class CNN_SSDA(Network):
         _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
 
         loss_classif_source = criterion(train_output_class_source, labels)
-        #loss_classif_target = criterion(train_output_class_target, labels_target)
-        loss_classif_target = criterion(train_output_class_target_dann, labels_target)
+        loss_classif_target = criterion(train_output_class_target, labels_target)
 
 
         loss_classif = loss_classif_source + loss_classif_target
