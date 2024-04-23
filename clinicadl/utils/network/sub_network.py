@@ -220,7 +220,7 @@ class CNN_SSDA(Network):
             
             
             self.fc_class_target.load_state_dict(fc_class_target_dict)
-        elif issubclass(transfer_class, CNN_SSDA_INIT):
+        elif issubclass(transfer_class, CNN):
             print(state_dict)
             convolutions_dict = OrderedDict(
                 [
@@ -235,26 +235,15 @@ class CNN_SSDA(Network):
 
             fc_class_source_dict = OrderedDict(
                 [
-                    (k.replace("fc_class_source.", ""), v)
+                    (k.replace("fc.", ""), v)
                     for k, v in state_dict.items()
-                    if "fc_class_source" in k
+                    if "fc" in k
                 ]
             )
             
             
-            self.fc_class_source.load_state_dict(fc_class_source_dict)
-
-
-            fc_class_target_dict = OrderedDict(
-                [
-                    (k.replace("fc_class_target.", ""), v)
-                    for k, v in state_dict.items()
-                    if "fc_class_target" in k
-                ]
-            )
-            
-            
-            self.fc_class_target.load_state_dict(fc_class_target_dict)        
+            self.fc_class_source.load_state_dict(fc_class_source_dict)            
+            self.fc_class_target.load_state_dict(fc_class_source_dict)        
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
                 [
