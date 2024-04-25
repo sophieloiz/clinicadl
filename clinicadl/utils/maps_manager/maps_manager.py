@@ -373,93 +373,25 @@ class MapsManager:
                             gpu=gpu,
                             network=network,
                         )
-            # else:
-            #     print("ssda")
-            #     data_test_source = return_dataset(
-            #     group_parameters["caps_directory"],
-            #     group_df,
-            #     self.preprocessing_dict,
-            #     all_transformations=all_transforms,
-            #     multi_cohort=group_parameters["multi_cohort"],
-            #     label_presence=use_labels,
-            #     label=self.label if label is None else label,
-            #     label_code=self.label_code
-            #     if label_code == "default"
-            #     else label_code,
-            #     )
-            #     # print(pd.read_csv(Path(tsv_path_target), sep="\t"))
-            #     data_test_target = return_dataset(
-            #         Path(caps_directory_target), #group_parameters_target["caps_directory"],  # TO CHECK
-            #         pd.read_csv(Path(tsv_path_target), sep="\t"), #group_df_target, # TO CHANGE
-            #         self.preprocessing_dict_target,
-            #         all_transformations=all_transforms,
-            #         multi_cohort=group_parameters["multi_cohort"],
-            #         label_presence=use_labels,
-            #         label=self.label if label is None else label,
-            #         label_code=self.label_code
-            #         if label_code == "default"
-            #         else label_code,
-            #     )
-                
-            #     test_source_loader = DataLoader(
-            #         data_test_source,
-            #         batch_size=batch_size
-            #         if batch_size is not None
-            #         else self.batch_size,
-            #         shuffle=False,
-            #         sampler=DistributedSampler(
-            #             data_test_source,
-            #             num_replicas=cluster.world_size,
-            #             rank=cluster.rank,
-            #             shuffle=False,
-            #         ),
-            #         num_workers=n_proc if n_proc is not None else self.n_proc,
-            #     )
-
-            #     test_target_loader = DataLoader(
-            #         data_test_target,
-            #         batch_size=batch_size
-            #         if batch_size is not None
-            #         else self.batch_size,
-            #         shuffle=False,
-            #         sampler=DistributedSampler(
-            #             data_test_source,
-            #             num_replicas=cluster.world_size,
-            #             rank=cluster.rank,
-            #             shuffle=False,
-            #         ),
-            #         num_workers=n_proc if n_proc is not None else self.n_proc,
-            #     )
-
-            #     self._test_loader_ssda(
-            #         test_source_loader,
-            #         criterion,
-            #         f'{data_group}_source',
-            #         split,
-            #         self.selection_metrics,
-            #         use_labels=use_labels,
-            #         gpu=gpu,
-            #         target=False,
-            #         #alpha=0
-            #     )                
-
-            #     self._test_loader_ssda(
-            #         test_target_loader,
-            #         criterion,
-            #         f'{data_group}_target',
-            #         split,
-            #         self.selection_metrics,
-            #         use_labels=use_labels,
-            #         gpu=gpu,
-            #         target=True,
-            #         #alpha=0
-            #     )
             else:
-                
-                data_test = return_dataset(
-                    group_parameters["caps_directory"],
-                    group_df,
-                    self.preprocessing_dict,
+                print("ssda")
+                data_test_source = return_dataset(
+                group_parameters["caps_directory"],
+                group_df,
+                self.preprocessing_dict,
+                all_transformations=all_transforms,
+                multi_cohort=group_parameters["multi_cohort"],
+                label_presence=use_labels,
+                label=self.label if label is None else label,
+                label_code=self.label_code
+                if label_code == "default"
+                else label_code,
+                )
+                # print(pd.read_csv(Path(tsv_path_target), sep="\t"))
+                data_test_target = return_dataset(
+                    Path(caps_directory_target), #group_parameters_target["caps_directory"],  # TO CHECK
+                    pd.read_csv(Path(tsv_path_target), sep="\t"), #group_df_target, # TO CHANGE
+                    self.preprocessing_dict_target,
                     all_transformations=all_transforms,
                     multi_cohort=group_parameters["multi_cohort"],
                     label_presence=use_labels,
@@ -468,56 +400,124 @@ class MapsManager:
                     if label_code == "default"
                     else label_code,
                 )
-
-                test_loader = DataLoader(
-                    data_test,
+                
+                test_source_loader = DataLoader(
+                    data_test_source,
                     batch_size=batch_size
                     if batch_size is not None
                     else self.batch_size,
                     shuffle=False,
                     sampler=DistributedSampler(
-                        data_test,
+                        data_test_source,
                         num_replicas=cluster.world_size,
                         rank=cluster.rank,
                         shuffle=False,
                     ),
                     num_workers=n_proc if n_proc is not None else self.n_proc,
                 )
-                self._test_loader(
-                    test_loader,
+
+                test_target_loader = DataLoader(
+                    data_test_target,
+                    batch_size=batch_size
+                    if batch_size is not None
+                    else self.batch_size,
+                    shuffle=False,
+                    sampler=DistributedSampler(
+                        data_test_source,
+                        num_replicas=cluster.world_size,
+                        rank=cluster.rank,
+                        shuffle=False,
+                    ),
+                    num_workers=n_proc if n_proc is not None else self.n_proc,
+                )
+
+                self._test_loader_ssda(
+                    test_source_loader,
                     criterion,
-                    data_group,
+                    f'{data_group}_source',
                     split,
-                    split_selection_metrics,
+                    self.selection_metrics,
                     use_labels=use_labels,
                     gpu=gpu,
-                    amp=amp,
+                    target=False,
+                    #alpha=0
+                )                
+
+                self._test_loader_ssda(
+                    test_target_loader,
+                    criterion,
+                    f'{data_group}_target',
+                    split,
+                    self.selection_metrics,
+                    use_labels=use_labels,
+                    gpu=gpu,
+                    target=True,
+                    #alpha=0
                 )
-                if save_tensor:
-                    logger.debug("Saving tensors")
-                    self._compute_output_tensors(
-                        data_test,
-                        data_group,
-                        split,
-                        selection_metrics,
-                        gpu=gpu,
-                    )
-                if save_nifti:
-                    self._compute_output_nifti(
-                        data_test,
-                        data_group,
-                        split,
-                        selection_metrics,
-                        gpu=gpu,
-                    )
-                if save_latent_tensor:
-                    self._compute_latent_tensors(
-                        data_test,
-                        data_group,
-                        split,
-                        selection_metrics,
-                        gpu=gpu,
-                    )
+            # else:
+                
+            #     data_test = return_dataset(
+            #         group_parameters["caps_directory"],
+            #         group_df,
+            #         self.preprocessing_dict,
+            #         all_transformations=all_transforms,
+            #         multi_cohort=group_parameters["multi_cohort"],
+            #         label_presence=use_labels,
+            #         label=self.label if label is None else label,
+            #         label_code=self.label_code
+            #         if label_code == "default"
+            #         else label_code,
+            #     )
+
+            #     test_loader = DataLoader(
+            #         data_test,
+            #         batch_size=batch_size
+            #         if batch_size is not None
+            #         else self.batch_size,
+            #         shuffle=False,
+            #         sampler=DistributedSampler(
+            #             data_test,
+            #             num_replicas=cluster.world_size,
+            #             rank=cluster.rank,
+            #             shuffle=False,
+            #         ),
+            #         num_workers=n_proc if n_proc is not None else self.n_proc,
+            #     )
+            #     self._test_loader(
+            #         test_loader,
+            #         criterion,
+            #         data_group,
+            #         split,
+            #         split_selection_metrics,
+            #         use_labels=use_labels,
+            #         gpu=gpu,
+            #         amp=amp,
+            #     )
+            #     if save_tensor:
+            #         logger.debug("Saving tensors")
+            #         self._compute_output_tensors(
+            #             data_test,
+            #             data_group,
+            #             split,
+            #             selection_metrics,
+            #             gpu=gpu,
+            #         )
+            #     if save_nifti:
+            #         self._compute_output_nifti(
+            #             data_test,
+            #             data_group,
+            #             split,
+            #             selection_metrics,
+            #             gpu=gpu,
+            #         )
+            #     if save_latent_tensor:
+            #         self._compute_latent_tensors(
+            #             data_test,
+            #             data_group,
+            #             split,
+            #             selection_metrics,
+            #             gpu=gpu,
+            #         )
 
             if cluster.master:
                 self._ensemble_prediction(
@@ -1068,14 +1068,9 @@ class MapsManager:
 
             # Create SubsetRandomSamplers using the oversampled indices
             labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
-            
-            train_dataset_concat = torch.utils.data.ConcatDataset([data_train_source,data_train_target_labeled])
-            val_dataset_concat = torch.utils.data.ConcatDataset([data_valid_source,data_valid_target_labeled])
-
-
 
             train_source_loader = DataLoader(
-                train_dataset_concat,
+                data_train_source,
                 batch_size=self.batch_size,
                 sampler=train_source_sampler,
                 # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
@@ -1083,39 +1078,20 @@ class MapsManager:
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
             )
-
-            train_target_loader = DataLoader(
-                train_dataset_concat,
-                batch_size=self.batch_size,
-                sampler=train_source_sampler,
-                # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
-                num_workers=self.n_proc,
-                worker_init_fn=pl_worker_init_function,
-                drop_last=True,
-            )
-            # train_source_loader = DataLoader(
-            #     data_train_source,
-            #     batch_size=self.batch_size,
-            #     sampler=train_source_sampler,
-            #     # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
-            #     num_workers=self.n_proc,
-            #     worker_init_fn=pl_worker_init_function,
-            #     drop_last=True,
-            # )
             logger.info(
                 f"Train source loader size is {len(train_source_loader)*self.batch_size}"
             )
-            # train_target_loader = DataLoader(
-            #     data_train_target_labeled,
-            #     batch_size= self.batch_size,  # 1 To limit the need of oversampling
-            #     # sampler=train_source_sampler,
-            #     # sampler=train_target_sampler,
-            #     sampler=labeled_sampler,
-            #     num_workers=self.n_proc,
-            #     worker_init_fn=pl_worker_init_function,
-            #     # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
-            #     drop_last=True,
-            # )
+            train_target_loader = DataLoader(
+                data_train_target_labeled,
+                batch_size= self.batch_size,  # 1 To limit the need of oversampling
+                # sampler=train_source_sampler,
+                # sampler=train_target_sampler,
+                sampler=labeled_sampler,
+                num_workers=self.n_proc,
+                worker_init_fn=pl_worker_init_function,
+                # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
+                drop_last=True,
+            )
             logger.info(
                 f"Train target labeled loader size oversample is {len(train_target_loader)}"
             )
@@ -1139,7 +1115,7 @@ class MapsManager:
             )
 
             valid_loader_source = DataLoader(
-                val_dataset_concat,
+                data_valid_source,
                 batch_size=self.batch_size,
                 shuffle=False,
                 num_workers=self.n_proc,
@@ -1149,7 +1125,7 @@ class MapsManager:
             )
 
             valid_loader_target = DataLoader(
-                val_dataset_concat,
+                data_valid_target_labeled,
                 batch_size=self.batch_size,  # To check
                 shuffle=False,
                 num_workers=self.n_proc,
