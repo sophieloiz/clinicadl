@@ -306,20 +306,19 @@ class CNN_SSDA(Network):
             train_output_domain_s,
         ) = self.forward(images, alpha)
 
-        # (
-        #     _,
-        #     train_output_class_target,
-        #     train_output_domain_t,
-        # ) = self.forward(images_target, alpha)
-
-
-#        _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
+        (
+            _,
+            train_output_class_target,
+            train_output_domain_t,
+        ) = self.forward(images_target, alpha)
+        
+        _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
 
         loss_classif_source = criterion(train_output_class_source, labels)
- #       loss_classif_target = criterion(train_output_class_target, labels_target)
+        loss_classif_target = criterion(train_output_class_target, labels_target)
 
 
-        loss_classif = loss_classif_source #+ loss_classif_target
+        loss_classif = loss_classif_source + loss_classif_target
 
         # labels_domain_s = (
         #     torch.zeros(data_source["image"].shape[0]).long().to(self.device)
@@ -345,8 +344,8 @@ class CNN_SSDA(Network):
 
         return (
             train_output_class_source,
-            train_output_class_source,
-            #train_output_class_target,
+            # train_output_class_source,
+            train_output_class_target,
             {"loss": total_loss},
         )
 
