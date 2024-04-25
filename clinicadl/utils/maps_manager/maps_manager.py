@@ -1068,9 +1068,14 @@ class MapsManager:
 
             # Create SubsetRandomSamplers using the oversampled indices
             labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
+            
+            train_dataset_concat = torch.utils.data.ConcatDataset([data_train_source,data_train_target_labeled])
+            val_dataset_concat = torch.utils.data.ConcatDataset([data_valid_source,data_valid_target_labeled])
+
+
 
             train_source_loader = DataLoader(
-                data_train_source,
+                train_dataset_concat,
                 batch_size=self.batch_size,
                 sampler=train_source_sampler,
                 # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
@@ -1078,20 +1083,39 @@ class MapsManager:
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
             )
+
+            train_target_loader = DataLoader(
+                train_dataset_concat,
+                batch_size=self.batch_size,
+                sampler=train_source_sampler,
+                # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
+                num_workers=self.n_proc,
+                worker_init_fn=pl_worker_init_function,
+                drop_last=True,
+            )
+            # train_source_loader = DataLoader(
+            #     data_train_source,
+            #     batch_size=self.batch_size,
+            #     sampler=train_source_sampler,
+            #     # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
+            #     num_workers=self.n_proc,
+            #     worker_init_fn=pl_worker_init_function,
+            #     drop_last=True,
+            # )
             logger.info(
                 f"Train source loader size is {len(train_source_loader)*self.batch_size}"
             )
-            train_target_loader = DataLoader(
-                data_train_target_labeled,
-                batch_size= self.batch_size,  # 1 To limit the need of oversampling
-                # sampler=train_source_sampler,
-                # sampler=train_target_sampler,
-                sampler=labeled_sampler,
-                num_workers=self.n_proc,
-                worker_init_fn=pl_worker_init_function,
-                # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
-                drop_last=True,
-            )
+            # train_target_loader = DataLoader(
+            #     data_train_target_labeled,
+            #     batch_size= self.batch_size,  # 1 To limit the need of oversampling
+            #     # sampler=train_source_sampler,
+            #     # sampler=train_target_sampler,
+            #     sampler=labeled_sampler,
+            #     num_workers=self.n_proc,
+            #     worker_init_fn=pl_worker_init_function,
+            #     # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
+            #     drop_last=True,
+            # )
             logger.info(
                 f"Train target labeled loader size oversample is {len(train_target_loader)}"
             )
@@ -1115,7 +1139,7 @@ class MapsManager:
             )
 
             valid_loader_source = DataLoader(
-                data_valid_source,
+                val_dataset_concat,
                 batch_size=self.batch_size,
                 shuffle=False,
                 num_workers=self.n_proc,
@@ -1125,7 +1149,7 @@ class MapsManager:
             )
 
             valid_loader_target = DataLoader(
-                data_valid_target_labeled,
+                val_dataset_concat,
                 batch_size=self.batch_size,  # To check
                 shuffle=False,
                 num_workers=self.n_proc,
