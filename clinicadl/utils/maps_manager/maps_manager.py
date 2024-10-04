@@ -82,7 +82,7 @@ class MapsManager:
             test_parameters = self.get_parameters()
             test_parameters = change_str_to_path(test_parameters)
             self.parameters = add_default_values(test_parameters)
-            self.ssda_network = False  # A MODIFIER
+            self.ssda_network = True  # A MODIFIER
             self.task_manager = self._init_task_manager(n_classes=self.output_size)
             self.split_name = (
                 self._check_split_wording()
@@ -192,7 +192,8 @@ class MapsManager:
             self._train_ssda(split_list, resume=True)
         else:
             self._train_single(split_list, resume=True)
-
+        
+        
     def predict(
         self,
         data_group: str,
@@ -345,9 +346,21 @@ class MapsManager:
                         amp=amp,
                         network=network,
                     )
+                    
+                    ## Add save_latent
                     if save_tensor:
                         logger.debug("Saving tensors")
-                        self._compute_output_tensors(
+                        print("save tensors")
+                        #self._compute_output_tensors(
+                        #    data_test,
+                         #   data_group,
+                          #  split,
+                           # selection_metrics,
+                            #gpu=gpu,
+                            #network=network,
+                        #)
+                        
+                        self._compute_output_features(
                             data_test,
                             data_group,
                             split,
@@ -355,6 +368,8 @@ class MapsManager:
                             gpu=gpu,
                             network=network,
                         )
+                        
+                        
                     if save_nifti:
                         self._compute_output_nifti(
                             data_test,
@@ -373,25 +388,93 @@ class MapsManager:
                             gpu=gpu,
                             network=network,
                         )
+            # else:
+                # print("ssda")
+                # data_test_source = return_dataset(
+                # group_parameters["caps_directory"],
+                # group_df,
+                # self.preprocessing_dict,
+                # all_transformations=all_transforms,
+                # multi_cohort=group_parameters["multi_cohort"],
+                # label_presence=use_labels,
+                # label=self.label if label is None else label,
+                # label_code=self.label_code
+                # if label_code == "default"
+                # else label_code,
+                # )
+                # # print(pd.read_csv(Path(tsv_path_target), sep="\t"))
+                # data_test_target = return_dataset(
+                #     Path(caps_directory_target), #group_parameters_target["caps_directory"],  # TO CHECK
+                #     pd.read_csv(Path(tsv_path_target), sep="\t"), #group_df_target, # TO CHANGE
+                #     self.preprocessing_dict_target,
+                #     all_transformations=all_transforms,
+                #     multi_cohort=group_parameters["multi_cohort"],
+                #     label_presence=use_labels,
+                #     label=self.label if label is None else label,
+                #     label_code=self.label_code
+                #     if label_code == "default"
+                #     else label_code,
+                # )
+                
+                # test_source_loader = DataLoader(
+                #     data_test_source,
+                #     batch_size=batch_size
+                #     if batch_size is not None
+                #     else self.batch_size,
+                #     shuffle=False,
+                #     sampler=DistributedSampler(
+                #         data_test_source,
+                #         num_replicas=cluster.world_size,
+                #         rank=cluster.rank,
+                #         shuffle=False,
+                #     ),
+                #     num_workers=n_proc if n_proc is not None else self.n_proc,
+                # )
+
+                # test_target_loader = DataLoader(
+                #     data_test_target,
+                #     batch_size=batch_size
+                #     if batch_size is not None
+                #     else self.batch_size,
+                #     shuffle=False,
+                #     sampler=DistributedSampler(
+                #         data_test_source,
+                #         num_replicas=cluster.world_size,
+                #         rank=cluster.rank,
+                #         shuffle=False,
+                #     ),
+                #     num_workers=n_proc if n_proc is not None else self.n_proc,
+                # )
+
+                # self._test_loader_ssda(
+                #     test_source_loader,
+                #     criterion,
+                #     f'{data_group}_source',
+                #     split,
+                #     self.selection_metrics,
+                #     use_labels=use_labels,
+                #     gpu=gpu,
+                #     target=False,
+                #     #alpha=0
+                # )                
+
+                # self._test_loader_ssda(
+                #     test_target_loader,
+                #     criterion,
+                #     f'{data_group}_target',
+                #     split,
+                #     self.selection_metrics,
+                #     use_labels=use_labels,
+                #     gpu=gpu,
+                #     target=True,
+                #     #alpha=0
+                # )
             else:
-                print("ssda")
-                data_test_source = return_dataset(
-                group_parameters["caps_directory"],
-                group_df,
-                self.preprocessing_dict,
-                all_transformations=all_transforms,
-                multi_cohort=group_parameters["multi_cohort"],
-                label_presence=use_labels,
-                label=self.label if label is None else label,
-                label_code=self.label_code
-                if label_code == "default"
-                else label_code,
-                )
-                # print(pd.read_csv(Path(tsv_path_target), sep="\t"))
-                data_test_target = return_dataset(
-                    Path(caps_directory_target), #group_parameters_target["caps_directory"],  # TO CHECK
-                    pd.read_csv(Path(tsv_path_target), sep="\t"), #group_df_target, # TO CHANGE
-                    self.preprocessing_dict_target,
+                
+                data_test = return_dataset(
+                    group_parameters["caps_directory"],
+                    group_df,
+                    self.preprocessing_dict,
                     all_transformations=all_transforms,
                     multi_cohort=group_parameters["multi_cohort"],
                     label_presence=use_labels,
@@ -400,124 +483,67 @@ class MapsManager:
                     if label_code == "default"
                     else label_code,
                 )
-                
-                test_source_loader = DataLoader(
-                    data_test_source,
+
+                test_loader = DataLoader(
+                    data_test,
                     batch_size=batch_size
                     if batch_size is not None
                     else self.batch_size,
                     shuffle=False,
                     sampler=DistributedSampler(
-                        data_test_source,
+                        data_test,
                         num_replicas=cluster.world_size,
                         rank=cluster.rank,
                         shuffle=False,
                     ),
                     num_workers=n_proc if n_proc is not None else self.n_proc,
                 )
-
-                test_target_loader = DataLoader(
-                    data_test_target,
-                    batch_size=batch_size
-                    if batch_size is not None
-                    else self.batch_size,
-                    shuffle=False,
-                    sampler=DistributedSampler(
-                        data_test_source,
-                        num_replicas=cluster.world_size,
-                        rank=cluster.rank,
-                        shuffle=False,
-                    ),
-                    num_workers=n_proc if n_proc is not None else self.n_proc,
-                )
-
-                self._test_loader_ssda(
-                    test_source_loader,
+                self._test_loader(
+                    test_loader,
                     criterion,
-                    f'{data_group}_source',
+                    data_group,
                     split,
-                    self.selection_metrics,
+                    split_selection_metrics,
                     use_labels=use_labels,
                     gpu=gpu,
-                    target=False,
-                    #alpha=0
-                )                
-
-                self._test_loader_ssda(
-                    test_target_loader,
-                    criterion,
-                    f'{data_group}_target',
-                    split,
-                    self.selection_metrics,
-                    use_labels=use_labels,
-                    gpu=gpu,
-                    target=True,
-                    #alpha=0
+                    amp=amp,
                 )
-            # else:
-                
-            #     data_test = return_dataset(
-            #         group_parameters["caps_directory"],
-            #         group_df,
-            #         self.preprocessing_dict,
-            #         all_transformations=all_transforms,
-            #         multi_cohort=group_parameters["multi_cohort"],
-            #         label_presence=use_labels,
-            #         label=self.label if label is None else label,
-            #         label_code=self.label_code
-            #         if label_code == "default"
-            #         else label_code,
-            #     )
+                if save_tensor:
+                    print("save tensor")
+                    logger.debug("Saving tensors")
+                    self._compute_output_features(
+                            data_test,
+                            data_group,
+                            split,
+                            selection_metrics,
+                            gpu=gpu,
+                        )
+                     #self._compute_output_tensors(
+                        #    data_test,
+                         #   data_group,
+                          #  split,
+                           # selection_metrics,
+                            #gpu=gpu,
+                            #network=network,
+                        #)
+                        
 
-            #     test_loader = DataLoader(
-            #         data_test,
-            #         batch_size=batch_size
-            #         if batch_size is not None
-            #         else self.batch_size,
-            #         shuffle=False,
-            #         sampler=DistributedSampler(
-            #             data_test,
-            #             num_replicas=cluster.world_size,
-            #             rank=cluster.rank,
-            #             shuffle=False,
-            #         ),
-            #         num_workers=n_proc if n_proc is not None else self.n_proc,
-            #     )
-            #     self._test_loader(
-            #         test_loader,
-            #         criterion,
-            #         data_group,
-            #         split,
-            #         split_selection_metrics,
-            #         use_labels=use_labels,
-            #         gpu=gpu,
-            #         amp=amp,
-            #     )
-            #     if save_tensor:
-            #         logger.debug("Saving tensors")
-            #         self._compute_output_tensors(
-            #             data_test,
-            #             data_group,
-            #             split,
-            #             selection_metrics,
-            #             gpu=gpu,
-            #         )
-            #     if save_nifti:
-            #         self._compute_output_nifti(
-            #             data_test,
-            #             data_group,
-            #             split,
-            #             selection_metrics,
-            #             gpu=gpu,
-            #         )
-            #     if save_latent_tensor:
-            #         self._compute_latent_tensors(
-            #             data_test,
-            #             data_group,
-            #             split,
-            #             selection_metrics,
-            #             gpu=gpu,
-            #         )
+                if save_nifti:
+                    self._compute_output_nifti(
+                        data_test,
+                        data_group,
+                        split,
+                        selection_metrics,
+                        gpu=gpu,
+                    )
+                if save_latent_tensor:
+                    self._compute_latent_tensors(
+                        data_test,
+                        data_group,
+                        split,
+                        selection_metrics,
+                        gpu=gpu,
+                    )
 
             if cluster.master:
                 self._ensemble_prediction(
@@ -2061,6 +2087,77 @@ class MapsManager:
                 torch.save(output, tensor_path / output_filename)
                 logger.debug(f"File saved at {[input_filename, output_filename]}")
 
+    def _compute_output_features(
+        self,
+        dataset,
+        data_group,
+        split,
+        selection_metrics,
+        nb_images=None,
+        gpu=None,
+        network=None,
+    ):
+        """
+        Compute the output tensors and saves them in the MAPS.
+
+        Args:
+            dataset (clinicadl.utils.caps_dataset.data.CapsDataset): wrapper of the data set.
+            data_group (str): name of the data group used for the task.
+            split (int): split number.
+            selection_metrics (list[str]): metrics used for model selection.
+            nb_images (int): number of full images to write. Default computes the outputs of the whole data set.
+            gpu (bool): If given, a new value for the device of the model will be computed.
+            network (int): Index of the network tested (only used in multi-network setting).
+        """
+        print(selection_metrics)
+        for selection_metric in selection_metrics:
+            # load the best trained model during the training
+            model, _ = self._init_model(
+                transfer_path=self.maps_path,
+                split=split,
+                transfer_selection=selection_metric,
+                gpu=gpu,
+                network=network,
+                nb_unfrozen_layer=self.nb_unfrozen_layer,
+            )
+            model = DDP(model)
+
+            tensor_path = (
+                self.maps_path
+                / f"{self.split_name}-{split}"
+                / f"best-{selection_metric}"
+                / data_group
+                / "tensors"
+            )
+            print(tensor_path)
+            if cluster.master:
+                tensor_path.mkdir(parents=True, exist_ok=True)
+            dist.barrier()
+
+            if nb_images is None:  # Compute outputs for the whole data set
+                nb_modes = len(dataset)
+            else:
+                nb_modes = nb_images * dataset.elem_per_image
+
+            for i in range(cluster.rank, nb_modes, cluster.world_size):
+                data = dataset[i]
+                image = data["image"]
+                x = image.unsqueeze(0).to(model.device)
+                with autocast(enabled=self.amp):
+                    features, output = model.predict(x)
+                output = output.squeeze(0).cpu().float()
+                participant_id = data["participant_id"]
+                session_id = data["session_id"]
+                mode_id = data[f"{self.mode}_id"]
+             
+                output_filename = (
+                    f"{participant_id}_{session_id}_{self.mode}-{mode_id}_features_flair.pt"
+                )
+                print(tensor_path)
+                print(output_filename)
+                torch.save(features, tensor_path / output_filename)
+                logger.debug(f"File saved at {output_filename}")
+                
     def _compute_latent_tensors(
         self,
         dataset,
@@ -2390,7 +2487,7 @@ class MapsManager:
         elif (
             not group_dir.is_dir()
         ):  # Data group does not exist yet / was overwritten + all data is provided
-            # self._check_leakage(data_group, df)
+            self._check_leakage(data_group, df)
             self._write_data_group(
                 data_group, df, caps_directory, multi_cohort, label=label
             )
@@ -3085,7 +3182,10 @@ class MapsManager:
         Returns:
             (Dict): dictionary of results (weights, epoch number, metrics values)
         """
-        selection_metric = self._check_selection_metric(split, selection_metric)
+
+        #selection_metric = self._check_selection_metric(split, selection_metric)
+        print("Selection Metrics to modify maps lign 3187")
+        selection_metric = 'BA' # TO MODIFY
         if self.multi_network:
             if network is None:
                 raise ClinicaDLArgumentError(

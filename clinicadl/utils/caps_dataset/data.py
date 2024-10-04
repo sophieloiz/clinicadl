@@ -166,34 +166,74 @@ class CapsDataset(Dataset):
         # Try to find .nii.gz file
         try:
             file_type = self.preprocessing_dict["file_type"]
-            results = clinica_file_reader(
-                [participant], [session], self.caps_dict[cohort], file_type
-            )
-            logger.debug(f"clinica_file_reader output: {results}")
-            filepath = Path(results[0][0])
-            image_filename = filepath.name.replace(".nii.gz", ".pt")
+            try:
+                results = clinica_file_reader(
+                    [participant], [session], self.caps_dict[cohort], file_type
+                )
+                logger.debug(f"clinica_file_reader output: {results}")
+                filepath = Path(results[0][0])
+                image_filename = filepath.name.replace(".nii.gz", ".pt")
 
-            folder, _ = compute_folder_and_file_type(self.preprocessing_dict)
-            image_dir = (
-                self.caps_dict[cohort]
-                / "subjects"
-                / participant
-                / session
-                / "deeplearning_prepare_data"
-                / "image_based"
-                / folder
-            )
-            image_path = image_dir / image_filename
+                folder, _ = compute_folder_and_file_type(self.preprocessing_dict)
+                image_dir = (
+                    self.caps_dict[cohort]
+                    / "subjects"
+                    / participant
+                    / session
+                    / "deeplearning_prepare_data"
+                    / "image_based"
+                    / folder
+                )
+                image_path = image_dir / image_filename
+            except:
+                file_type = {
+                        "pattern": "*space-MNI152NLin2009cSym_desc-Crop_res-1x1x1_flair.nii.gz",
+                        "description": "FLAIR Image registered using flair-linear and cropped (matrix size 169\u00d7208\u00d7179, 1 mm isotropic voxels)",
+                        "needed_pipeline": "flair-linear"
+                        }
+                results = clinica_file_reader(
+                    [participant], [session], self.caps_dict[cohort], file_type
+                )
+                logger.debug(f"clinica_file_reader output: {results}")
+                filepath = Path(results[0][0])
+                image_filename = filepath.name.replace(".nii.gz", ".pt")
+
+                folder, _ = compute_folder_and_file_type(self.preprocessing_dict)
+                image_dir = (
+                    self.caps_dict[cohort]
+                    / "subjects"
+                    / participant
+                    / session
+                    / "deeplearning_prepare_data"
+                    / "image_based"
+                    / "flair_linear"
+                )
+                image_path = image_dir / image_filename
+                
         # Try to find .pt file
         except ClinicaCAPSError:
-            file_type = self.preprocessing_dict["file_type"]
-            file_type["pattern"] = file_type["pattern"].replace(".nii.gz", ".pt")
-            results = clinica_file_reader(
-                [participant], [session], self.caps_dict[cohort], file_type
-            )
-            filepath = results[0]
-            image_path = Path(filepath[0])
-
+            try:
+                file_type = self.preprocessing_dict["file_type"]
+                file_type["pattern"] = file_type["pattern"].replace(".nii.gz", ".pt")
+                results = clinica_file_reader(
+                    [participant], [session], self.caps_dict[cohort], file_type
+                )
+                filepath = results[0]
+                image_path = Path(filepath[0])
+            except:
+                file_type = {
+                        "pattern": "*space-MNI152NLin2009cSym_desc-Crop_res-1x1x1_flair.nii.gz",
+                        "description": "FLAIR Image registered using flair-linear and cropped (matrix size 169\u00d7208\u00d7179, 1 mm isotropic voxels)",
+                        "needed_pipeline": "flair-linear"
+                        }
+                file_type["pattern"] = file_type["pattern"].replace(".nii.gz", ".pt")
+                results = clinica_file_reader(
+                    [participant], [session], self.caps_dict[cohort], file_type
+                )
+                filepath = results[0]
+                image_path = Path(filepath[0])                
+            
+        print(image_path)
         return image_path
 
     def _get_meta_data(self, idx: int) -> Tuple[str, str, str, int, int]:
