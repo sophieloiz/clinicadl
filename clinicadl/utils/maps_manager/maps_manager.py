@@ -82,7 +82,7 @@ class MapsManager:
             test_parameters = self.get_parameters()
             test_parameters = change_str_to_path(test_parameters)
             self.parameters = add_default_values(test_parameters)
-            self.ssda_network = True  # A MODIFIER
+            self.ssda_network = False  # A MODIFIER
             self.task_manager = self._init_task_manager(n_classes=self.output_size)
             self.split_name = (
                 self._check_split_wording()
@@ -1560,7 +1560,7 @@ class MapsManager:
             ):
                 p = float(i + start_steps) / total_steps
                 
-                alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+                alpha =  1 #2.0 / (1.0 + np.exp(-10 * p)) - 1
 
                 _, _, loss_dict = model.compute_outputs_and_loss(
                     data_source, data_target, data_target_unl, criterion, alpha
@@ -1770,7 +1770,7 @@ class MapsManager:
                 split,
                 filename="optimizer.pth.tar",
             )
-
+            
             epoch += 1
 
         self._test_loader_ssda(
@@ -2120,7 +2120,7 @@ class MapsManager:
                 network=network,
                 nb_unfrozen_layer=self.nb_unfrozen_layer,
             )
-            model = DDP(model)
+            #model = DDP(model)
 
             tensor_path = (
                 self.maps_path
@@ -2144,7 +2144,7 @@ class MapsManager:
                 image = data["image"]
                 x = image.unsqueeze(0).to(model.device)
                 with autocast(enabled=self.amp):
-                    features, output = model.predict(x)
+                    features, output,_,_ = model.predict(x)
                 output = output.squeeze(0).cpu().float()
                 participant_id = data["participant_id"]
                 session_id = data["session_id"]
@@ -2487,7 +2487,7 @@ class MapsManager:
         elif (
             not group_dir.is_dir()
         ):  # Data group does not exist yet / was overwritten + all data is provided
-            self._check_leakage(data_group, df)
+            #self._check_leakage(data_group, df)
             self._write_data_group(
                 data_group, df, caps_directory, multi_cohort, label=label
             )

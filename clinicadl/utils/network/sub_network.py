@@ -557,7 +557,7 @@ class CNN_SSDA_FS(Network):
         return x, x_class_source, x_class_target, x_domain
 
     def predict(self, x):
-        return self.forward(x)
+        return self.forward(x, 0)
 
     def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target, use_labels=True,):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
@@ -575,7 +575,7 @@ class CNN_SSDA_FS(Network):
 
         return out, {"loss": loss_bce}
 
-    def compute_outputs_and_loss(
+    def compute_outputs_and_loss_t(
         self, data_source, data_target, data_target_unl, criterion, alpha, use_labels=True,
     ):
         images, labels = (
@@ -640,6 +640,35 @@ class CNN_SSDA_FS(Network):
             {"loss": total_loss},
         )
 
+    def compute_outputs_and_loss(
+        self, data_source, criterion, use_labels=True,
+    ):
+        images, labels = (
+            data_source["image"].to(self.device),
+            data_source["label"].to(self.device),
+        )
+
+        
+        (
+            _,
+            _,
+            train_output_class_source,
+            train_output_domain_s,
+        ) = self.forward(images, 0)
+
+        
+        loss_classif_source = criterion(train_output_class_source, labels)
+        
+
+        loss_classif = loss_classif_source 
+
+        total_loss = loss_classif
+
+        return (
+            train_output_class_source,
+            {"loss": total_loss},
+        )
+    
     def lr_scheduler(self, lr, optimizer, p):
         lr = lr / (1 + 10 * p) ** 0.75
         for param_group in optimizer.param_groups:

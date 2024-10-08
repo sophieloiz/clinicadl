@@ -204,7 +204,7 @@ class TaskManager:
             for i, data in enumerate(dataloader):
                 # initialize the loss list to save the loss components
                 with autocast(enabled=amp):
-                    outputs, loss_dict = model(data, criterion, use_labels=use_labels)
+                    outputs, loss_dict = model(data, criterion, use_labels=use_labels) # TO MODIFY
 
                 if i == 0:
                     for loss_component in loss_dict.keys():
