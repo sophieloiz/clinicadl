@@ -1557,9 +1557,9 @@ class MapsManager:
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
-                #p = float(i + start_steps) / total_steps
+                p = float(i + start_steps) / total_steps
                 
-                alpha =  1 #2.0 / (1.0 + np.exp(-10 * p)) - 1
+                alpha =  2.0 / (1.0 + np.exp(-10 * p)) - 1
 
                 _, _, loss_dict = model.compute_outputs_and_loss(
                     data_source, data_target, data_target_unl, criterion, alpha
@@ -1573,7 +1573,7 @@ class MapsManager:
                     optimizer.step()
                     optimizer.zero_grad()
                     # print("WARNING NO DOMAIN ADVV")
-                    #optimizer = model.lr_scheduler(1e-6, optimizer, p)
+                    optimizer = model.lr_scheduler(1e-6, optimizer, p)
 
                     del loss
 
