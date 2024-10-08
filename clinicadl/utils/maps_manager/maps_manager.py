@@ -1558,7 +1558,7 @@ class MapsManager:
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
-                p = float(i + start_steps) / total_steps
+                #p = float(i + start_steps) / total_steps
                 
                 alpha =  1 #2.0 / (1.0 + np.exp(-10 * p)) - 1
 
@@ -1574,7 +1574,7 @@ class MapsManager:
                     optimizer.step()
                     optimizer.zero_grad()
                     # print("WARNING NO DOMAIN ADVV")
-                    optimizer = model.lr_scheduler(1e-6, optimizer, p)
+                    #optimizer = model.lr_scheduler(1e-6, optimizer, p)
 
                     del loss
 
@@ -1626,10 +1626,10 @@ class MapsManager:
                         # Evaluate on source data
                         logger.info("Evaluation on source data")
                         _, metrics_train_source = self.task_manager.test_da(
-                            model, train_source_loader, criterion, alpha
+                            model, train_source_loader, criterion, alpha, target=False,
                         )
                         _, metrics_valid_source = self.task_manager.test_da(
-                            model, valid_source_loader, criterion, alpha
+                            model, valid_source_loader, criterion, alpha, target=False,
                         )
 
                         model.train()
@@ -1759,6 +1759,7 @@ class MapsManager:
                 best_dict,
                 split,
                 network=network,
+                epochs=epoch
             )
             self._write_weights(
                 {
@@ -2622,6 +2623,7 @@ class MapsManager:
         split: int,
         network: int = None,
         filename: str = "checkpoint.pth.tar",
+        epochs: int=0,
     ):
         """
         Update checkpoint and save the best model according to a set of metrics.
@@ -2639,21 +2641,21 @@ class MapsManager:
         checkpoint_path = checkpoint_dir / filename
         torch.save(state, checkpoint_path)
 
-        best_filename = "model.pth.tar"
+        best_filename = f"model_{epochs}.pth.tar"
         if network is not None:
             best_filename = f"network-{network}_model.pth.tar"
 
         # Save model according to several metrics
-        if metrics_dict is not None:
-            for metric_name, metric_bool in metrics_dict.items():
-                metric_path = (
-                    self.maps_path
-                    / f"{self.split_name}-{split}"
-                    / f"best-{metric_name}"
-                )
-                if metric_bool:
-                    metric_path.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(checkpoint_path, metric_path / best_filename)
+        # if metrics_dict is not None:
+        #     for metric_name, metric_bool in metrics_dict.items():
+        metric_path = (
+            self.maps_path
+            / f"{self.split_name}-{split}"
+            / f"best-BA"
+        )
+                #if metric_bool:
+        metric_path.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(checkpoint_path, metric_path / best_filename)
 
     def _write_information(self):
         """

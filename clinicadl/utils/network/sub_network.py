@@ -489,6 +489,7 @@ class CNN_SSDA_FS(Network):
             
             
             self.fc_class_target.load_state_dict(fc_class_target_dict)
+        
         elif issubclass(transfer_class, CNN):
             print(state_dict)
             convolutions_dict = OrderedDict(
@@ -509,7 +510,18 @@ class CNN_SSDA_FS(Network):
                     if "fc" in k
                 ]
             )
+
+            fc_class_target_dict = OrderedDict(
+                [
+                    (k.replace("fc.", ""), v)
+                    for k, v in state_dict.items()
+                    if "fc" in k
+                ]
+            )
             
+            self.fc_class_source.load_state_dict(fc_class_source_dict)            
+            self.fc_class_target.load_state_dict(fc_class_target_dict)
+                                                 
         elif issubclass(transfer_class, CNN_FS):
             print(state_dict)
             convolutions_dict = OrderedDict(
@@ -531,9 +543,18 @@ class CNN_SSDA_FS(Network):
                 ]
             )
             
+            fc_class_target_dict = OrderedDict(
+                [
+                    (k.replace("fc.", ""), v)
+                    for k, v in state_dict.items()
+                    if "fc" in k
+                ]
+            )
+            
             
             self.fc_class_source.load_state_dict(fc_class_source_dict)            
-            self.fc_class_target.load_state_dict(fc_class_source_dict)        
+            self.fc_class_target.load_state_dict(fc_class_target_dict)        
+        
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
                 [
@@ -575,7 +596,7 @@ class CNN_SSDA_FS(Network):
 
         return out, {"loss": loss_bce}
 
-    def compute_outputs_and_loss_t(
+    def compute_outputs_and_loss(
         self, data_source, data_target, data_target_unl, criterion, alpha, use_labels=True,
     ):
         images, labels = (
@@ -640,7 +661,7 @@ class CNN_SSDA_FS(Network):
             {"loss": total_loss},
         )
 
-    def compute_outputs_and_loss(
+    def compute_outputs_and_loss_predict(
         self, data_source, criterion, use_labels=True,
     ):
         images, labels = (
@@ -648,12 +669,11 @@ class CNN_SSDA_FS(Network):
             data_source["label"].to(self.device),
         )
 
-        
         (
             _,
             _,
             train_output_class_source,
-            train_output_domain_s,
+            _,
         ) = self.forward(images, 0)
 
         
