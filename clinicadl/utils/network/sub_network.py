@@ -252,7 +252,6 @@ class CNN_SSDA(Network):
         if issubclass(transfer_class, CNN_SSDA):
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, CNN_SSDA_INIT_MC):
-            print(state_dict)
             convolutions_dict = OrderedDict(
                 [
                     (k.replace("convolutions.", ""), v)
@@ -287,7 +286,6 @@ class CNN_SSDA(Network):
             
             self.fc_class_target.load_state_dict(fc_class_target_dict)
         elif issubclass(transfer_class, CNN):
-            print(state_dict)
             convolutions_dict = OrderedDict(
                 [
                     (k.replace("convolutions.", ""), v)
@@ -455,7 +453,6 @@ class CNN_SSDA_FS(Network):
         if issubclass(transfer_class, CNN_SSDA_FS):
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, CNN_SSDA_INIT_MC):
-            print(state_dict)
             convolutions_dict = OrderedDict(
                 [
                     (k.replace("convolutions.", ""), v)
@@ -491,7 +488,6 @@ class CNN_SSDA_FS(Network):
             self.fc_class_target.load_state_dict(fc_class_target_dict)
         
         elif issubclass(transfer_class, CNN):
-            print(state_dict)
             convolutions_dict = OrderedDict(
                 [
                     (k.replace("convolutions.", ""), v)
@@ -523,7 +519,6 @@ class CNN_SSDA_FS(Network):
             self.fc_class_target.load_state_dict(fc_class_target_dict)
                                                  
         elif issubclass(transfer_class, CNN_FS):
-            print(state_dict)
             convolutions_dict = OrderedDict(
                 [
                     (k.replace("convolutions.", ""), v)

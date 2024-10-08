@@ -283,7 +283,6 @@ class MapsManager:
             group_df, group_parameters = self.get_group_info(data_group, split)
             group_df_target, group_parameters_target = self.get_group_info(data_group, split)
 
-            print(group_df)
             # Find label code if not given
             if label is not None and label != self.label and label_code == "default":
                 self.task_manager.generate_label_code(group_df, label)
@@ -2110,7 +2109,6 @@ class MapsManager:
             gpu (bool): If given, a new value for the device of the model will be computed.
             network (int): Index of the network tested (only used in multi-network setting).
         """
-        print(selection_metrics)
         for selection_metric in selection_metrics:
             # load the best trained model during the training
             model, _ = self._init_model(
@@ -2154,8 +2152,6 @@ class MapsManager:
                 output_filename = (
                     f"{participant_id}_{session_id}_{self.mode}-{mode_id}_features_flair.pt"
                 )
-                print(tensor_path)
-                print(output_filename)
                 torch.save(features, tensor_path / output_filename)
                 logger.debug(f"File saved at {output_filename}")
                 
@@ -2623,7 +2619,7 @@ class MapsManager:
         split: int,
         network: int = None,
         filename: str = "checkpoint.pth.tar",
-        epochs: int=0,
+        epochs: int=10000,
     ):
         """
         Update checkpoint and save the best model according to a set of metrics.
