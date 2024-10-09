@@ -2872,7 +2872,7 @@ class MapsManager:
         self,
         transfer_path: Path = None,
         transfer_selection=None,
-        nb_unfrozen_layer=13,
+        nb_unfrozen_layer=0,
         split=None,
         resume=False,
         gpu=None,
@@ -2937,19 +2937,18 @@ class MapsManager:
             logger.debug(f"Transfer from {transfer_class}")
             model.transfer_weights(transfer_state["model"], transfer_class)
 
-            if nb_unfrozen_layer != 0:
-                list_name = [name for (name, _) in model.named_parameters()]
-                list_param = [param for (_, param) in model.named_parameters()]
-                print(list_name)
-                print(list_param)
-                for param, _ in zip(list_param, list_name):
-                    param.requires_grad = False
+            #if nb_unfrozen_layer != 0:
+            list_name = [name for (name, _) in model.named_parameters()]
+            list_param = [param for (_, param) in model.named_parameters()]
+            print(list_name)
+            for param, _ in zip(list_param, list_name):
+                param.requires_grad = True
 
-                for i in range(nb_unfrozen_layer * 2):  # Unfreeze the last layers
-                    param = list_param[len(list_param) - i - 1]
-                    name = list_name[len(list_name) - i - 1]
-                    param.requires_grad = True
-                    logger.info(f"Layer {name} unfrozen {param.requires_grad}")
+                # for i in range(nb_unfrozen_layer * 2):  # Unfreeze the last layers
+                #     param = list_param[len(list_param) - i - 1]
+                #     name = list_name[len(list_name) - i - 1]
+                #     param.requires_grad = True
+                #     logger.info(f"Layer {name} unfrozen {param.requires_grad}")
 
         return model, current_epoch
 
