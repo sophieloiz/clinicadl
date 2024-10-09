@@ -13,7 +13,7 @@ import torch.distributed as dist
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-import trimap, umap
+import umap
 from sklearn.manifold import TSNE
 
 from clinicadl.utils.callbacks.callbacks import Callback, CallbacksHandler
@@ -2188,8 +2188,8 @@ class MapsManager:
             tsne = TSNE(n_components=2, random_state=42)
             tsne_results = tsne.fit_transform(reshaped_data)
 
-            trimap_emb = trimap.TRIMAP()
-            trimap_results = trimap_emb.fit_transform(reshaped_data)
+            #trimap_emb = trimap.TRIMAP()
+            #trimap_results = trimap_emb.fit_transform(reshaped_data)
 
             umap_emb = umap.UMAP(force_approximation_algorithm=True)
             umap_results = umap_emb.fit_transform(reshaped_data)
@@ -2199,9 +2199,9 @@ class MapsManager:
                                filename="tsne_plot.png")
 
             # Step 3c: Apply TRIMAP
-            self._visualize_and_save_results(trimap_results, diag_list, moda_list, self.maps_path,
-                                    title="TRIMAP Visualization of MRI Features",
-                                    filename="trimap_plot.png")
+            #self._visualize_and_save_results(trimap_results, diag_list, moda_list, self.maps_path,
+             #                       title="TRIMAP Visualization of MRI Features",
+              #                      filename="trimap_plot.png")
             
                 # Step 3b: Apply UMAP
             self._visualize_and_save_results(umap_results, diag_list, moda_list, self.maps_path,
