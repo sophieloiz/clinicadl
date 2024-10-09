@@ -428,7 +428,6 @@ class CNN_SSDA_FS(Network):
         self,
         convolutions,
         fc_class_source,
-        fc_class_target,
         fc_domain,
         n_classes,
         gpu=False,
@@ -436,7 +435,6 @@ class CNN_SSDA_FS(Network):
         super().__init__(gpu=gpu)
         self.convolutions = convolutions.to(self.device)
         self.fc_class_source = fc_class_source.to(self.device)
-        self.fc_class_target = fc_class_target.to(self.device)
         self.fc_domain = fc_domain.to(self.device)
         self.n_classes = n_classes
 
@@ -445,7 +443,6 @@ class CNN_SSDA_FS(Network):
         return nn.Sequential(
             self.convolutions,
             self.fc_class_source,
-            self.fc_class_target,
             self.fc_domain,
         )
 
@@ -507,16 +504,8 @@ class CNN_SSDA_FS(Network):
                 ]
             )
 
-            fc_class_target_dict = OrderedDict(
-                [
-                    (k.replace("fc.", ""), v)
-                    for k, v in state_dict.items()
-                    if "fc" in k
-                ]
-            )
-            
+           
             self.fc_class_source.load_state_dict(fc_class_source_dict)            
-            self.fc_class_target.load_state_dict(fc_class_target_dict)
                                                  
         elif issubclass(transfer_class, CNN_FS):
             convolutions_dict = OrderedDict(
@@ -538,17 +527,8 @@ class CNN_SSDA_FS(Network):
                 ]
             )
             
-            fc_class_target_dict = OrderedDict(
-                [
-                    (k.replace("fc.", ""), v)
-                    for k, v in state_dict.items()
-                    if "fc" in k
-                ]
-            )
-            
-            
+          
             self.fc_class_source.load_state_dict(fc_class_source_dict)            
-            self.fc_class_target.load_state_dict(fc_class_target_dict)        
         
         elif issubclass(transfer_class, AutoEncoder):
             convolutions_dict = OrderedDict(
@@ -566,11 +546,10 @@ class CNN_SSDA_FS(Network):
 
     def forward(self, x, alpha):
         x = self.convolutions(x)
-        x_class_source = self.fc_class_source(x)
-        x_class_target = self.fc_class_target(x)
         x_reverse = ReverseLayerF.apply(x, alpha)
+        x_class_source = self.fc_class_source(x)
         x_domain = self.fc_domain(x_reverse)
-        return x, x_class_source, x_class_target, x_domain
+        return x, x_class_source, x_domain
 
     def predict(self, x):
         return self.forward(x, 0)
