@@ -554,22 +554,6 @@ class CNN_SSDA_FS(Network):
     def predict(self, x):
         return self.forward(x, 0)
 
-    def compute_outputs_and_loss_test(self, input_dict, criterion, alpha, target, use_labels=True,):
-        images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
-            self.device
-        )
-        _, train_output_source, train_output_target, _ = self.forward(images, alpha)
-
-        if target:
-            out = train_output_target
-            loss_bce = criterion(train_output_target, labels)
-
-        else:
-            out = train_output_source
-            loss_bce = criterion(train_output_source, labels)
-
-        return out, {"loss": loss_bce}
-
     def compute_outputs_and_loss(
         self, data_source, data_target, data_target_unl, criterion, alpha, use_labels=True,
     ):
@@ -588,18 +572,16 @@ class CNN_SSDA_FS(Network):
         (
             _,
             train_output_class_source,
-            _,
             train_output_domain_s,
         ) = self.forward(images, alpha)
 
         (
             _,
-            _,
             train_output_class_target,
             train_output_domain_t,
         ) = self.forward(images_target, alpha)
         
-        _, _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
+        _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
 
         loss_classif_source = criterion(train_output_class_source, labels)
         loss_classif_target = criterion(train_output_class_target, labels_target)
@@ -634,44 +616,27 @@ class CNN_SSDA_FS(Network):
             train_output_class_target,
             {"loss": total_loss},
         )
-
-    def compute_outputs_and_loss_(
-        self, data_source, criterion, use_labels=True,
+    
+    def compute_outputs_and_loss_test(
+        self, data, criterion
     ):
         images, labels = (
-            data_source["image"].to(self.device),
-            data_source["label"].to(self.device),
+            data["image"].to(self.device),
+            data["label"].to(self.device),
         )
-
+        
         (
             _,
+            train_output_class,
             _,
-            train_output_class_source,
-            _,
-        ) = self.forward(images, 0)
+        ) = self.forward(images,0)
 
-        
-        loss_classif_source = criterion(train_output_class_source, labels)
-        
-
-        loss_classif = loss_classif_source 
-
-        total_loss = loss_classif
+        total_loss = criterion(train_output_class, labels)
 
         return (
-            train_output_class_source,
+            train_output_class,
             {"loss": total_loss},
         )
-    
-    def lr_scheduler(self, lr, optimizer, p):
-        lr = lr / (1 + 10 * p) ** 0.75
-        for param_group in optimizer.param_groups:
-            param_group["lr"] = lr
-        return optimizer
-    
-    def lambda_scheduler(self, gamma, p):
-        return 2 / (1 + np.exp(-gamma * p)) -1
-    
     
 class CNN_SSDA_INIT(Network):
     def __init__(

@@ -576,10 +576,6 @@ class Conv5_FC3_SSDA_FS(CNN_SSDA_FS):
             nn.ReLU(),
             pool(2, 2),
 
-            # conv(128, 256, 3, padding=1),
-            # norm(256),
-            # nn.ReLU(),
-            # pool(2, 2),
         )
 
         # Compute the size of the first FC layer
@@ -588,24 +584,9 @@ class Conv5_FC3_SSDA_FS(CNN_SSDA_FS):
 
         fc_class_source = nn.Sequential(
             nn.Flatten(),
-            nn.Dropout(p=dropout),
-
             nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
             nn.ReLU(),
-
-            nn.Linear(1300, 50),
-            nn.ReLU(),
-
-            nn.Linear(50, output_size)
-        )
-
-
-        fc_class_target= nn.Sequential(
-            nn.Flatten(),
             nn.Dropout(p=dropout),
-
-            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
-            nn.ReLU(),
 
             nn.Linear(1300, 50),
             nn.ReLU(),
@@ -629,7 +610,6 @@ class Conv5_FC3_SSDA_FS(CNN_SSDA_FS):
         super().__init__(
             convolutions=convolutions,
             fc_class_source=fc_class_source,
-            fc_class_target=fc_class_target,
             fc_domain=fc_domain,
             n_classes=output_size,
             gpu=gpu,

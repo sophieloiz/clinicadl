@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
+import numpy as np
 import torch
 import torch.distributed as dist
 from torch.cuda.amp import GradScaler, autocast
@@ -1551,19 +1552,19 @@ class MapsManager:
             model.zero_grad()
             evaluation_flag, step_flag = True, True
 
-            start_steps = epoch * len(train_source_loader)
-            total_steps = self.epochs * len(train_target_loader)
-            import numpy as np
+            start_steps = epoch * len(train_target_loader)
+
             for i, (data_source, data_target, data_target_unl) in enumerate(
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
-                p = float(i + start_steps) / total_steps
+                p = float(i + start_steps) / self.epochs / len(train_target_loader)
                 
                 alpha =  2.0 / (1.0 + np.exp(-10 * p)) - 1
 
                 _, _, loss_dict = model.compute_outputs_and_loss(
                     data_source, data_target, data_target_unl, criterion, alpha
-                )  # TO CHECK
+                )
+
                 logger.debug(f"Train loss dictionnary {loss_dict} with alpha : {alpha}")
                 loss = loss_dict["loss"]
                 loss.backward()
@@ -1572,8 +1573,6 @@ class MapsManager:
                     step_flag = False
                     optimizer.step()
                     optimizer.zero_grad()
-                    # print("WARNING NO DOMAIN ADVV")
-                    optimizer = model.lr_scheduler(1e-6, optimizer, p)
 
                     del loss
 
@@ -1590,16 +1589,11 @@ class MapsManager:
                             model,
                             train_target_loader,
                             criterion,
-                            alpha,
-                            target=True,
-                        )  # TO CHECK
-
+                        )
                         _, metrics_valid_target = self.task_manager.test_da(
                             model,
                             valid_loader,
                             criterion,
-                            alpha,
-                            target=True,
                         )
 
                         model.train()
@@ -1625,10 +1619,10 @@ class MapsManager:
                         # Evaluate on source data
                         logger.info("Evaluation on source data")
                         _, metrics_train_source = self.task_manager.test_da(
-                            model, train_source_loader, criterion, alpha, target=False,
+                            model, train_source_loader, criterion
                         )
                         _, metrics_valid_source = self.task_manager.test_da(
-                            model, valid_source_loader, criterion, alpha, target=False,
+                            model, valid_source_loader, criterion
                         )
 
                         model.train()
@@ -1680,17 +1674,13 @@ class MapsManager:
                     model,
                     train_source_loader,
                     criterion,
-                    alpha,
-                    True,
-                    False,
+                    
                 )
                 _, metrics_valid_source = self.task_manager.test_da(
                     model,
                     valid_source_loader,
                     criterion,
-                    alpha,
-                    True,
-                    False,
+                   
                 )
 
                 log_writer.step(
@@ -1714,15 +1704,11 @@ class MapsManager:
                 model,
                 train_target_loader,
                 criterion,
-                alpha,
-                target=True,
             )
             _, metrics_valid_target = self.task_manager.test_da(
                 model,
                 valid_loader,
                 criterion,
-                alpha,
-                target=True,
             )
 
             model.train()
