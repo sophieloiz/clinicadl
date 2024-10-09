@@ -2872,7 +2872,7 @@ class MapsManager:
         self,
         transfer_path: Path = None,
         transfer_selection=None,
-        nb_unfrozen_layer=0,
+        nb_unfrozen_layer=13,
         split=None,
         resume=False,
         gpu=None,
