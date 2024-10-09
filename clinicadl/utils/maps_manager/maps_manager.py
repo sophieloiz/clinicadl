@@ -13,6 +13,7 @@ import torch.distributed as dist
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+import TSNE, trimap, umap
 
 from clinicadl.utils.callbacks.callbacks import Callback, CallbacksHandler
 from clinicadl.utils.caps_dataset.data import (
@@ -2138,22 +2139,109 @@ class MapsManager:
             else:
                 nb_modes = nb_images * dataset.elem_per_image
 
+            # for i in range(cluster.rank, nb_modes, cluster.world_size):
+            #     data = dataset[i]
+            #     image = data["image"]
+            #     x = image.unsqueeze(0).to(model.device)
+            #     with autocast(enabled=self.amp):
+            #         features, output,_,_ = model.predict(x)
+            #     output = output.squeeze(0).cpu().float()
+            #     participant_id = data["participant_id"]
+            #     session_id = data["session_id"]
+            #     mode_id = data[f"{self.mode}_id"]
+             
+            #     output_filename = (
+            #         f"{participant_id}_{session_id}_{self.mode}-{mode_id}_features_flair.pt"
+            #     )
+            #     torch.save(features, tensor_path / output_filename)
+            #     logger.debug(f"File saved at {output_filename}")
+            tensors_list = []
+            diag_list = []
+            moda_list = []
+            df = pd.read_csv("/export/home/cse180022/apprimage_sophie/APPRIMAGE2/experiments/wd_features_analysis/tsv/metadata/test_t1_flair_t12vs3.tsv", sep="\t")
             for i in range(cluster.rank, nb_modes, cluster.world_size):
                 data = dataset[i]
                 image = data["image"]
                 x = image.unsqueeze(0).to(model.device)
                 with autocast(enabled=self.amp):
-                    features, output,_,_ = model.predict(x)
-                output = output.squeeze(0).cpu().float()
+                    features, _,_,_ = model.predict(x)
+                #output = output.squeeze(0).cpu().float()
                 participant_id = data["participant_id"]
                 session_id = data["session_id"]
-                mode_id = data[f"{self.mode}_id"]
-             
-                output_filename = (
-                    f"{participant_id}_{session_id}_{self.mode}-{mode_id}_features_flair.pt"
-                )
-                torch.save(features, tensor_path / output_filename)
-                logger.debug(f"File saved at {output_filename}")
+
+                df_part = df.loc[(df['participant_id'] == participant_id) & (df['session_id'] == session_id)]
+                diag = df_part["diagnosis"].values[0] 
+                modal = df_part["modality"].values[0]
+        
+                tensors_list.append(features)
+                diag_list.append(diag)
+                moda_list.append(modal)
+                logger.debug(f"Tensor corresponding to {participant_id}")
+            
+            tensor_array = torch.stack(tensors_list).detach().numpy()
+            
+            # Flatten all dimensions except the first (number of samples)
+            n_samples = tensor_array.shape[0]
+            reshaped_data = tensor_array.reshape(n_samples, -1)  # Flatten the remaining dimensions
+                        
+            tsne = TSNE(n_components=2, random_state=42)
+            tsne_results = tsne.fit_transform(reshaped_data)
+
+            trimap_emb = trimap.TRIMAP()
+            trimap_results = trimap_emb.fit_transform(reshaped_data)
+
+            umap_emb = umap.UMAP(force_approximation_algorithm=True)
+            umap_results = umap_emb.fit_transform(reshaped_data)
+
+            self._visualize_and_save_results(tsne_results, diag_list, moda_list, self.maps_path,
+                               title="t-SNE Visualization of MRI Features",
+                               filename="tsne_plot.png")
+
+            # Step 3c: Apply TRIMAP
+            self._visualize_and_save_results(trimap_results, diag_list, moda_list, self.maps_path,
+                                    title="TRIMAP Visualization of MRI Features",
+                                    filename="trimap_plot.png")
+            
+                # Step 3b: Apply UMAP
+            self._visualize_and_save_results(umap_results, diag_list, moda_list, self.maps_path,
+                                    title="UMAP Visualization of MRI Features",
+                                    filename="umap_plot.png")
+            
+            logger.debug(f"Visual Analyses performed and saved in  {self.maps_path}")
+            
+
+    def _visualize_and_save_results(self, reduction_results, diagnoses, modalities, output_path, title, filename):
+        import matplotlib.pyplot as plt
+        import os
+        # Combine diagnosis and modality into a single label
+        combined_labels = [(diag, mod) for diag, mod in zip(diagnoses, modalities)]
+        
+        # Get unique combinations of diagnosis and modality, and assign a color to each
+        unique_labels = list(set(combined_labels))
+        color_map = plt.get_cmap("tab20", len(unique_labels))  # Use tab20 colormap (up to 20 discrete colors)
+        
+        # Create a color array based on the combined labels
+        plt.figure(figsize=(8, 6))
+        
+        # Scatter plot of the results (2D) with colors based on diagnosis and modality
+        for i, label in enumerate(unique_labels):
+            indices = [j for j, lbl in enumerate(combined_labels) if lbl == label]
+            plt.scatter(reduction_results[indices, 0], reduction_results[indices, 1], 
+                        label=f'{label[0]} - {label[1]}', color=color_map(i), marker='o')
+        
+        # Add title, labels, and legend
+        plt.title(title)
+        plt.xlabel('Component 1')
+        plt.ylabel('Component 2')
+        plt.legend(title='Diagnosis - Modality')
+        
+        # Save the plot as an image
+        print(f"Saving Image: {os.path.join(output_path, filename)}")
+        plt.savefig(os.path.join(output_path, filename))
+        
+        # Show the plot
+        plt.show()
+            
                 
     def _compute_latent_tensors(
         self,
