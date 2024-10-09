@@ -2940,7 +2940,8 @@ class MapsManager:
             if nb_unfrozen_layer != 0:
                 list_name = [name for (name, _) in model.named_parameters()]
                 list_param = [param for (_, param) in model.named_parameters()]
-
+                print(list_name)
+                print(list_param)
                 for param, _ in zip(list_param, list_name):
                     param.requires_grad = False
 
@@ -3201,7 +3202,7 @@ class MapsManager:
                 self.maps_path
                 / f"{self.split_name}-{split}"
                 / f"best-{selection_metric}"
-                / "model_29.pth.tar" # TO CHANGE
+                / "model.pth.tar" # TO CHANGE
             )
 
         logger.info(
