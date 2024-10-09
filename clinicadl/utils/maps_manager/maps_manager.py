@@ -13,7 +13,8 @@ import torch.distributed as dist
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-import TSNE, trimap, umap
+import trimap, umap
+from sklearn.manifold import TSNE
 
 from clinicadl.utils.callbacks.callbacks import Callback, CallbacksHandler
 from clinicadl.utils.caps_dataset.data import (
