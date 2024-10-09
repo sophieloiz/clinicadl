@@ -235,7 +235,8 @@ class ClassificationManager(TaskManager):
     def get_criterion(criterion=None):
         compatible_losses = ["CrossEntropyLoss", "MultiMarginLoss"]
         if criterion is None:
-            return nn.CrossEntropyLoss()
+            # return nn.CrossEntropyLoss()
+            return nn.NLLLoss()
         if criterion not in compatible_losses:
             raise ClinicaDLArgumentError(
                 f"Classification loss must be chosen in {compatible_losses}."
