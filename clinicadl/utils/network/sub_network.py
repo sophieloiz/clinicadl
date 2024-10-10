@@ -666,8 +666,8 @@ class CNN_SSDA_FS(Network):
 
         (
             _,
-            _,
             train_output_class_source,
+            _,
             _,
         ) = self.forward(images, 0)
 
