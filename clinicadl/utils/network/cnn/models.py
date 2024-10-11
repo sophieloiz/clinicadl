@@ -625,10 +625,12 @@ class Conv5_FC3_SSDA_FS(CNN_SSDA_FS):
         fc_domain2 = nn.Sequential(
 
             nn.Linear(1300, 50),
-            nn.ReLU(),
-
+            nn.ReLU())
+        
+        fc_domain_out = nn.Sequential(
             nn.Linear(50, output_size)
         )
+
         # fmt: on
         super().__init__(
             convolutions=convolutions,
@@ -636,6 +638,7 @@ class Conv5_FC3_SSDA_FS(CNN_SSDA_FS):
             fc_class_target=fc_class_target,
             fc_domain=fc_domain,
             fc_domain2 = fc_domain2,
+            fc_domain_out = fc_domain_out,
             n_classes=output_size,
             gpu=gpu,
         )
