@@ -2130,6 +2130,24 @@ class MapsManager:
                 / data_group
                 / "tensors"
             )
+
+            tensor_path2 = (
+                self.maps_path
+                / f"{self.split_name}-{split}"
+                / f"best-{selection_metric}"
+                / data_group
+                / "tensors2"
+            )
+
+
+            tensor_path3 = (
+                self.maps_path
+                / f"{self.split_name}-{split}"
+                / f"best-{selection_metric}"
+                / data_group
+                / "tensors3"
+            )
+
             print(tensor_path)
             if cluster.master:
                 tensor_path.mkdir(parents=True, exist_ok=True)
@@ -2145,7 +2163,7 @@ class MapsManager:
                 image = data["image"]
                 x = image.unsqueeze(0).to(model.device)
                 with autocast(enabled=self.amp):
-                    features, output,_,_ = model.predict(x)
+                    features, output,_,features2, features3 = model.predict(x)
                 output = output.squeeze(0).cpu().float()
                 participant_id = data["participant_id"]
                 session_id = data["session_id"]
@@ -2155,6 +2173,9 @@ class MapsManager:
                     f"{participant_id}_{session_id}_{self.mode}-{mode_id}_features_flair.pt"
                 )
                 torch.save(features, tensor_path / output_filename)
+                torch.save(features2, tensor_path3 / output_filename)
+                torch.save(features3, tensor_path3 / output_filename)
+
                 logger.debug(f"File saved at {output_filename}")
             # tensors_list = []
             # diag_list = []
