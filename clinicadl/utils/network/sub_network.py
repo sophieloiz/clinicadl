@@ -430,6 +430,7 @@ class CNN_SSDA_FS(Network):
         fc_class_source,
         fc_class_target,
         fc_domain,
+        fc_domain2,
         n_classes,
         gpu=False,
     ):
@@ -438,6 +439,8 @@ class CNN_SSDA_FS(Network):
         self.fc_class_source = fc_class_source.to(self.device)
         self.fc_class_target = fc_class_target.to(self.device)
         self.fc_domain = fc_domain.to(self.device)
+        self.fc_domain2 = fc_domain2.to(self.device)
+
         self.n_classes = n_classes
 
     @property
@@ -447,6 +450,8 @@ class CNN_SSDA_FS(Network):
             self.fc_class_source,
             self.fc_class_target,
             self.fc_domain,
+            self.fc_domain2,
+
         )
 
     def transfer_weights(self, state_dict, transfer_class):
@@ -570,7 +575,9 @@ class CNN_SSDA_FS(Network):
         x_class_target = self.fc_class_target(x)
         x_reverse = ReverseLayerF.apply(x, alpha)
         x_domain = self.fc_domain(x_reverse)
-        return x, x_class_source, x_class_target, x_domain
+        x_domain_fin = self.fc_domain2(x_domain)
+
+        return x, x_class_source, x_class_target, x_domain, x_domain_fin
 
     def predict(self, x):
         return self.forward(x, 0)
@@ -579,7 +586,7 @@ class CNN_SSDA_FS(Network):
         images, labels = input_dict["image"].to(self.device), input_dict["label"].to(
             self.device
         )
-        _, train_output_source, train_output_target, _ = self.forward(images, alpha)
+        _, train_output_source, train_output_target, _,_ = self.forward(images, alpha)
 
         if target:
             out = train_output_target
@@ -591,7 +598,7 @@ class CNN_SSDA_FS(Network):
 
         return out, {"loss": loss_bce}
 
-    def compute_outputs_and_loss_(
+    def compute_outputs_and_loss(
         self, data_source, data_target, data_target_unl, criterion, alpha, use_labels=True,
     ):
         images, labels = (
@@ -610,6 +617,7 @@ class CNN_SSDA_FS(Network):
             _,
             train_output_class_source,
             _,
+            _,
             train_output_domain_s,
         ) = self.forward(images, alpha)
 
@@ -617,10 +625,11 @@ class CNN_SSDA_FS(Network):
             _,
             _,
             train_output_class_target,
+            _,
             train_output_domain_t,
         ) = self.forward(images_target, alpha)
         
-        _, _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
+        _, _, _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
 
         loss_classif_source = criterion(train_output_class_source, labels)
         loss_classif_target = criterion(train_output_class_target, labels_target)
@@ -656,7 +665,7 @@ class CNN_SSDA_FS(Network):
             {"loss": total_loss},
         )
 
-    def compute_outputs_and_loss(
+    def compute_outputs_and_loss_(
         self, data_source, criterion, use_labels=True,
     ):
         images, labels = (
