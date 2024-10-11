@@ -441,7 +441,7 @@ class CNN_SSDA_FS(Network):
         self.fc_class_target = fc_class_target.to(self.device)
         self.fc_domain = fc_domain.to(self.device)
         self.fc_domain2 = fc_domain2.to(self.device)
-        fc_domain_out = fc_domain_out.to(self.device)
+        self.fc_domain_out = fc_domain_out.to(self.device)
 
         self.n_classes = n_classes
 
@@ -454,7 +454,6 @@ class CNN_SSDA_FS(Network):
             self.fc_domain,
             self.fc_domain2,
             self.fc_domain_out,
-
         )
 
     def transfer_weights(self, state_dict, transfer_class):
