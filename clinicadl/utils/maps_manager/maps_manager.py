@@ -2176,7 +2176,7 @@ class MapsManager:
                     f"{participant_id}_{session_id}_{self.mode}-{mode_id}_features_flair.pt"
                 )
                 torch.save(features, tensor_path / output_filename)
-                torch.save(features2, tensor_path3 / output_filename)
+                torch.save(features2, tensor_path2 / output_filename)
                 torch.save(features3, tensor_path3 / output_filename)
 
                 logger.debug(f"File saved at {output_filename}")
