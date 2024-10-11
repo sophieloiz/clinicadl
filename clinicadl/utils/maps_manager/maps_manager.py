@@ -2151,6 +2151,9 @@ class MapsManager:
             print(tensor_path)
             if cluster.master:
                 tensor_path.mkdir(parents=True, exist_ok=True)
+                tensor_path2.mkdir(parents=True, exist_ok=True)
+                tensor_path3.mkdir(parents=True, exist_ok=True)
+
             dist.barrier()
 
             if nb_images is None:  # Compute outputs for the whole data set
