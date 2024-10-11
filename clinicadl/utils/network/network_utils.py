@@ -159,12 +159,40 @@ def torch_summarize(model, show_weights=True, show_parameters=True):
     return tmpstr
 
 
+# class ReverseLayerF(Function):
+#     def forward(self, x, alpha):
+#         self.alpha = alpha
+#         return x.view_as(x)
+
+#     def backward(self, grad_output):
+#         output = grad_output.neg() * self.alpha
+
+#         return output, None
+
+
 class ReverseLayerF(Function):
-    def forward(self, x, alpha):
-        self.alpha = alpha
-        return x.view_as(x)
+    @staticmethod
+    def forward(ctx, x, alpha):
+        """
+        Forward pass simply returns the input `x` but saves the alpha for the backward pass.
+        Args:
+            ctx: context object to store information for backward computation.
+            x: the input tensor.
+            alpha: the scaling factor for the reversed gradients.
+        """
+        ctx.alpha = alpha
+        return x.clone()  # Ensures we return a copy of x without modifying the original tensor
 
-    def backward(self, grad_output):
-        output = grad_output.neg() * self.alpha
-
-        return output, None
+    @staticmethod
+    def backward(ctx, grad_output):
+        """
+        Backward pass reverses the gradient by multiplying with the negative `alpha` scaling factor.
+        Args:
+            ctx: context object from the forward pass.
+            grad_output: gradient of the loss with respect to the output of this layer.
+        """
+        alpha = ctx.alpha
+        grad_input = grad_output.neg() * alpha  # Reverse the gradient and scale it by alpha
+        
+        # Return the gradient for the input `x`. None for alpha, as it's not needed in backpropagation.
+        return grad_input, None
