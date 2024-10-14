@@ -1518,9 +1518,12 @@ class MapsManager:
         plt.close()  # Close the figure to free up memory
 
 
-    def _check_loss_to_tsv(self, loss_dict, file_name='losses.tsv'):
+   
+
+
+    def save_loss_to_tsv(self,loss_dict, file_name='losses.tsv'):
         """
-        Saves the given loss dictionary into a TSV file.
+        Appends the given loss dictionary into a TSV file.
 
         Parameters:
         - loss_dict (dict): A dictionary containing the loss values.
@@ -1531,27 +1534,37 @@ class MapsManager:
         - 'loss_classif_target'
         - 'loss_domain'
         """
+
+        # Define the header for the TSV file
+        header = ['loss_classif_source', 'loss_classif_target', 'loss_domain']
         import csv
         import os
 
         file_name = os.path.join(self.maps_path, "losses.tsv")
-        # Define the header for the TSV file
-        header = ['loss_classif_source', 'loss_classif_target', 'loss_domain']
 
-        # Open the file in write mode
-        with open(file_name, mode='w', newline='') as file:
+        # Open the file in append mode
+        file_exists = False
+        try:
+            with open(file_name, 'r') as file:  # Check if the file already exists
+                file_exists = True
+        except FileNotFoundError:
+            file_exists = False
+
+        with open(file_name, mode='a', newline='') as file:
             writer = csv.DictWriter(file, fieldnames=header, delimiter='\t')
 
-            # Write the header and the loss values to the TSV file
-            writer.writeheader()
+            # Write the header only if the file is being created for the first time
+            if not file_exists:
+                writer.writeheader()
+
+            # Append the loss values to the TSV file
             writer.writerow({
                 'loss_classif_source': loss_dict.get('loss_classif_source', 'N/A'),
                 'loss_classif_target': loss_dict.get('loss_classif_target', 'N/A'),
                 'loss_domain': loss_dict.get('loss_domain', 'N/A')
             })
 
-        print(f"Data successfully saved to {file_name}")
-
+        print(f"Data successfully appended to {file_name}")
 
     def _train_ssdann(
         self,
