@@ -1762,7 +1762,11 @@ class MapsManager:
             # Always test the results and save them once at the end of the epoch
             model.zero_grad()
             logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
-
+            self._check_loss_to_tsv(loss_dict)
+            print("Losses")
+            print(loss_dict["loss_classif_source"])
+            print(loss_dict["loss_classif_target"])
+            print(loss_dict["loss_domain"])
             if evaluate_source:
                 logger.info(
                     f"Evaluate source data at the end of the epoch {epoch} with alpha: {alpha}."
