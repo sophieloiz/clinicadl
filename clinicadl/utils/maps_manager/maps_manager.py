@@ -1671,6 +1671,9 @@ class MapsManager:
 
                         # Evaluate on taget data
                         self._check_loss_to_tsv(loss_dict)
+                        print(loss_dict["loss_classif_source"])
+                        print(loss_dict["loss_classif_target"])
+                        print(loss_dict["loss_domain"])
 
                         logger.info("Evaluation on target data")
                         _, metrics_train_target = self.task_manager.test_da(
