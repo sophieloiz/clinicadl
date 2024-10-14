@@ -1484,6 +1484,40 @@ class MapsManager:
             )
         self.callback_handler.on_train_end(self.parameters)
 
+    def check_gradient_flow(self, model, epoch):
+        """
+        Check and visualize the gradient flow through the layers of the model.
+        
+        Args:
+            model: The neural network model.
+            epoch: Current epoch number for logging purposes.
+        """
+        import matplotlib.pyplot as plt 
+        # Get all parameters from the model
+        parameters = [p for p in model.parameters() if p.grad is not None]
+
+        # Get the gradients' norms
+        gradients = [p.grad.data.norm(2).item() for p in parameters]
+
+        # Log the gradient norms
+        print(f'Epoch {epoch} - Gradient norms:')
+        for i, grad in enumerate(gradients):
+            print(f'Layer {i}: {grad}')
+
+        # Visualize the gradients
+        plt.figure(figsize=(10, 5))
+        plt.plot(gradients, marker='o')
+        plt.title(f'Gradient Flow at Epoch {epoch}')
+        plt.xlabel('Layer')
+        plt.ylabel('Gradient Norm')
+        plt.grid()
+        import os 
+        # Save the plot as an image file
+        plot_filename = os.path.join(self.maps_path, f'gradient_flow_epoch_{epoch}.png')
+        plt.savefig(plot_filename)
+        plt.close()  # Close the figure to free up memory
+
+
     def _train_ssdann(
         self,
         train_source_loader,
@@ -1569,6 +1603,7 @@ class MapsManager:
                 logger.debug(f"Train loss dictionnary {loss_dict} with alpha : {alpha}")
                 loss = loss_dict["loss"]
                 loss.backward()
+                self.check_gradient_flow(model, epoch)
                 
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
