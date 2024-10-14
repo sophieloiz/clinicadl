@@ -1652,7 +1652,7 @@ class MapsManager:
                 loss = loss_dict["loss"]
                 loss.backward()
                 self.check_gradient_flow(model, epoch)
-                self._check_loss_to_tsv(loss_dict)
+
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
                     optimizer.step()
@@ -1670,6 +1670,8 @@ class MapsManager:
                         evaluation_flag = False
 
                         # Evaluate on taget data
+                        self._check_loss_to_tsv(loss_dict)
+
                         logger.info("Evaluation on target data")
                         _, metrics_train_target = self.task_manager.test_da(
                             model,
