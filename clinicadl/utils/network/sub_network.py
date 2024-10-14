@@ -669,7 +669,11 @@ class CNN_SSDA_FS(Network):
         return (
             train_output_class_source,
             train_output_class_target,
-            {"loss": total_loss},
+            {"loss": total_loss, 
+             "loss_classif_source": loss_classif_source, 
+             "loss_classif_target": loss_classif_target, 
+             "loss_domain": loss_domain
+            },
         )
 
     def compute_outputs_and_loss_(

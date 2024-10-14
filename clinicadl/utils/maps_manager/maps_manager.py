@@ -1518,6 +1518,41 @@ class MapsManager:
         plt.close()  # Close the figure to free up memory
 
 
+    def _check_loss_to_tsv(self, loss_dict, file_name='losses.tsv'):
+        """
+        Saves the given loss dictionary into a TSV file.
+
+        Parameters:
+        - loss_dict (dict): A dictionary containing the loss values.
+        - file_name (str): The name of the TSV file to save the data (default is 'losses.tsv').
+
+        Expected keys in loss_dict:
+        - 'loss_classif_source'
+        - 'loss_classif_target'
+        - 'loss_domain'
+        """
+        import csv
+        import os
+
+        file_name = os.path.join(self.maps_path, "losses.tsv")
+        # Define the header for the TSV file
+        header = ['loss_classif_source', 'loss_classif_target', 'loss_domain']
+
+        # Open the file in write mode
+        with open(file_name, mode='w', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=header, delimiter='\t')
+
+            # Write the header and the loss values to the TSV file
+            writer.writeheader()
+            writer.writerow({
+                'loss_classif_source': loss_dict.get('loss_classif_source', 'N/A'),
+                'loss_classif_target': loss_dict.get('loss_classif_target', 'N/A'),
+                'loss_domain': loss_dict.get('loss_domain', 'N/A')
+            })
+
+        print(f"Data successfully saved to {file_name}")
+
+
     def _train_ssdann(
         self,
         train_source_loader,
@@ -1604,7 +1639,7 @@ class MapsManager:
                 loss = loss_dict["loss"]
                 loss.backward()
                 self.check_gradient_flow(model, epoch)
-                
+                self._check_loss_to_tsv(loss_dict)
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
                     optimizer.step()
