@@ -3314,7 +3314,7 @@ class MapsManager:
                 self.maps_path
                 / f"{self.split_name}-{split}"
                 / f"best-{selection_metric}"
-                / "model_26.pth.tar" # TO CHANGE
+                / "model_30.pth.tar" # TO CHANGE
             )
 
         logger.info(
