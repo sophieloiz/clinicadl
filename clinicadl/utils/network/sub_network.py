@@ -603,7 +603,7 @@ class CNN_SSDA_FS(Network):
 
         return out, {"loss": loss_bce}
 
-    def compute_outputs_and_loss_(
+    def compute_outputs_and_loss(
         self, data_source, data_target, data_target_unl, criterion, alpha, use_labels=True,
     ):
         images, labels = (
@@ -672,7 +672,7 @@ class CNN_SSDA_FS(Network):
             {"loss": total_loss},
         )
 
-    def compute_outputs_and_loss(
+    def compute_outputs_and_loss_(
         self, data_source, criterion, use_labels=True,
     ):
         images, labels = (
