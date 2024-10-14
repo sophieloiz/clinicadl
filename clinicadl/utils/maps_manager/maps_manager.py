@@ -1065,12 +1065,12 @@ class MapsManager:
                 label_code=self.label_code,
             )
             train_source_sampler = self.task_manager.generate_sampler(
-                data_train_source, self.sampler
+                data_train_source, "weighted"
             )
 
-            train_target_sampler = self.task_manager.generate_sampler(
-                data_train_target_labeled, self.sampler
-            )
+            # train_target_sampler = self.task_manager.generate_sampler(
+            #     data_train_target_labeled, self.sampler
+            # )
 
             logger.info(
                 f"Getting train and validation loader with batch size {self.batch_size}"
@@ -1079,46 +1079,53 @@ class MapsManager:
             # Oversampling of the target dataset
             from torch.utils.data import SubsetRandomSampler
 
-            # Create index lists for target labeled dataset
-            labeled_indices = list(range(len(data_train_target_labeled)))
+            # # Create index lists for target labeled dataset
+            # labeled_indices = list(range(len(data_train_target_labeled)))
 
-            # Oversample the indices for the target labeld dataset to match the size of the labeled source dataset
-            data_train_source_size = len(data_train_source) // self.batch_size
-            labeled_oversampled_indices = labeled_indices * (
-                data_train_source_size // len(labeled_indices)
-            )
+            # # Oversample the indices for the target labeld dataset to match the size of the labeled source dataset
+            # data_train_source_size = len(data_train_source) // self.batch_size
+            # labeled_oversampled_indices = labeled_indices * (
+            #     data_train_source_size // len(labeled_indices)
+            # )
 
-            # Append remaining indices to match the size of the largest dataset
-            labeled_oversampled_indices += labeled_indices[
-                : data_train_source_size % len(labeled_indices)
-            ]
+            # # Append remaining indices to match the size of the largest dataset
+            # labeled_oversampled_indices += labeled_indices[
+            #     : data_train_source_size % len(labeled_indices)
+            # ]
 
-            # Create SubsetRandomSamplers using the oversampled indices
-            labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
+            # # Create SubsetRandomSamplers using the oversampled indices
+            # labeled_sampler = SubsetRandomSampler(labeled_oversampled_indices)
 
             train_source_loader = DataLoader(
                 data_train_source,
                 batch_size=self.batch_size,
                 sampler=train_source_sampler,
-                # shuffle=True,  # len(data_train_source) < len(data_train_target_labeled),
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
-                drop_last=True,
             )
+
+            
             logger.info(
                 f"Train source loader size is {len(train_source_loader)*self.batch_size}"
             )
+
+            # Handle oversampling for target domain to match the source domain size
+            labeled_indices = list(range(len(data_train_target_labeled)))
+            required_size = len(data_train_source)  # Match target data size to source data size
+            oversampled_indices = labeled_indices * (required_size // len(labeled_indices))
+            oversampled_indices += labeled_indices[: required_size % len(labeled_indices)]
+            sampler_target_label = SubsetRandomSampler(oversampled_indices)
+
             train_target_loader = DataLoader(
                 data_train_target_labeled,
-                batch_size= 1, # self.batch_size,  # 1 To limit the need of oversampling
-                # sampler=train_source_sampler,
-                sampler=train_target_sampler,
-                # sampler=labeled_sampler,
+                batch_size=1,
+                sampler=sampler_target_label,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
-                # shuffle=True,  # len(data_train_target_labeled) < len(data_train_source),
                 drop_last=True,
             )
+
+           
             logger.info(
                 f"Train target labeled loader size oversample is {len(train_target_loader)}"
             )
@@ -1128,14 +1135,13 @@ class MapsManager:
             ]
 
             train_target_unl_loader = DataLoader(
-                data_target_unlabeled,
-                batch_size=self.batch_size,
-                num_workers=self.n_proc,
-                # sampler=unlabeled_sampler,
-                worker_init_fn=pl_worker_init_function,
-                shuffle=True,
-                drop_last=True,
-            )
+            data_target_unlabeled,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.n_proc,
+            worker_init_fn=pl_worker_init_function,
+            drop_last=True,
+        )
 
             logger.info(
                 f"Train target unlabeled loader size is {len(train_target_unl_loader)*self.batch_size}"
@@ -1153,7 +1159,7 @@ class MapsManager:
 
             valid_loader_target = DataLoader(
                 data_valid_target_labeled,
-                batch_size=self.batch_size,  # To check
+                batch_size=self.batch_size,
                 shuffle=False,
                 num_workers=self.n_proc,
             )
