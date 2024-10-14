@@ -458,6 +458,7 @@ class CNN_SSDA_FS(Network):
 
     def transfer_weights(self, state_dict, transfer_class):
         if issubclass(transfer_class, CNN_SSDA_FS):
+            print(state_dict)
             self.load_state_dict(state_dict)
         elif issubclass(transfer_class, CNN_SSDA_INIT_MC):
             convolutions_dict = OrderedDict(
@@ -619,8 +620,8 @@ class CNN_SSDA_FS(Network):
         
         (
             _,
-            train_output_class_source,
             _,
+            train_output_class_source,
             _,
             _,
             train_output_domain_s,
