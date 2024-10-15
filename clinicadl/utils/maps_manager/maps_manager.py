@@ -1112,6 +1112,7 @@ class MapsManager:
             # Handle oversampling for target domain to match the source domain size
             labeled_indices = list(range(len(data_train_target_labeled)))
             required_size = len(data_train_source)  # Match target data size to source data size
+            required_size = 2 * (len(data_train_source) // 2)
             oversampled_indices = labeled_indices * (required_size // len(labeled_indices))
             oversampled_indices += labeled_indices[: required_size % len(labeled_indices)]
             sampler_target_label = SubsetRandomSampler(oversampled_indices)
@@ -1159,7 +1160,7 @@ class MapsManager:
 
             valid_loader_target = DataLoader(
                 data_valid_target_labeled,
-                batch_size=1, #self.batch_size,
+                batch_size=2, #self.batch_size,
                 shuffle=False,
                 num_workers=self.n_proc,
             )
