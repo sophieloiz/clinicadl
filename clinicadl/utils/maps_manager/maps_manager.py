@@ -1159,7 +1159,7 @@ class MapsManager:
 
             valid_loader_target = DataLoader(
                 data_valid_target_labeled,
-                batch_size=self.batch_size,
+                batch_size=1, #self.batch_size,
                 shuffle=False,
                 num_workers=self.n_proc,
             )
