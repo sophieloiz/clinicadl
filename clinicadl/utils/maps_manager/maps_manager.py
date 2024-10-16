@@ -1861,7 +1861,9 @@ class MapsManager:
             # )
 
             # Save checkpoints and best models
-            best_dict = retain_best.step(metrics_valid_target)
+            #best_dict = retain_best.step(metrics_valid_target)
+            best_dict = retain_best.step(metrics_valid_source)
+
             self._write_weights(
                 {
                     "model": model.state_dict(),
