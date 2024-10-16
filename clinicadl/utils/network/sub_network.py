@@ -594,8 +594,8 @@ class CNN_SSDA_FS(Network):
         _, train_output_source, train_output_target, _,_,_ = self.forward(images, alpha)
 
         if target:
-            out = train_output_target
-            loss_bce = criterion(train_output_target, labels)
+            out = train_output_source #train_output_target
+            loss_bce = criterion(train_output_source, labels) # TO MODIFY
 
         else:
             out = train_output_source
@@ -603,7 +603,7 @@ class CNN_SSDA_FS(Network):
 
         return out, {"loss": loss_bce}
 
-    def compute_outputs_and_loss_(
+    def compute_outputs_and_loss(
         self, data_source, data_target, data_target_unl, criterion, alpha, use_labels=True,
     ):
         images, labels = (
@@ -629,8 +629,8 @@ class CNN_SSDA_FS(Network):
 
         (
             _,
-            _,
             train_output_class_target,
+            _,
             _,
             _,
             train_output_domain_t,
@@ -657,12 +657,12 @@ class CNN_SSDA_FS(Network):
         )
 
         loss_domain_lab = criterion(train_output_domain_s, labels_domain_s)
-        #loss_domain_lab_t = criterion(train_output_domain_t, labels_domain_tl)
+        loss_domain_lab_t = criterion(train_output_domain_t, labels_domain_tl)
         loss_domain_t_unl = criterion(
             train_output_domain_target_unlab, labels_domain_tu
         )
 
-        loss_domain = loss_domain_lab  + loss_domain_t_unl # + loss_domain_lab_t
+        loss_domain = loss_domain_lab  + loss_domain_t_unl + loss_domain_lab_t
 
         total_loss = loss_classif  + loss_domain
 
@@ -676,7 +676,7 @@ class CNN_SSDA_FS(Network):
             },
         )
 
-    def compute_outputs_and_loss(
+    def compute_outputs_and_loss_(
         self, data_source, criterion, use_labels=True,
     ):
         images, labels = (
