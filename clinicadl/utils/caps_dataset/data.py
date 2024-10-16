@@ -233,7 +233,6 @@ class CapsDataset(Dataset):
                 filepath = results[0]
                 image_path = Path(filepath[0])                
             
-        print(image_path)
         return image_path
 
     def _get_meta_data(self, idx: int) -> Tuple[str, str, str, int, int]:
