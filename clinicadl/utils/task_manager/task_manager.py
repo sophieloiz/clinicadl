@@ -197,7 +197,7 @@ class TaskManager:
         """
         model.eval()
         dataloader.dataset.eval()
-
+        print("Start testing test function task manager")
         results_df = pd.DataFrame(columns=self.columns)
         total_loss = {}
         with torch.no_grad():
