@@ -1971,7 +1971,7 @@ class MapsManager:
             )
             model = DDP(model)
 
-            prediction_df, metrics = self.task_manager.test(
+            prediction_df, metrics = self.task_manager.test_da(
                 model, dataloader, criterion, use_labels=use_labels, amp=amp
             )
             if use_labels:
