@@ -3420,7 +3420,7 @@ class MapsManager:
                 self.maps_path
                 / f"{self.split_name}-{split}"
                 / f"best-{selection_metric}"
-                / "model.pth.tar" # TO CHANGE
+                / "model_72.pth.tar" # TO CHANGE
             )
 
         logger.info(
