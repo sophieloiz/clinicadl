@@ -1652,15 +1652,20 @@ class MapsManager:
             total_steps = self.epochs * len(train_target_loader)
             import numpy as np
             for i, (data_source, data_target, data_target_unl) in enumerate(
-                zip(train_source_loader, train_target_loader, train_target_unl_loader)
+                zip(train_source_loader, train_source_loader, train_target_unl_loader)
             ):
                 p = float(i + start_steps) / total_steps
                 
                 alpha =  2.0 / (1.0 + np.exp(-10 * p)) - 1
 
-                _, _, loss_dict = model.compute_outputs_and_loss(
-                    data_source, data_target, data_target_unl, criterion, alpha
+                # _, _, loss_dict = model.compute_outputs_and_loss(
+                #     data_source, data_target, data_target_unl, criterion, alpha
+                # )  # TO CHECK
+
+                _, loss_dict = model.compute_outputs_and_loss_pretrain(
+                    data_source, data_target_unl, criterion, alpha
                 )  # TO CHECK
+                
                 logger.debug(f"Train loss dictionnary {loss_dict} with alpha : {alpha}")
                 loss = loss_dict["loss"]
                 loss.backward()
@@ -1686,45 +1691,45 @@ class MapsManager:
                         self._check_loss_to_tsv(loss_dict)
                         print("Losses")
                         print(loss_dict["loss_classif_source"])
-                        print(loss_dict["loss_classif_target"])
+                        # print(loss_dict["loss_classif_target"])
                         print(loss_dict["loss_domain"])
 
-                        logger.info("Evaluation on target data")
-                        _, metrics_train_target = self.task_manager.test_da(
-                            model,
-                            train_target_loader,
-                            criterion,
-                            alpha,
-                            target=True,
-                        )  # TO CHECK
+                        # logger.info("Evaluation on target data")
+                        # _, metrics_train_target = self.task_manager.test_da(
+                        #     model,
+                        #     train_target_loader,
+                        #     criterion,
+                        #     alpha,
+                        #     target=True,
+                        # )  # TO CHECK
 
-                        _, metrics_valid_target = self.task_manager.test_da(
-                            model,
-                            valid_loader,
-                            criterion,
-                            alpha,
-                            target=True,
-                        )
+                        # _, metrics_valid_target = self.task_manager.test_da(
+                        #     model,
+                        #     valid_loader,
+                        #     criterion,
+                        #     alpha,
+                        #     target=True,
+                        # )
 
-                        model.train()
-                        train_target_loader.dataset.train()
+                        # model.train()
+                        # train_target_loader.dataset.train()
 
-                        log_writer.step(
-                            epoch,
-                            i,
-                            metrics_train_target,
-                            metrics_valid_target,
-                            len(train_target_loader),
-                            "training_target.tsv",
-                        )
-                        logger.info(
-                            f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
-                            f"at the end of iteration {i}"
-                        )
-                        logger.info(
-                            f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
-                            f"at the end of iteration {i}"
-                        )
+                        # log_writer.step(
+                        #     epoch,
+                        #     i,
+                        #     metrics_train_target,
+                        #     metrics_valid_target,
+                        #     len(train_target_loader),
+                        #     "training_target.tsv",
+                        # )
+                        # logger.info(
+                        #     f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
+                        #     f"at the end of iteration {i}"
+                        # )
+                        # logger.info(
+                        #     f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
+                        #     f"at the end of iteration {i}"
+                        # )
 
                         # Evaluate on source data
                         logger.info("Evaluation on source data")
@@ -1778,7 +1783,7 @@ class MapsManager:
             #self._check_loss_to_tsv(loss_dict)
             print("Losses")
             print(loss_dict["loss_classif_source"])
-            print(loss_dict["loss_classif_target"])
+            # print(loss_dict["loss_classif_target"])
             print(loss_dict["loss_domain"])
             if evaluate_source:
                 logger.info(
@@ -1818,42 +1823,42 @@ class MapsManager:
                     f"at the end of iteration {i}"
                 )
 
-            _, metrics_train_target = self.task_manager.test_da(
-                model,
-                train_target_loader,
-                criterion,
-                alpha,
-                target=True,
-            )
-            _, metrics_valid_target = self.task_manager.test_da(
-                model,
-                valid_loader,
-                criterion,
-                alpha,
-                target=True,
-            )
+            # _, metrics_train_target = self.task_manager.test_da(
+            #     model,
+            #     train_target_loader,
+            #     criterion,
+            #     alpha,
+            #     target=True,
+            # )
+            # _, metrics_valid_target = self.task_manager.test_da(
+            #     model,
+            #     valid_loader,
+            #     criterion,
+            #     alpha,
+            #     target=True,
+            # )
 
             model.train()
             train_source_loader.dataset.train()
             train_target_loader.dataset.train()
 
-            log_writer.step(
-                epoch,
-                i,
-                metrics_train_target,
-                metrics_valid_target,
-                len(train_target_loader),
-                "training_target.tsv",
-            )
+            # log_writer.step(
+            #     epoch,
+            #     i,
+            #     metrics_train_target,
+            #     metrics_valid_target,
+            #     len(train_target_loader),
+            #     "training_target.tsv",
+            # )
 
-            logger.info(
-                f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
-                f"at the end of iteration {i}"
-            )
-            logger.info(
-                f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
-                f"at the end of iteration {i}"
-            )
+            # logger.info(
+            #     f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
+            #     f"at the end of iteration {i}"
+            # )
+            # logger.info(
+            #     f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
+            #     f"at the end of iteration {i}"
+            # )
 
             # Save checkpoints and best models
             best_dict = retain_best.step(metrics_valid_target)
@@ -1881,26 +1886,26 @@ class MapsManager:
             
             epoch += 1
 
-        self._test_loader_ssda(
-            train_target_loader,
-            criterion,
-            data_group="train",
-            split=split,
-            selection_metrics=self.selection_metrics,
-            network=network,
-            target=True,
-            alpha=0,
-        )
-        self._test_loader_ssda(
-            valid_loader,
-            criterion,
-            data_group="validation",
-            split=split,
-            selection_metrics=self.selection_metrics,
-            network=network,
-            target=True,
-            alpha=0,
-        )
+        # self._test_loader_ssda(
+        #     train_target_loader,
+        #     criterion,
+        #     data_group="train",
+        #     split=split,
+        #     selection_metrics=self.selection_metrics,
+        #     network=network,
+        #     target=True,
+        #     alpha=0,
+        # )
+        # self._test_loader_ssda(
+        #     valid_loader,
+        #     criterion,
+        #     data_group="validation",
+        #     split=split,
+        #     selection_metrics=self.selection_metrics,
+        #     network=network,
+        #     target=True,
+        #     alpha=0,
+        # )
 
         if self.task_manager.save_outputs:
             self._compute_output_tensors(

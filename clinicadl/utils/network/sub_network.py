@@ -594,8 +594,8 @@ class CNN_SSDA_FS(Network):
         _, train_output_source, train_output_target, _,_,_ = self.forward(images, alpha)
 
         if target:
-            out = train_output_source #train_output_target
-            loss_bce = criterion(train_output_source, labels) # TO MODIFY
+            out = train_output_target
+            loss_bce = criterion(train_output_target, labels)
 
         else:
             out = train_output_source
@@ -672,6 +672,60 @@ class CNN_SSDA_FS(Network):
             {"loss": total_loss, 
              "loss_classif_source": loss_classif_source, 
              "loss_classif_target": loss_classif_target, 
+             "loss_domain": loss_domain
+            },
+        )
+    
+    def compute_outputs_and_loss_pretrain(
+        self, data_source, data_target_unl, criterion, alpha, use_labels=True,
+    ):
+        images, labels = (
+            data_source["image"].to(self.device),
+            data_source["label"].to(self.device),
+        )
+
+        images_target_unl = data_target_unl["image"].to(self.device)
+        
+        (
+            _,
+            train_output_class_source,
+            _,
+            _,
+            _,
+            train_output_domain_s,
+        ) = self.forward(images, alpha)
+
+        
+        
+        _, _, _, _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
+
+        loss_classif_source = criterion(train_output_class_source, labels)
+
+
+        loss_classif = loss_classif_source 
+
+        labels_domain_s = (
+            torch.zeros(data_source["image"].shape[0]).long().to(self.device)
+        )
+
+
+        labels_domain_tu = (
+            torch.ones(data_target_unl["image"].shape[0]).long().to(self.device)
+        )
+
+        loss_domain_lab = criterion(train_output_domain_s, labels_domain_s)
+        loss_domain_t_unl = criterion(
+            train_output_domain_target_unlab, labels_domain_tu
+        )
+
+        loss_domain = loss_domain_lab  + loss_domain_t_unl
+
+        total_loss = loss_classif  + loss_domain
+
+        return (
+            train_output_class_source,
+            {"loss": total_loss, 
+             "loss_classif_source": loss_classif_source, 
              "loss_domain": loss_domain
             },
         )
