@@ -1969,7 +1969,7 @@ class MapsManager:
                 gpu=gpu,
                 network=network,
             )
-            model = DDP(model)
+            #model = DDP(model)
 
             prediction_df, metrics = self.task_manager.test_da(
                 model, dataloader, criterion, use_labels=use_labels, # amp=amp
