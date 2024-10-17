@@ -687,7 +687,7 @@ class CNN_SSDA_FS(Network):
             train_output_domain_s,
         ) = self.forward(images, alpha)
 
-        _, _, _, _, _, train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
+        _, _, _, _,  train_output_domain_target_unlab = self.forward(images_target_unl, alpha)
 
         loss_classif_source = criterion(train_output_class_source, labels)
 
