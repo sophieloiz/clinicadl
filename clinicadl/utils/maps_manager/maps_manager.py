@@ -2035,7 +2035,7 @@ class MapsManager:
 
                 # Domain classification loss
                 loss_dict_domain = model.compute_outputs_and_loss_domain(
-                     train_source_loader,data_target, data_target_unl, criterion, alpha
+                     data_source,data_target, data_target_unl, criterion, alpha
                 ) 
 
                 logger.debug(f"Train loss dictionnary {loss_dict_domain}")
