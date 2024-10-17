@@ -629,8 +629,8 @@ class CNN_SSDA_FS(Network):
 
         (
             _,
-            train_output_class_target,
             _,
+            train_output_class_target,
             _,
             _,
             train_output_domain_t,
