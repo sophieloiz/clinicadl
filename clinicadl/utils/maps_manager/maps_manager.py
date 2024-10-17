@@ -1110,18 +1110,18 @@ class MapsManager:
             )
 
             # # Handle oversampling for target domain to match the source domain size
-            labeled_indices = list(range(len(data_train_target_labeled)))
-            required_size = len(data_train_source)  # Match target data size to source data size
-            required_size = 2 * (len(data_train_source) // 2)
-            oversampled_indices = labeled_indices * (required_size // len(labeled_indices))
-            oversampled_indices += labeled_indices[: required_size % len(labeled_indices)]
-            sampler_target_label = SubsetRandomSampler(oversampled_indices)
+            # labeled_indices = list(range(len(data_train_target_labeled)))
+            # required_size = len(data_train_source)  # Match target data size to source data size
+            # required_size = 2 * (len(data_train_source) // 2)
+            # oversampled_indices = labeled_indices * (required_size // len(labeled_indices))
+            # oversampled_indices += labeled_indices[: required_size % len(labeled_indices)]
+            # sampler_target_label = SubsetRandomSampler(oversampled_indices)
 
             from torch.utils.data import WeightedRandomSampler
 
             # # Compute the weights for each sample
-            # target_weights = [1.0 / len(data_train_target_labeled)] * len(data_train_target_labeled)
-            # sampler_target_label = WeightedRandomSampler(target_weights, len(data_train_source))
+            target_weights = [1.0 / len(data_train_target_labeled)] * len(data_train_target_labeled)
+            sampler_target_label = WeightedRandomSampler(target_weights, len(data_train_source))
 
             train_target_loader = DataLoader(
                 data_train_target_labeled,
@@ -1174,7 +1174,7 @@ class MapsManager:
                 f"Validation loader target size is {len(valid_loader_target)*self.batch_size}"
             )
 
-            self._train_ssdann(
+            self._train_ssdann_debug(
                 train_source_loader,
                 train_target_loader,
                 train_target_unl_loader,
@@ -1926,6 +1926,337 @@ class MapsManager:
                 nb_images=1,
                 network=network,
             )
+
+
+    def _train_ssdann_debug(
+        self,
+        train_source_loader,
+        train_target_loader,
+        train_target_unl_loader,
+        valid_loader,
+        valid_source_loader,
+        split,
+        network=None,
+        resume=False,
+        evaluate_source=True,  # TO MODIFY
+    ):
+        """
+        Core function shared by train and resume.
+
+        Args:
+            train_loader (torch.utils.data.DataLoader): DataLoader wrapping the training set.
+            valid_loader (torch.utils.data.DataLoader): DataLoader wrapping the validation set.
+            split (int): Index of the split trained.
+            network (int): Index of the network trained (used in multi-network setting only).
+            resume (bool): If True the job is resumed from the checkpoint.
+        """
+
+        model, beginning_epoch = self._init_model(
+            split=split,
+            resume=resume,
+            transfer_path=self.transfer_path,
+            transfer_selection=self.transfer_selection_metric,
+        )
+
+        logger.info(f"SSDA Experiments DEBUG MODE")
+        criterion = self.task_manager.get_criterion(self.loss)
+        logger.debug(f"Criterion for {self.network_task} is {criterion}")
+        # optimizer = self._init_optimizer(model, split=split, resume=resume)
+
+        # Initialize optimizer for task classification
+        optimizer_task = torch.optim.Adam(
+            list(model.convolutions.parameters()) +
+            list(model.fc_class_source.parameters()) +
+            list(model.fc_class_target.parameters()),
+            lr=1e-4
+        )
+
+        # Initialize optimizer for domain classification
+        optimizer_domain = torch.optim.Adam(
+            list(model.fc_domain.parameters()) +
+            list(model.fc_domain2.parameters()),
+            lr=1e-4
+
+        )
+
+
+        logger.debug(f"Optimizer used for training is optimizer")
+
+        model.train()
+        train_source_loader.dataset.train()
+        train_target_loader.dataset.train()
+        train_target_unl_loader.dataset.train()
+
+        early_stopping = EarlyStopping(
+            "min", min_delta=self.tolerance, patience=self.patience
+        )
+
+        metrics_valid_target = {"loss": None}
+        metrics_valid_source = {"loss": None}
+
+        log_writer = LogWriter(
+            self.maps_path,
+            self.task_manager.evaluation_metrics + ["loss"],
+            split,
+            resume=resume,
+            beginning_epoch=beginning_epoch,
+            network=network,
+        )
+        epoch = log_writer.beginning_epoch
+
+        retain_best = RetainBest(selection_metrics=list(self.selection_metrics))
+
+        while epoch < self.epochs and not early_stopping.step(
+            metrics_valid_target["loss"]
+        ):
+            logger.info(f"Beginning epoch {epoch}.")
+
+            model.zero_grad()
+            evaluation_flag, step_flag = True, True
+
+            start_steps = epoch * len(train_source_loader)
+            total_steps = self.epochs * len(train_target_loader)
+            import numpy as np
+            for i, (data_source, data_target, data_target_unl) in enumerate(
+                zip(train_source_loader, train_source_loader, train_target_unl_loader)
+            ):
+                p = float(i + start_steps) / total_steps
+                
+                alpha =  2.0 / (1.0 + np.exp(-10 * p)) #- 1
+
+                # Classification loss
+                _, _, loss_dict = model.compute_outputs_and_loss_task(
+                    data_source, data_target, criterion
+                ) 
+
+                logger.debug(f"Train loss dictionnary {loss_dict}")
+                classification_loss = loss_dict["loss"]
+                classification_loss.backward()
+
+                # Domain classification loss
+                loss_dict_domain = model.compute_outputs_and_loss_domain(
+                     train_source_loader,data_target, data_target_unl, criterion, alpha
+                ) 
+
+                logger.debug(f"Train loss dictionnary {loss_dict_domain}")
+                domain_loss = loss_dict_domain["loss"]
+                domain_loss.backward()
+
+                if (i + 1) % self.accumulation_steps == 0:
+                    step_flag = False
+                    optimizer_task.step()
+                    optimizer_task.zero_grad()
+                    optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
+
+                    optimizer_domain.step()
+                    optimizer_domain.zero_grad()
+                    optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
+
+                    del domain_loss, classification_loss
+
+                    # Evaluate the model only when no gradients are accumulated
+                    if (
+                        self.evaluation_steps != 0
+                        and (i + 1) % self.evaluation_steps == 0
+                    ):
+                        evaluation_flag = False
+
+                        # Evaluate on taget data
+                        self._check_loss_to_tsv(loss_dict)
+                        print("Losses")
+                        print(loss_dict)
+                        print(loss_dict_domain)
+
+                        # print(loss_dict["loss_classif_target"])
+
+                        logger.info("Evaluation on target data")
+                        _, metrics_train_target = self.task_manager.test_da_debug(
+                            model,
+                            train_target_loader,
+                            criterion,
+                            target=True,
+                        )
+
+                        _, metrics_valid_target = self.task_manager.test_da_debug(
+                            model,
+                            valid_loader,
+                            criterion,
+                            target=True,
+                        )
+
+                        model.train()
+                        train_target_loader.dataset.train()
+
+                        log_writer.step(
+                            epoch,
+                            i,
+                            metrics_train_target,
+                            metrics_valid_target,
+                            len(train_target_loader),
+                            "training_target.tsv",
+                        )
+                        logger.info(
+                            f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+                        logger.info(
+                            f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+
+                        # Evaluate on source data
+                        logger.info("Evaluation on source data")
+                        _, metrics_train_source = self.task_manager.test_da_debug(
+                            model, train_source_loader, criterion, target=False,
+                        )
+                        _, metrics_valid_source = self.task_manager.test_da_debug(
+                            model, valid_source_loader, criterion, target=False,
+                        )
+
+                        model.train()
+                        train_source_loader.dataset.train()
+
+                        log_writer.step(
+                            epoch,
+                            i,
+                            metrics_train_source,
+                            metrics_valid_source,
+                            len(train_source_loader),
+                        )
+                        logger.info(
+                            f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+                        logger.info(
+                            f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
+                            f"at the end of iteration {i}"
+                        )
+
+            # If no step has been performed, raise Exception
+            if step_flag:
+                raise Exception(
+                    "The model has not been updated once in the epoch. The accumulation step may be too large."
+                )
+
+            # If no evaluation has been performed, warn the user
+            elif evaluation_flag and self.evaluation_steps != 0:
+                logger.warning(
+                    f"Your evaluation steps {self.evaluation_steps} are too big "
+                    f"compared to the size of the dataset. "
+                    f"The model is evaluated only once at the end epochs."
+                )
+
+            # Update weights one last time if gradients were computed without update
+            if (i + 1) % self.accumulation_steps != 0:
+                optimizer_domain.step()
+                optimizer_domain.zero_grad()
+                
+                optimizer_task.step()
+                optimizer_task.zero_grad()
+            # Always test the results and save them once at the end of the epoch
+            model.zero_grad()
+            logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
+            print("Losses")
+            print(loss_dict)
+            print(loss_dict_domain)
+            if evaluate_source:
+                logger.info(
+                    f"Evaluate source data at the end of the epoch {epoch} with alpha: {alpha}."
+                )
+                _, metrics_train_source = self.task_manager.test_da_debug(
+                    model,
+                    train_source_loader,
+                    criterion,
+                    True,
+                    False,
+                )
+                _, metrics_valid_source = self.task_manager.test_da_debug(
+                    model,
+                    valid_source_loader,
+                    criterion,
+                    True,
+                    False,
+                )
+
+                log_writer.step(
+                    epoch,
+                    i,
+                    metrics_train_source,
+                    metrics_valid_source,
+                    len(train_source_loader),
+                )
+
+                logger.info(
+                    f"{self.mode} level training loss for source data is {metrics_train_source['loss']} "
+                    f"at the end of iteration {i}"
+                )
+                logger.info(
+                    f"{self.mode} level validation loss for source data is {metrics_valid_source['loss']} "
+                    f"at the end of iteration {i}"
+                )
+
+            _, metrics_train_target = self.task_manager.test_da_debug(
+                model,
+                train_target_loader,
+                criterion,
+                target=True,
+            )
+            _, metrics_valid_target = self.task_manager.test_da_debug(
+                model,
+                valid_loader,
+                criterion,
+                target=True,
+            )
+
+            model.train()
+            train_source_loader.dataset.train()
+            train_target_loader.dataset.train()
+
+            log_writer.step(
+                epoch,
+                i,
+                metrics_train_target,
+                metrics_valid_target,
+                len(train_target_loader),
+                "training_target.tsv",
+            )
+
+            logger.info(
+                f"{self.mode} level training loss for target data is {metrics_train_target['loss']} "
+                f"at the end of iteration {i}"
+            )
+            logger.info(
+                f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
+                f"at the end of iteration {i}"
+            )
+
+            # Save checkpoints and best models
+            best_dict = retain_best.step(metrics_valid_target)
+
+            self._write_weights(
+                {
+                    "model": model.state_dict(),
+                    "epoch": epoch,
+                    "name": self.architecture,
+                },
+                best_dict,
+                split,
+                network=network,
+                epochs=epoch
+            )
+            self._write_weights(
+                {
+                    "optimizer": optimizer_domain.state_dict(),  # TO MODIFY
+                    "epoch": epoch,
+                    "name": self.optimizer,
+                },
+                None,
+                split,
+                filename="optimizer.pth.tar",
+            )
+            
+            epoch += 1
+
 
     def _test_loader(
         self,

@@ -11,6 +11,7 @@ from .cnn.models import (
     SqueezeExcitationCNN,
     Stride_Conv5_FC3,
     resnet18,
+    Conv5_FC3_SSDA_DEBUG,
 )
 from .cnn.random import RandomArchitecture
 from .unet.unet import GeneratorUNet

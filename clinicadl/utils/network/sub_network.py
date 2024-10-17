@@ -844,6 +844,162 @@ class CNN_SSDA_INIT(Network):
             {"loss": loss_classif_source},
         )
 
+
+class CNN_SSDA_FS_DEBUG(Network):
+    def __init__(
+        self,
+        convolutions,
+        fc_class_source,
+        fc_class_target,
+        fc_domain,
+        fc_domain2,
+        n_classes,
+        gpu=False,
+    ):
+        super().__init__(gpu=gpu)
+        self.convolutions = convolutions.to(self.device)
+        self.fc_class_source = fc_class_source.to(self.device)
+        self.fc_class_target = fc_class_target.to(self.device)
+        self.fc_domain = fc_domain.to(self.device)
+        self.fc_domain2 = fc_domain2.to(self.device)
+
+        self.n_classes = n_classes
+
+    @property
+    def layers(self):
+        return nn.Sequential(
+            self.convolutions,
+            self.fc_class_source,
+            self.fc_class_target,
+            self.fc_domain,
+            self.fc_domain2,
+        )
+
+    def transfer_weights(self, state_dict, transfer_class):
+        if issubclass(transfer_class, CNN_SSDA_FS):
+            print(state_dict)
+            self.load_state_dict(state_dict)
+        else:
+            raise ClinicaDLNetworksError(
+                f"Cannot transfer weights from {transfer_class} to CNN."
+            )
+    
+    def features_extractor(self, x):
+        return  self.convolutions(x)
+    
+    def domain_classifier(self,x,alpha):
+        x_reverse = ReverseLayerF.apply(x, alpha)
+        x_inter = self.fc_domain(x_reverse)
+        out_domain = self.fc_domain2(x_inter)
+        return x_inter, out_domain
+    
+    def task_classifier(self,x):
+        x_source = self.fc_class_source(x)
+        x_target = self.fc_class_target(x)
+        return x_source, x_target
+    
+
+    def forward_task(self,x):
+        x_features = self.features_extractor(x)
+        x_source, x_target = self.task_classifier(x_features)
+        return x_source, x_target
+
+    def predict(self, x):
+        x_features = self.features_extractor(x)
+        x_source, x_target = self.task_classifier(x_features)
+        return x_source, x_target
+    
+    def compute_outputs_and_loss_domain(self, input_dict_source, input_dict_target, input_dict_target_unlabeled, criterion, alpha):
+        
+        images_source = input_dict_source["image"].to(self.device)
+        images_target = input_dict_target["image"].to(self.device)
+        images_target_unl = input_dict_target_unlabeled["image"].to(self.device)
+
+
+        x_features_source = self.features_extractor(images_source)
+        _, out_domain_source = self.domain_classifier(x_features_source, alpha)
+
+
+        x_features_target = self.features_extractor(images_target)
+        _, out_domain_target = self.domain_classifier(x_features_target, alpha)
+
+
+        x_features_target_lab = self.features_extractor(images_target_unl)
+        _, out_domain_target_lab= self.domain_classifier(x_features_target_lab, alpha)
+
+
+        labels_domain_source = (torch.zeros(images_source.shape[0]).long().to(self.device))
+        labels_domain_target = (torch.ones(images_source.shape[0]).long().to(self.device))
+        labels_domain_target_unl = (torch.ones(images_target_unl.shape[0]).long().to(self.device))
+
+
+        loss_bce = criterion(out_domain_source, labels_domain_source) + criterion(out_domain_target, labels_domain_target) + criterion(out_domain_target_lab, labels_domain_target_unl)
+
+        return {"loss": loss_bce}
+    
+    def compute_outputs_and_loss_task(self, data_source, data_target, criterion):
+        
+        images, labels = (
+            data_source["image"].to(self.device),
+            data_source["label"].to(self.device),
+        )
+
+        images_target, labels_target = (
+            data_target["image"].to(self.device),
+            data_target["label"].to(self.device),
+        )
+
+        
+        x_source, _ = self.forward_task(images)
+        _, x_target = self.forward_task(images_target)
+
+
+
+        loss_classif_source = criterion(x_source, labels)
+        loss_classif_target = criterion(x_target, labels_target)
+
+        loss_classif = loss_classif_source+loss_classif_target
+
+        return    (
+            x_source,
+            x_target,
+            {"loss": loss_classif, 
+             "loss_classif_source": loss_classif_source, 
+             "loss_classif_target": loss_classif_target, 
+            },
+        )
+     
+    def compute_outputs_and_loss_test(self, data, criterion,target):
+        
+        images, labels = (
+            data["image"].to(self.device),
+            data["label"].to(self.device),
+        )
+        
+        if target: 
+            _, out = self.forward_task(images)
+        else:
+            out, _ = self.forward_task(images)
+
+
+        loss = criterion(images, labels)
+
+        
+        return    (
+            out,
+            {"loss": loss, 
+            },
+        )
+        
+    def lr_scheduler(self, lr, optimizer, p):
+        lr = lr / (1 + 10 * p) ** 0.75
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = lr
+        return optimizer
+    
+    def lambda_scheduler(self, gamma, p):
+        return 2 / (1 + np.exp(-gamma * p)) -1
+    
 class CNN_SSDA_INIT_MC(Network):
     def __init__(
         self,
