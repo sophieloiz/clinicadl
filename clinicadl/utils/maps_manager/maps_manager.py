@@ -2279,7 +2279,7 @@ class MapsManager:
                 image = data["image"]
                 x = image.unsqueeze(0).to(model.device)
                 with autocast(enabled=self.amp):
-                    features,_,output,features2 = model.predict(x)
+                    features,_,output,features2,_ = model.predict(x)
                 output = output.squeeze(0).cpu().float()
                 participant_id = data["participant_id"]
                 session_id = data["session_id"]
