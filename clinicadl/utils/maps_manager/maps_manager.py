@@ -1110,12 +1110,12 @@ class MapsManager:
             )
 
             # # Handle oversampling for target domain to match the source domain size
-            # labeled_indices = list(range(len(data_train_target_labeled)))
-            # required_size = len(data_train_source)  # Match target data size to source data size
-            # required_size = 2 * (len(data_train_source) // 2)
-            # oversampled_indices = labeled_indices * (required_size // len(labeled_indices))
-            # oversampled_indices += labeled_indices[: required_size % len(labeled_indices)]
-            # sampler_target_label = SubsetRandomSampler(oversampled_indices)
+            labeled_indices = list(range(len(data_train_target_labeled)))
+            required_size = len(data_train_source)  # Match target data size to source data size
+            required_size = 2 * (len(data_train_source) // 2)
+            oversampled_indices = labeled_indices * (required_size // len(labeled_indices))
+            oversampled_indices += labeled_indices[: required_size % len(labeled_indices)]
+            sampler_target_label = SubsetRandomSampler(oversampled_indices)
 
             from torch.utils.data import WeightedRandomSampler
 
@@ -1126,7 +1126,7 @@ class MapsManager:
             train_target_loader = DataLoader(
                 data_train_target_labeled,
                 batch_size=1,
-                sampler=train_target_sampler,
+                sampler=sampler_target_label,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,
