@@ -982,7 +982,7 @@ class CNN_SSDA_FS_DEBUG(Network):
             out, _ = self.forward_task(images)
 
 
-        loss = criterion(images, labels)
+        loss = criterion(out, labels)
 
         
         return    (
