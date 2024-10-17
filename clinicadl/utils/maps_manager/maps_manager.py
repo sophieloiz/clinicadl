@@ -2253,19 +2253,19 @@ class MapsManager:
             )
 
 
-            tensor_path3 = (
-                self.maps_path
-                / f"{self.split_name}-{split}"
-                / f"best-{selection_metric}"
-                / data_group
-                / "tensors3"
-            )
+            # tensor_path3 = (
+            #     self.maps_path
+            #     / f"{self.split_name}-{split}"
+            #     / f"best-{selection_metric}"
+            #     / data_group
+            #     / "tensors3"
+            # )
 
             print(tensor_path)
             if cluster.master:
                 tensor_path.mkdir(parents=True, exist_ok=True)
                 tensor_path2.mkdir(parents=True, exist_ok=True)
-                tensor_path3.mkdir(parents=True, exist_ok=True)
+                #tensor_path3.mkdir(parents=True, exist_ok=True)
 
             dist.barrier()
 
@@ -2279,7 +2279,7 @@ class MapsManager:
                 image = data["image"]
                 x = image.unsqueeze(0).to(model.device)
                 with autocast(enabled=self.amp):
-                    features,_,output,features2, features3, _ = model.predict(x)
+                    features,_,output,features2 = model.predict(x)
                 output = output.squeeze(0).cpu().float()
                 participant_id = data["participant_id"]
                 session_id = data["session_id"]
@@ -2290,7 +2290,7 @@ class MapsManager:
                 )
                 torch.save(features, tensor_path / output_filename)
                 torch.save(features2, tensor_path2 / output_filename)
-                torch.save(features3, tensor_path3 / output_filename)
+                #torch.save(features3, tensor_path3 / output_filename)
 
                 logger.debug(f"File saved at {output_filename}")
             # tensors_list = []
