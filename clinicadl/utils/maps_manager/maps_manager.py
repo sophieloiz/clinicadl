@@ -2050,7 +2050,7 @@ class MapsManager:
 
                     optimizer_domain.step()
                     optimizer_domain.zero_grad()
-                    optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
+                    optimizer_domain = model.lr_scheduler(1e-6, optimizer_domain, p)
 
                     del domain_loss, classification_loss
 
