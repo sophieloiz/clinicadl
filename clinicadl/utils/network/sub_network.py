@@ -876,7 +876,7 @@ class CNN_SSDA_FS_DEBUG(Network):
         )
 
     def transfer_weights(self, state_dict, transfer_class):
-        if issubclass(transfer_class, CNN_SSDA_FS):
+        if issubclass(transfer_class, CNN_SSDA_FS_DEBUG):
             print(state_dict)
             self.load_state_dict(state_dict)
         else:
