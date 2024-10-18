@@ -2018,7 +2018,7 @@ class MapsManager:
             total_steps = self.epochs * len(train_target_loader)
             import numpy as np
             for i, (data_source, data_target, data_target_unl) in enumerate(
-                zip(train_source_loader, train_source_loader, train_target_unl_loader)
+                zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
                 p = float(i + start_steps) / total_steps
                 
@@ -2050,7 +2050,7 @@ class MapsManager:
 
                     optimizer_domain.step()
                     optimizer_domain.zero_grad()
-                    optimizer_domain = model.lr_scheduler(1e-6, optimizer_domain, p)
+                    optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
 
                     del domain_loss, classification_loss
 
