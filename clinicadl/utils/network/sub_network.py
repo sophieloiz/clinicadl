@@ -907,7 +907,7 @@ class CNN_SSDA_FS_DEBUG(Network):
     def predict(self, x):
         x_features = self.features_extractor(x)
         x_source, x_target = self.task_classifier(x_features)
-        return x_source, x_target
+        return x_source, x_target, x_features
     
     def compute_outputs_and_loss_domain(self, input_dict_source, input_dict_target, input_dict_target_unlabeled, criterion, alpha):
         
