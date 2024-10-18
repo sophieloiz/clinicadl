@@ -929,7 +929,7 @@ class CNN_SSDA_FS_DEBUG(Network):
 
 
         labels_domain_source = (torch.zeros(images_source.shape[0]).long().to(self.device))
-        labels_domain_target = (torch.ones(images_source.shape[0]).long().to(self.device))
+        labels_domain_target = (torch.ones(images_target.shape[0]).long().to(self.device))
         labels_domain_target_unl = (torch.ones(images_target_unl.shape[0]).long().to(self.device))
 
 
