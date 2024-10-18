@@ -1120,13 +1120,13 @@ class MapsManager:
             from torch.utils.data import WeightedRandomSampler
 
             # # Compute the weights for each sample
-            target_weights = [1.0 / len(data_train_target_labeled)] * len(data_train_target_labeled)
-            sampler_target_label = WeightedRandomSampler(target_weights, len(data_train_source))
+            # target_weights = [1.0 / len(data_train_target_labeled)] * len(data_train_target_labeled)
+            # sampler_target_label = WeightedRandomSampler(target_weights, len(data_train_source))
 
             train_target_loader = DataLoader(
                 data_train_target_labeled,
                 batch_size=1,
-                sampler=sampler_target_label,
+                sampler=train_target_sampler,
                 num_workers=self.n_proc,
                 worker_init_fn=pl_worker_init_function,
                 drop_last=True,

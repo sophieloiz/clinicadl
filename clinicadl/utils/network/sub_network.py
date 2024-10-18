@@ -862,7 +862,6 @@ class CNN_SSDA_FS_DEBUG(Network):
         self.fc_class_target = fc_class_target.to(self.device)
         self.fc_domain = fc_domain.to(self.device)
         self.fc_domain2 = fc_domain2.to(self.device)
-
         self.n_classes = n_classes
 
     @property
@@ -958,7 +957,7 @@ class CNN_SSDA_FS_DEBUG(Network):
         loss_classif_source = criterion(x_source, labels)
         loss_classif_target = criterion(x_target, labels_target)
 
-        loss_classif = loss_classif_source+loss_classif_target
+        loss_classif = loss_classif_source + loss_classif_target
 
         return    (
             x_source,
