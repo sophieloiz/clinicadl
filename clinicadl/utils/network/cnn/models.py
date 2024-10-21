@@ -524,12 +524,8 @@ class Conv5_FC3_SSDA_DEBUG(CNN_SSDA_FS_DEBUG):
             nn.Flatten(),
             nn.Dropout(p=dropout),
 
-            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 300),
-            nn.ReLU(),)
-        
-        fc_domain2 = nn.Sequential(
-            nn.Linear(300, output_size)
-        )
+            nn.Linear(np.prod(list(output_convolutions.shape)).item(), output_size))
+
 
         # fmt: on
         super().__init__(
@@ -537,7 +533,7 @@ class Conv5_FC3_SSDA_DEBUG(CNN_SSDA_FS_DEBUG):
             fc_class_source=fc_class_source,
             fc_class_target=fc_class_target,
             fc_domain=fc_domain,
-            fc_domain2=fc_domain2,
+            #fc_domain2=fc_domain2,
             n_classes=output_size,
             gpu=gpu,
         )

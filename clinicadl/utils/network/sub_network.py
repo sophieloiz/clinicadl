@@ -852,7 +852,7 @@ class CNN_SSDA_FS_DEBUG(Network):
         fc_class_source,
         fc_class_target,
         fc_domain,
-        fc_domain2,
+        #fc_domain2,
         n_classes,
         gpu=False,
     ):
@@ -861,7 +861,7 @@ class CNN_SSDA_FS_DEBUG(Network):
         self.fc_class_source = fc_class_source.to(self.device)
         self.fc_class_target = fc_class_target.to(self.device)
         self.fc_domain = fc_domain.to(self.device)
-        self.fc_domain2 = fc_domain2.to(self.device)
+       # self.fc_domain2 = fc_domain2.to(self.device)
         self.n_classes = n_classes
 
     @property
@@ -871,7 +871,7 @@ class CNN_SSDA_FS_DEBUG(Network):
             self.fc_class_source,
             self.fc_class_target,
             self.fc_domain,
-            self.fc_domain2,
+           # self.fc_domain2,
         )
 
     def transfer_weights(self, state_dict, transfer_class):
@@ -889,8 +889,8 @@ class CNN_SSDA_FS_DEBUG(Network):
     def domain_classifier(self,x,alpha):
         x_reverse = ReverseLayerF.apply(x, alpha)
         x_inter = self.fc_domain(x_reverse)
-        out_domain = self.fc_domain2(x_inter)
-        return x_inter, out_domain
+       # out_domain = self.fc_domain2(x_inter)
+        return x_inter #, out_domain
     
     def task_classifier(self,x):
         x_source = self.fc_class_source(x)
@@ -916,15 +916,15 @@ class CNN_SSDA_FS_DEBUG(Network):
 
 
         x_features_source = self.features_extractor(images_source)
-        _, out_domain_source = self.domain_classifier(x_features_source, alpha)
+        out_domain_source = self.domain_classifier(x_features_source, alpha)
 
 
         x_features_target = self.features_extractor(images_target)
-        _, out_domain_target = self.domain_classifier(x_features_target, alpha)
+        out_domain_target = self.domain_classifier(x_features_target, alpha)
 
 
         x_features_target_lab = self.features_extractor(images_target_unl)
-        _, out_domain_target_lab= self.domain_classifier(x_features_target_lab, alpha)
+        out_domain_target_lab= self.domain_classifier(x_features_target_lab, alpha)
 
 
         labels_domain_source = (torch.zeros(images_source.shape[0]).long().to(self.device))
