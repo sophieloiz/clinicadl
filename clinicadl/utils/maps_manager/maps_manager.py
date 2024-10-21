@@ -1968,13 +1968,12 @@ class MapsManager:
             list(model.convolutions.parameters()) +
             list(model.fc_class_source.parameters()) +
             list(model.fc_class_target.parameters()),
-            lr=1e-4
+            lr=1e-6
         )
 
         # Initialize optimizer for domain classification
         optimizer_domain = torch.optim.Adam(
-            list(model.fc_domain.parameters()) +
-            list(model.fc_domain2.parameters()),
+            list(model.fc_domain.parameters()),
             lr=1e-4
 
         )
