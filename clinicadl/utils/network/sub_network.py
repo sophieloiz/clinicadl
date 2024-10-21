@@ -950,7 +950,7 @@ class CNN_SSDA_FS_DEBUG(Network):
         else:
             labels = (torch.zeros(images.shape[0]).long().to(self.device))
 
-        loss_bce = criterion(images, labels) 
+        loss_bce = criterion(out_domain, labels) 
 
         return out_domain, {"loss": loss_bce}
     
