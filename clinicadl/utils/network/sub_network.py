@@ -935,6 +935,24 @@ class CNN_SSDA_FS_DEBUG(Network):
         loss_bce = criterion(out_domain_source, labels_domain_source) + criterion(out_domain_target, labels_domain_target) + criterion(out_domain_target_lab, labels_domain_target_unl)
 
         return {"loss": loss_bce}
+
+
+    def compute_outputs_and_loss_domain_single(self, input_dict, criterion, target):
+        
+        images = input_dict["image"].to(self.device)
+
+        x_features = self.features_extractor(images)
+        out_domain = self.domain_classifier(x_features, 1)
+
+        if target: 
+
+            labels = (torch.ones(images.shape[0]).long().to(self.device))
+        else:
+            labels = (torch.zeros(images.shape[0]).long().to(self.device))
+
+        loss_bce = criterion(images, labels) 
+
+        return out_domain, {"loss": loss_bce}
     
     def compute_outputs_and_loss_task(self, data_source, data_target, criterion):
         

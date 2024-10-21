@@ -2021,7 +2021,7 @@ class MapsManager:
             ):
                 p = float(i + start_steps) / total_steps
                 
-                alpha =  2.0 / (1.0 + np.exp(-10 * p)) #- 1
+                alpha =  2.0 / (1.0 + np.exp(-10 * p))  #- 1
 
                 # Classification loss
                 _, _, loss_dict = model.compute_outputs_and_loss_task(
@@ -2030,7 +2030,6 @@ class MapsManager:
 
                 logger.debug(f"Train loss dictionnary {loss_dict}")
                 classification_loss = loss_dict["loss"]
-                print(classification_loss)
                 classification_loss.backward()
 
                 # Domain classification loss
@@ -2040,18 +2039,19 @@ class MapsManager:
 
                 logger.debug(f"Train loss dictionnary {loss_dict_domain}")
                 domain_loss = loss_dict_domain["loss"]
-                print(domain_loss)
                 domain_loss.backward()
 
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
                     optimizer_task.step()
                     optimizer_task.zero_grad()
-                    optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
 
                     optimizer_domain.step()
                     optimizer_domain.zero_grad()
+                    
                     optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
+                    optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
+
 
                     del domain_loss, classification_loss
 
@@ -2151,12 +2151,14 @@ class MapsManager:
             if (i + 1) % self.accumulation_steps != 0:
                 optimizer_domain.step()
                 optimizer_domain.zero_grad()
-                optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
 
                 
                 optimizer_task.step()
                 optimizer_task.zero_grad()
+               
+                optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
                 optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
+
 
             # Always test the results and save them once at the end of the epoch
             model.zero_grad()
@@ -2200,6 +2202,39 @@ class MapsManager:
                     f"at the end of iteration {i}"
                 )
 
+                _, metrics_train_source_domain = self.task_manager.test_da_debug_domain(
+                    model,
+                    train_source_loader,
+                    criterion,
+                    True,
+                    False,
+                )
+                _, metrics_valid_source_domain = self.task_manager.test_da_debug_domain(
+                    model,
+                    valid_source_loader,
+                    criterion,
+                    True,
+                    False,
+                )
+
+                log_writer.step(
+                    epoch,
+                    i,
+                    metrics_train_source_domain,
+                    metrics_valid_source_domain,
+                    len(train_source_loader),
+                    "source_domain.tsv"
+                )
+
+                logger.info(
+                    f"{self.mode} level training loss for source data is {metrics_train_source_domain['loss']} "
+                    f"at the end of iteration {i}"
+                )
+                logger.info(
+                    f"{self.mode} level validation loss for source data is {metrics_valid_source_domain['loss']} "
+                    f"at the end of iteration {i}"
+                )
+
             _, metrics_train_target = self.task_manager.test_da_debug(
                 model,
                 train_target_loader,
@@ -2234,6 +2269,39 @@ class MapsManager:
                 f"{self.mode} level validation loss for target data is {metrics_valid_target['loss']} "
                 f"at the end of iteration {i}"
             )
+
+
+            _, metrics_train_target_domain = self.task_manager.test_da_debug_domain(
+                model,
+                train_target_loader,
+                criterion,
+                target=True)
+                            
+            _, metrics_valid_target_domain = self.task_manager.test_da_debug_domain(
+                model,
+                valid_loader,
+                criterion,
+                target=True
+            )
+
+            log_writer.step(
+                epoch,
+                i,
+                metrics_train_target_domain,
+                metrics_valid_target_domain,
+                len(train_source_loader),
+                "target_domain.tsv"
+            )
+
+            logger.info(
+                f"{self.mode} level training loss for source data is {metrics_train_target_domain['loss']} "
+                f"at the end of iteration {i}"
+            )
+            logger.info(
+                f"{self.mode} level validation loss for source data is {metrics_valid_target_domain['loss']} "
+                f"at the end of iteration {i}"
+            )
+
 
             # Save checkpoints and best models
             best_dict = retain_best.step(metrics_valid_target)
