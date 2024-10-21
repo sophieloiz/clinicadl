@@ -2030,6 +2030,7 @@ class MapsManager:
 
                 logger.debug(f"Train loss dictionnary {loss_dict}")
                 classification_loss = loss_dict["loss"]
+                print(classification_loss)
                 classification_loss.backward()
 
                 # Domain classification loss
@@ -2039,6 +2040,7 @@ class MapsManager:
 
                 logger.debug(f"Train loss dictionnary {loss_dict_domain}")
                 domain_loss = loss_dict_domain["loss"]
+                print(domain_loss)
                 domain_loss.backward()
 
                 if (i + 1) % self.accumulation_steps == 0:
@@ -2149,9 +2151,13 @@ class MapsManager:
             if (i + 1) % self.accumulation_steps != 0:
                 optimizer_domain.step()
                 optimizer_domain.zero_grad()
+                optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
+
                 
                 optimizer_task.step()
                 optimizer_task.zero_grad()
+                optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
+
             # Always test the results and save them once at the end of the epoch
             model.zero_grad()
             logger.debug(f"Last checkpoint at the end of the epoch {epoch}")
