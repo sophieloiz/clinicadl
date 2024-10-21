@@ -3495,6 +3495,7 @@ class MapsManager:
             )
             transfer_class = getattr(network_package, transfer_maps.architecture)
             logger.debug(f"Transfer from {transfer_class}")
+            print(transfer_state)
             model.transfer_weights(transfer_state["model"], transfer_class)
 
             #if nb_unfrozen_layer != 0:
