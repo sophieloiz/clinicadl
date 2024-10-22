@@ -888,6 +888,7 @@ class CNN_SSDA_FS_DEBUG(Network):
     
     def domain_classifier(self,x,alpha):
         x_reverse = ReverseLayerF.apply(x, alpha)
+        print(alpha)
         x_inter = self.fc_domain(x_reverse)
        # out_domain = self.fc_domain2(x_inter)
         return x_inter #, out_domain

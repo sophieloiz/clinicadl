@@ -2030,7 +2030,7 @@ class MapsManager:
 
                 logger.debug(f"Train loss dictionnary {loss_dict}")
                 classification_loss = loss_dict["loss"]
-                classification_loss.backward()
+                classification_loss.backward(retain_graph=True)
 
                 # Domain classification loss
                 loss_dict_domain = model.compute_outputs_and_loss_domain(
