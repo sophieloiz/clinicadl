@@ -803,7 +803,10 @@ def generate_artifacts_dataset(
 
         artifacts = tio.transforms.Compose(artifacts_tio)
 
-        artif_image = artifacts(tio.ScalarImage(image_path))
+        artif_image = artifacts(tio.ScalarImage(image_path)) 
+        
+        
+
         artif_image.save(artif_image_nii_dir / artif_image_nii_filename)
 
         # Append row to output tsv
