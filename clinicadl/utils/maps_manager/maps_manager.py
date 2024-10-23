@@ -2023,6 +2023,8 @@ class MapsManager:
                 
                 alpha =  2.0 / (1.0 + np.exp(-10 * p))  #- 1
 
+                alpha = 10
+
                 # Classification loss
                 _, _, loss_dict = model.compute_outputs_and_loss_task(
                     data_source, data_target, criterion
@@ -2320,6 +2322,17 @@ class MapsManager:
             self._write_weights(
                 {
                     "optimizer": optimizer_domain.state_dict(),  # TO MODIFY
+                    "epoch": epoch,
+                    "name": self.optimizer,
+                },
+                None,
+                split,
+                filename="optimizer_domain.pth.tar",
+            )
+
+            self._write_weights(
+                {
+                    "optimizer": optimizer_task.state_dict(),  # TO MODIFY
                     "epoch": epoch,
                     "name": self.optimizer,
                 },

@@ -523,8 +523,15 @@ class Conv5_FC3_SSDA_DEBUG(CNN_SSDA_FS_DEBUG):
         fc_domain = nn.Sequential(
             nn.Flatten(),
             nn.Dropout(p=dropout),
+            
+            nn.Linear(np.prod(list(output_convolutions.shape)).item(), 1300),
+            nn.ReLU(),
 
-            nn.Linear(np.prod(list(output_convolutions.shape)).item(), output_size))
+            nn.Linear(1300, 50),
+            nn.ReLU(),
+
+            nn.Linear(50, output_size))
+        
 
 
         # fmt: on
