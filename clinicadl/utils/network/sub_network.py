@@ -954,6 +954,27 @@ class CNN_SSDA_FS_DEBUG(Network):
         loss_bce = criterion(out_domain, labels) 
 
         return out_domain, {"loss": loss_bce}
+
+    # A voir comment implémenter ça correctement dans le task manager
+    def compute_outputs_and_loss_domain_double(self, input_dict, input_dict_target, criterion):
+        
+        images = input_dict["image"].to(self.device)
+        images_target = input_dict_target["image"].to(self.device)
+
+
+        x_features = self.features_extractor(images)
+        out_domain = self.domain_classifier(x_features, 1)
+
+        x_features_target = self.features_extractor(images_target)
+        out_domain_target = self.domain_classifier(x_features_target, 1)
+
+        labels_target = (torch.ones(images_target.shape[0]).long().to(self.device))
+        
+        labels = (torch.zeros(images.shape[0]).long().to(self.device))
+
+        loss_bce = criterion(out_domain, labels) + criterion(out_domain_target, labels_target) 
+
+        return out_domain, out_domain_target, {"loss": loss_bce}
     
     def compute_outputs_and_loss_task(self, data_source, data_target, criterion):
         
