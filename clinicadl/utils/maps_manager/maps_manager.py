@@ -1968,7 +1968,7 @@ class MapsManager:
             list(model.convolutions.parameters()) +
             list(model.fc_class_source.parameters()) +
             list(model.fc_class_target.parameters()),
-            lr=1e-6
+            lr=1e-3
         )
 
         # Initialize optimizer for domain classification
@@ -2052,7 +2052,7 @@ class MapsManager:
                     optimizer_domain.zero_grad()
                     
                     optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
-                    optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
+                    optimizer_task = model.lr_scheduler(1e-3, optimizer_task, p)
 
 
                     del domain_loss, classification_loss
@@ -2159,7 +2159,7 @@ class MapsManager:
                 optimizer_task.zero_grad()
                
                 optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
-                optimizer_task = model.lr_scheduler(1e-6, optimizer_task, p)
+                optimizer_task = model.lr_scheduler(1e-3, optimizer_task, p)
 
 
             # Always test the results and save them once at the end of the epoch
