@@ -913,7 +913,7 @@ class CNN_SSDA_FS_DEBUG(Network):
         
         images_source = input_dict_source["image"].to(self.device)
         images_target = input_dict_target["image"].to(self.device)
-        images_target_unl = input_dict_target_unlabeled["image"].to(self.device)
+        #images_target_unl = input_dict_target_unlabeled["image"].to(self.device)
 
 
         x_features_source = self.features_extractor(images_source)
@@ -924,16 +924,16 @@ class CNN_SSDA_FS_DEBUG(Network):
         out_domain_target = self.domain_classifier(x_features_target, alpha)
 
 
-        x_features_target_lab = self.features_extractor(images_target_unl)
-        out_domain_target_lab= self.domain_classifier(x_features_target_lab, alpha)
+       # x_features_target_lab = self.features_extractor(images_target_unl)
+       # out_domain_target_lab= self.domain_classifier(x_features_target_lab, alpha)
 
 
         labels_domain_source = (torch.zeros(images_source.shape[0]).long().to(self.device))
         labels_domain_target = (torch.ones(images_target.shape[0]).long().to(self.device))
-        labels_domain_target_unl = (torch.ones(images_target_unl.shape[0]).long().to(self.device))
+       # labels_domain_target_unl = (torch.ones(images_target_unl.shape[0]).long().to(self.device))
 
 
-        loss_bce = criterion(out_domain_source, labels_domain_source) + criterion(out_domain_target, labels_domain_target) + criterion(out_domain_target_lab, labels_domain_target_unl)
+        loss_bce = criterion(out_domain_source, labels_domain_source) + criterion(out_domain_target, labels_domain_target) #+ criterion(out_domain_target_lab, labels_domain_target_unl)
 
         return {"loss": loss_bce}
 
