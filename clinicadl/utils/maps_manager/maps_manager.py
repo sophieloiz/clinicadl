@@ -1974,7 +1974,7 @@ class MapsManager:
         # Initialize optimizer for domain classification
         optimizer_domain = torch.optim.Adam(
             list(model.fc_domain.parameters()),
-            lr=1e-5
+            lr=1e-4
 
         )
 
@@ -2032,7 +2032,7 @@ class MapsManager:
 
                 logger.debug(f"Train loss dictionnary {loss_dict}")
                 classification_loss = loss_dict["loss"]
-                classification_loss.backward(retain_graph=True)
+                #classification_loss.backward(retain_graph=True)
 
                 # Domain classification loss
                 loss_dict_domain = model.compute_outputs_and_loss_domain(
@@ -2041,7 +2041,15 @@ class MapsManager:
 
                 logger.debug(f"Train loss dictionnary {loss_dict_domain}")
                 domain_loss = loss_dict_domain["loss"]
-                domain_loss.backward()
+
+                total_loss = classification_loss + domain_loss
+                
+                total_loss.backward()
+                #domain_loss.backward()
+
+                for name, param in model.named_parameters():
+                    if param.grad is not None:
+                        print(f"Layer {name} - Gradient norm: {param.grad.norm()}")
 
                 if (i + 1) % self.accumulation_steps == 0:
                     step_flag = False
@@ -2052,9 +2060,9 @@ class MapsManager:
                     optimizer_domain.zero_grad()
                     
                     optimizer_task = model.lr_scheduler(5e-5, optimizer_task, p)
-                    optimizer_domain = model.lr_scheduler(1e-5, optimizer_domain, p)
+                    optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
 
-                    del domain_loss, classification_loss
+                    del total_loss, domain_loss, classification_loss
 
                     # Evaluate the model only when no gradients are accumulated
                     if (
@@ -2157,7 +2165,7 @@ class MapsManager:
                 optimizer_task.step()
                 optimizer_task.zero_grad()
                
-                optimizer_domain = model.lr_scheduler(1e-5, optimizer_domain, p)
+                optimizer_domain = model.lr_scheduler(1e-4, optimizer_domain, p)
                 optimizer_task = model.lr_scheduler(5e-5, optimizer_task, p)
 
 
