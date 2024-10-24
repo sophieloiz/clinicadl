@@ -1029,9 +1029,9 @@ class CNN_SSDA_FS_DEBUG(Network):
             {"loss": loss, 
             },
         )
-        
+
     def lr_scheduler(self, lr, optimizer, p):
-        lr = lr / (1 + 10 * p) ** 0.75
+        lr = lr / (1 + 5 * p) ** 0.5
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
         return optimizer

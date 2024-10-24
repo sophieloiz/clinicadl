@@ -1968,13 +1968,13 @@ class MapsManager:
             list(model.convolutions.parameters()) +
             list(model.fc_class_source.parameters()) +
             list(model.fc_class_target.parameters()),
-            lr=1e-5
+            lr=5e-5
         )
 
         # Initialize optimizer for domain classification
         optimizer_domain = torch.optim.Adam(
             list(model.fc_domain.parameters()),
-            lr=1e-6
+            lr=1e-5
 
         )
 
@@ -2020,7 +2020,7 @@ class MapsManager:
                 zip(train_source_loader, train_target_loader, train_target_unl_loader)
             ):
                 p = float(i + start_steps) / total_steps
-                
+                print(f"Batch {i}, Epoch {epoch}, p: {p}")
                 #alpha =  2.0 / (1.0 + np.exp(-10 * p))  - 1
 
                 alpha = 5
@@ -2051,9 +2051,8 @@ class MapsManager:
                     optimizer_domain.step()
                     optimizer_domain.zero_grad()
                     
-                    optimizer_domain = model.lr_scheduler(1e-6, optimizer_domain, p)
-                    optimizer_task = model.lr_scheduler(1e-5, optimizer_task, p)
-
+                    optimizer_task = model.lr_scheduler(5e-5, optimizer_task, p)
+                    optimizer_domain = model.lr_scheduler(1e-5, optimizer_domain, p)
 
                     del domain_loss, classification_loss
 
@@ -2158,8 +2157,8 @@ class MapsManager:
                 optimizer_task.step()
                 optimizer_task.zero_grad()
                
-                optimizer_domain = model.lr_scheduler(1e-6, optimizer_domain, p)
-                optimizer_task = model.lr_scheduler(1e-5, optimizer_task, p)
+                optimizer_domain = model.lr_scheduler(1e-5, optimizer_domain, p)
+                optimizer_task = model.lr_scheduler(5e-5, optimizer_task, p)
 
 
             # Always test the results and save them once at the end of the epoch
