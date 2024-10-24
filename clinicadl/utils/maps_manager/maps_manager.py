@@ -2702,7 +2702,7 @@ class MapsManager:
                 mode_id = data[f"{self.mode}_id"]
              
                 output_filename = (
-                    f"{participant_id}_{session_id}_{self.mode}-{mode_id}_features_flair_adversarial.pt"
+                    f"{participant_id}_{session_id}_{self.mode}-{mode_id}_features_adversarial.pt"
                 )
                 torch.save(features, tensor_path / output_filename)
                 #torch.save(features3, tensor_path3 / output_filename)

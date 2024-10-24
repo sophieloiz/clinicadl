@@ -1008,7 +1008,7 @@ class CNN_SSDA_FS_DEBUG(Network):
             },
         )
      
-    def compute_outputs_and_loss_test(self, data, criterion,target):
+    def compute_outputs_and_loss_test(self, data, criterion,target=True):
         
         images, labels = (
             data["image"].to(self.device),
