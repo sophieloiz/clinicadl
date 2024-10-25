@@ -2021,10 +2021,10 @@ class MapsManager:
             ):
                 p = float(i + start_steps) / total_steps
                 print(f"Batch {i}, Epoch {epoch}, p: {p}")
-                alpha =  2.0 / (1.0 + np.exp(-10 * p))  - 1
+                #alpha =  2.0 / (1.0 + np.exp(-10 * p))  - 1
 
-                alpha = 0.3
-                print("Fixed alpha to 0.3 ")
+                alpha = 0.1
+                print("Fixed alpha to 0.1 ")
 
                 # Classification loss
                 _, _, loss_dict = model.compute_outputs_and_loss_task(
