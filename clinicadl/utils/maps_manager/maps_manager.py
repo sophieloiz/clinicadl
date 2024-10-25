@@ -2023,7 +2023,8 @@ class MapsManager:
                 print(f"Batch {i}, Epoch {epoch}, p: {p}")
                 alpha =  2.0 / (1.0 + np.exp(-10 * p))  - 1
 
-                #alpha = 3
+                alpha = 0.8
+                print(f"Fixed alpha to 0.8 ")
 
                 # Classification loss
                 _, _, loss_dict = model.compute_outputs_and_loss_task(
