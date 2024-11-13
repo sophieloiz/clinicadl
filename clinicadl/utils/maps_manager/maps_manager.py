@@ -2403,7 +2403,11 @@ class MapsManager:
             )
             #model = DDP(model)
 
-            prediction_df, metrics = self.task_manager.test_da_debug(
+            # prediction_df, metrics = self.task_manager.test_da_debug(
+            #     model, dataloader, criterion, use_labels=use_labels, # amp=amp
+            # )
+
+            prediction_df, metrics = self.task_manager.test(
                 model, dataloader, criterion, use_labels=use_labels, # amp=amp
             )
             if use_labels:
