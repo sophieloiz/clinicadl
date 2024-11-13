@@ -3286,21 +3286,21 @@ class MapsManager:
         checkpoint_path = checkpoint_dir / filename
         torch.save(state, checkpoint_path)
 
-        best_filename = f"model_{epochs}.pth.tar"
+        best_filename = "model.pth.tar"
         if network is not None:
             best_filename = f"network-{network}_model.pth.tar"
 
         # Save model according to several metrics
-        # if metrics_dict is not None:
-        #     for metric_name, metric_bool in metrics_dict.items():
-        metric_path = (
-            self.maps_path
-            / f"{self.split_name}-{split}"
-            / f"best-BA"
-        )
-                #if metric_bool:
-        metric_path.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(checkpoint_path, metric_path / best_filename)
+        if metrics_dict is not None:
+            for metric_name, metric_bool in metrics_dict.items():
+                metric_path = (
+                    self.maps_path
+                    / f"{self.split_name}-{split}"
+                    / f"best-{metric_name}"
+                )
+                if metric_bool:
+                    metric_path.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(checkpoint_path, metric_path / best_filename)
 
     def _write_information(self):
         """
