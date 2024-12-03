@@ -212,14 +212,29 @@ class CNN_SSDA(Network):
             )
             
             
-            self.convolutions.load_state_dict(convolutions_dict)
-            fc_dict = OrderedDict(
+            # Transférer les poids spécifiques à `fc_class_source`
+            fc_class_source_dict = OrderedDict(
                 (k.replace("fc.", ""), v)
                 for k, v in state_dict.items()
                 if "fc" in k
             )
-            self.fc_class_source.load_state_dict(fc_dict)
-            self.fc_class_target.load_state_dict(fc_dict)
+            self.fc_class_source.load_state_dict(fc_class_source_dict)
+
+            # Transférer les poids spécifiques à `fc_class_target`
+            fc_class_target_dict = OrderedDict(
+                (k.replace("fc.", ""), v)
+                for k, v in state_dict.items()
+                if "fc" in k
+            )
+            self.fc_class_target.load_state_dict(fc_class_target_dict)
+
+            # Transférer les poids spécifiques à `fc_domain`
+            fc_domain_dict = OrderedDict(
+                (k.replace("fc.", ""), v)
+                for k, v in state_dict.items()
+                if "fc" in k
+            )
+            self.fc_domain.load_state_dict(fc_domain_dict)
             
         elif issubclass(transfer_class, CNN_SSDA_INIT):
             print(state_dict)
